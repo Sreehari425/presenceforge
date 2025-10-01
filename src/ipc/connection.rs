@@ -1,6 +1,6 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_json::Value;
-use std::io::{Read, Write};
+use std::io::Read;
 
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
@@ -8,7 +8,7 @@ use std::os::unix::net::UnixStream;
 #[cfg(windows)]
 use std::fs::OpenOptions;
 #[cfg(windows)]
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::protocol::{Opcode, constants};
