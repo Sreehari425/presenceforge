@@ -1,9 +1,10 @@
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::process;
 
 use crate::activity::Activity;
+use crate::debug_println;
 use crate::error::Result;
-use crate::ipc::{Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, constants};
+use crate::ipc::{constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode};
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -34,7 +35,7 @@ impl DiscordIpcClient {
         self.connection.send(Opcode::Handshake, &payload)?;
 
         let (_opcode, response) = self.connection.recv()?;
-        println!("Handshake response: {}", response);
+        debug_println!("Handshake response: {}", response);
         Ok(response)
     }
 
@@ -53,7 +54,7 @@ impl DiscordIpcClient {
         self.connection.send(Opcode::Frame, &payload)?;
 
         let (_opcode, response) = self.connection.recv()?;
-        println!("Set Activity response: {}", response);
+        debug_println!("Set Activity response: {}", response);
         Ok(response)
     }
 
@@ -72,7 +73,7 @@ impl DiscordIpcClient {
         self.connection.send(Opcode::Frame, &payload)?;
 
         let (_opcode, response) = self.connection.recv()?;
-        println!("Clear Activity response: {}", response);
+        debug_println!("Clear Activity response: {}", response);
         Ok(response)
     }
 
