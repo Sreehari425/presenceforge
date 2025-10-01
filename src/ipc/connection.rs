@@ -31,6 +31,7 @@ impl IpcConnection {
         }
 
         // Fallback to /run/user/{uid} if no env vars found
+
         if directories.is_empty() {
             directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
         }

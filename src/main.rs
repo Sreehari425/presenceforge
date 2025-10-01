@@ -13,8 +13,13 @@ fn main() -> Result<()> {
         .state("Playing a game")
         .details("In the menu")
         .start_timestamp_now()
-        .large_image("your_image_key")
+        .large_image("car")
         .large_text("This is a large image")
+        .button(
+            " View Car",
+            "https://github.com/your-username/presenceforge",
+        )
+        .button(" Documentation", "https://docs.rs/presenceforge")
         .build();
 
     // Set the activity
