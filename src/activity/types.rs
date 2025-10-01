@@ -32,7 +32,7 @@ pub struct Activity {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActivityTimestamps {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start: Option<i64>,
+    pub start: Option<u64>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<i64>,

@@ -1,8 +1,10 @@
-use presenceforge::{Activity, ActivityAssets, ActivityTimestamps, ActivityButton, DiscordIpcClient, Result};
+use presenceforge::{
+    Activity, ActivityAssets, ActivityButton, ActivityTimestamps, DiscordIpcClient, Result,
+};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Example showing manual Activity creation without the builder pattern
-fn main() -> Result<()> {
+fn main() -> Result {
     let client_id = "YOUR-CLIENT-ID"; // Replace with your Discord app client ID
     let mut client = DiscordIpcClient::new(client_id)?;
 
@@ -18,7 +20,7 @@ fn main() -> Result<()> {
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
-                    .as_secs() as i64
+                    .as_secs(),
             ),
             end: None,
         }),

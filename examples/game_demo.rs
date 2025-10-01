@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 
 /// Example showing a dynamic game status that changes over time
-fn main() -> Result<()> {
+fn main() -> Result {
     let client_id = "YOUR-CLIENT-ID"; // Replace with your Discord app client ID
     let mut client = DiscordIpcClient::new(client_id)?;
 

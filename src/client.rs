@@ -40,7 +40,7 @@ impl DiscordIpcClient {
     }
 
     /// Set Discord Rich Presence activity
-    pub fn set_activity(&mut self, activity: &Activity) -> Result<Value> {
+    pub fn set_activity(&mut self, activity: &Activity) -> Result {
         let message = IpcMessage {
             cmd: Command::SetActivity,
             args: json!({
@@ -53,9 +53,7 @@ impl DiscordIpcClient {
         let payload = serde_json::to_value(message)?;
         self.connection.send(Opcode::Frame, &payload)?;
 
-        let (_opcode, response) = self.connection.recv()?;
-        debug_println!("Set Activity response: {}", response);
-        Ok(response)
+        Ok(())
     }
 
     /// Clear Discord Rich Presence activity
@@ -78,7 +76,7 @@ impl DiscordIpcClient {
     }
 
     /// Send a raw IPC message
-    pub fn send_message(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
+    pub fn send_message(&mut self, opcode: Opcode, payload: &Value) -> Result {
         self.connection.send(opcode, payload)
     }
 
