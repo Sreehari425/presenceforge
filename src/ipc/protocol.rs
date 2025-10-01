@@ -68,10 +68,10 @@ pub struct IpcResponse {
 pub mod constants {
     /// IPC version
     pub const IPC_VERSION: u32 = 1;
-    
+
     /// Maximum IPC socket attempts
     pub const MAX_IPC_SOCKETS: u8 = 10;
-    
+
     /// IPC socket name prefix
     pub const IPC_SOCKET_PREFIX: &str = "discord-ipc-";
 }

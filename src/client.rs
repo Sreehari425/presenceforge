@@ -1,9 +1,9 @@
+use serde_json::{Value, json};
 use std::process;
-use serde_json::{json, Value};
 
-use crate::error::Result;
-use crate::ipc::{IpcConnection, Opcode, HandshakePayload, IpcMessage, Command, constants};
 use crate::activity::Activity;
+use crate::error::Result;
+use crate::ipc::{Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, constants};
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -16,7 +16,7 @@ impl DiscordIpcClient {
     pub fn new<S: Into<String>>(client_id: S) -> Result<Self> {
         let client_id = client_id.into();
         let connection = IpcConnection::new()?;
-        
+
         Ok(Self {
             client_id,
             connection,
@@ -29,10 +29,10 @@ impl DiscordIpcClient {
             v: constants::IPC_VERSION,
             client_id: self.client_id.clone(),
         };
-        
+
         let payload = serde_json::to_value(handshake)?;
         self.connection.send(Opcode::Handshake, &payload)?;
-        
+
         let (_opcode, response) = self.connection.recv()?;
         println!("Handshake response: {}", response);
         Ok(response)
@@ -48,10 +48,10 @@ impl DiscordIpcClient {
             }),
             nonce: "set_activity_nonce".to_string(),
         };
-        
+
         let payload = serde_json::to_value(message)?;
         self.connection.send(Opcode::Frame, &payload)?;
-        
+
         let (_opcode, response) = self.connection.recv()?;
         println!("Set Activity response: {}", response);
         Ok(response)
@@ -67,10 +67,10 @@ impl DiscordIpcClient {
             }),
             nonce: "clear_activity_nonce".to_string(),
         };
-        
+
         let payload = serde_json::to_value(message)?;
         self.connection.send(Opcode::Frame, &payload)?;
-        
+
         let (_opcode, response) = self.connection.recv()?;
         println!("Clear Activity response: {}", response);
         Ok(response)

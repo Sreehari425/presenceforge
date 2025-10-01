@@ -1,5 +1,7 @@
+use crate::activity::types::{
+    Activity, ActivityAssets, ActivityButton, ActivityParty, ActivitySecrets, ActivityTimestamps,
+};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::activity::types::{Activity, ActivityAssets, ActivityTimestamps, ActivityParty, ActivitySecrets, ActivityButton};
 
 /// Builder for creating Discord Rich Presence activities
 #[derive(Debug, Default)]
@@ -31,50 +33,71 @@ impl ActivityBuilder {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        
-        let timestamps = self.activity.timestamps.get_or_insert_with(ActivityTimestamps::default);
+
+        let timestamps = self
+            .activity
+            .timestamps
+            .get_or_insert_with(ActivityTimestamps::default);
         timestamps.start = Some(now);
         self
     }
 
     /// Set the start timestamp
     pub fn start_timestamp(mut self, timestamp: i64) -> Self {
-        let timestamps = self.activity.timestamps.get_or_insert_with(ActivityTimestamps::default);
+        let timestamps = self
+            .activity
+            .timestamps
+            .get_or_insert_with(ActivityTimestamps::default);
         timestamps.start = Some(timestamp);
         self
     }
 
     /// Set the end timestamp
     pub fn end_timestamp(mut self, timestamp: i64) -> Self {
-        let timestamps = self.activity.timestamps.get_or_insert_with(ActivityTimestamps::default);
+        let timestamps = self
+            .activity
+            .timestamps
+            .get_or_insert_with(ActivityTimestamps::default);
         timestamps.end = Some(timestamp);
         self
     }
 
     /// Set the large image asset
     pub fn large_image<S: Into<String>>(mut self, key: S) -> Self {
-        let assets = self.activity.assets.get_or_insert_with(ActivityAssets::default);
+        let assets = self
+            .activity
+            .assets
+            .get_or_insert_with(ActivityAssets::default);
         assets.large_image = Some(key.into());
         self
     }
 
     /// Set the large image text
     pub fn large_text<S: Into<String>>(mut self, text: S) -> Self {
-        let assets = self.activity.assets.get_or_insert_with(ActivityAssets::default);
+        let assets = self
+            .activity
+            .assets
+            .get_or_insert_with(ActivityAssets::default);
         assets.large_text = Some(text.into());
         self
     }
 
     /// Set the small image asset
     pub fn small_image<S: Into<String>>(mut self, key: S) -> Self {
-        let assets = self.activity.assets.get_or_insert_with(ActivityAssets::default);
+        let assets = self
+            .activity
+            .assets
+            .get_or_insert_with(ActivityAssets::default);
         assets.small_image = Some(key.into());
         self
     }
 
     /// Set the small image text
     pub fn small_text<S: Into<String>>(mut self, text: S) -> Self {
-        let assets = self.activity.assets.get_or_insert_with(ActivityAssets::default);
+        let assets = self
+            .activity
+            .assets
+            .get_or_insert_with(ActivityAssets::default);
         assets.small_text = Some(text.into());
         self
     }
@@ -100,21 +123,30 @@ impl ActivityBuilder {
 
     /// Set join secret
     pub fn join_secret<S: Into<String>>(mut self, secret: S) -> Self {
-        let secrets = self.activity.secrets.get_or_insert_with(ActivitySecrets::default);
+        let secrets = self
+            .activity
+            .secrets
+            .get_or_insert_with(ActivitySecrets::default);
         secrets.join = Some(secret.into());
         self
     }
 
     /// Set spectate secret
     pub fn spectate_secret<S: Into<String>>(mut self, secret: S) -> Self {
-        let secrets = self.activity.secrets.get_or_insert_with(ActivitySecrets::default);
+        let secrets = self
+            .activity
+            .secrets
+            .get_or_insert_with(ActivitySecrets::default);
         secrets.spectate = Some(secret.into());
         self
     }
 
     /// Set match secret
     pub fn match_secret<S: Into<String>>(mut self, secret: S) -> Self {
-        let secrets = self.activity.secrets.get_or_insert_with(ActivitySecrets::default);
+        let secrets = self
+            .activity
+            .secrets
+            .get_or_insert_with(ActivitySecrets::default);
         secrets.match_secret = Some(secret.into());
         self
     }

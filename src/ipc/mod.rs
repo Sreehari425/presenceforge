@@ -1,5 +1,5 @@
-pub mod protocol;
 pub mod connection;
+pub mod protocol;
 
-pub use protocol::*;
 pub use connection::*;
+pub use protocol::*;
