@@ -20,7 +20,7 @@ impl From<u32> for Opcode {
             2 => Opcode::Close,
             3 => Opcode::Ping,
             4 => Opcode::Pong,
-            _ => panic!("Invalid opcode: {}", value),
+            _ => panic!("Invalid opcode: {value}"),
         }
     }
 }
