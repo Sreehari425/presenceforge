@@ -100,6 +100,7 @@ impl IpcConnection {
 
         #[cfg(unix)]
         {
+            use std::io::Write;
             self.stream.write_all(&buffer)?;
         }
 
