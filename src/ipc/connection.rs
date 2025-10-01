@@ -18,22 +18,37 @@ impl IpcConnection {
         Ok(Self { stream })
     }
 
-    /// Connect to Discord IPC socket for now unix to lazy to write for others
+    /// Connect to Discord IPC socket - checks multiple possible directories
     fn connect_to_discord() -> Result<UnixStream> {
-        let runtime_dir = std::env::var("XDG_RUNTIME_DIR")
-            .unwrap_or_else(|_| format!("/run/user/{}", unsafe { libc::getuid() }));
+        // Try environment variables in order of preference
+        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
+        let mut directories = Vec::new();
 
-        for i in 0..constants::MAX_IPC_SOCKETS {
-            let socket_path = format!("{}/{}{}", runtime_dir, constants::IPC_SOCKET_PREFIX, i);
+        for env_key in &env_keys {
+            if let Ok(dir) = std::env::var(env_key) {
+                directories.push(dir);
+            }
+        }
 
-            if let Ok(stream) = UnixStream::connect(&socket_path) {
-                return Ok(stream);
+        // Fallback to /run/user/{uid} if no env vars found
+        if directories.is_empty() {
+            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
+        }
+
+        // Try each directory with each socket number
+        for dir in &directories {
+            for i in 0..constants::MAX_IPC_SOCKETS {
+                let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
+
+                if let Ok(stream) = UnixStream::connect(&socket_path) {
+                    return Ok(stream);
+                }
             }
         }
 
         Err(DiscordIpcError::ConnectionFailed(std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            "No Discord IPC socket found",
+            "No Discord IPC socket found in any of the expected directories",
         )))
     }
 
