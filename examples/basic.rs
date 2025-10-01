@@ -2,7 +2,7 @@ use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
 use std::time::Duration;
 
 fn main() -> Result<()> {
-    let client_id = "1416069067697033216";
+    let client_id = "YOUR-CLIENT-ID";
     let mut client = DiscordIpcClient::new(client_id)?;
 
     // Perform handshake

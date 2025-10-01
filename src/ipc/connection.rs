@@ -1,6 +1,6 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_json::Value;
-use std::io::Read;
+use std::io::{Read, Write};
 
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
@@ -8,10 +8,10 @@ use std::os::unix::net::UnixStream;
 #[cfg(windows)]
 use std::fs::OpenOptions;
 #[cfg(windows)]
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader};
 
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::protocol::{Opcode, constants};
+use crate::ipc::protocol::{constants, Opcode};
 
 #[cfg(unix)]
 pub struct IpcConnection {
@@ -32,7 +32,7 @@ impl IpcConnection {
             let stream = Self::connect_to_discord_unix()?;
             Ok(Self { stream })
         }
-        
+
         #[cfg(windows)]
         {
             let (reader, writer) = Self::connect_to_discord_windows()?;
@@ -77,25 +77,21 @@ impl IpcConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows
-    fn connect_to_discord_windows() -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
+    fn connect_to_discord_windows() -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)>
+    {
         for i in 0..constants::MAX_IPC_SOCKETS {
             let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", i);
-            
+
             // Try to open the named pipe
-            match OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&pipe_path)
-            {
+            match OpenOptions::new().read(true).write(true).open(&pipe_path) {
                 Ok(file) => {
                     // Clone the file handle for reader and writer
-                    let reader_file = file.try_clone().map_err(DiscordIpcError::ConnectionFailed)?;
+                    let reader_file = file
+                        .try_clone()
+                        .map_err(DiscordIpcError::ConnectionFailed)?;
                     let writer_file = file;
-                    
-                    return Ok((
-                        BufReader::new(reader_file),
-                        BufWriter::new(writer_file)
-                    ));
+
+                    return Ok((BufReader::new(reader_file), BufWriter::new(writer_file)));
                 }
                 Err(_) => continue, // Try next pipe number
             }
@@ -120,28 +116,28 @@ impl IpcConnection {
         {
             self.stream.write_all(&buffer)?;
         }
-        
+
         #[cfg(windows)]
         {
             use std::io::Write;
             self.writer.write_all(&buffer)?;
             self.writer.flush()?;
         }
-        
+
         Ok(())
     }
 
     /// Receive data and return opcode and payload
     pub fn recv(&mut self) -> Result<(Opcode, Value)> {
         let mut header = [0u8; 8];
-        
+
         #[cfg(unix)]
         {
             self.stream
                 .read_exact(&mut header)
                 .map_err(|_| DiscordIpcError::SocketClosed)?;
         }
-        
+
         #[cfg(windows)]
         {
             self.reader
@@ -156,14 +152,14 @@ impl IpcConnection {
         let opcode = Opcode::from(opcode_raw);
 
         let mut data = vec![0u8; length as usize];
-        
+
         #[cfg(unix)]
         {
             self.stream
                 .read_exact(&mut data)
                 .map_err(|_| DiscordIpcError::SocketClosed)?;
         }
-        
+
         #[cfg(windows)]
         {
             self.reader
@@ -181,7 +177,7 @@ impl IpcConnection {
         {
             let _ = self.stream.shutdown(std::net::Shutdown::Both);
         }
-        
+
         #[cfg(windows)]
         {
             // Windows named pipes don't need explicit shutdown

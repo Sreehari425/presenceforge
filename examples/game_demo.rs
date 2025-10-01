@@ -1,6 +1,6 @@
 use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 /// Example showing a dynamic game status that changes over time
 fn main() -> Result<()> {
@@ -14,7 +14,12 @@ fn main() -> Result<()> {
     // Game states to cycle through
     let game_states = vec![
         (" Main Menu", "Selecting character", "menu_bg", "Main Menu"),
-        (" Forest Level", "Fighting goblins", "forest_map", "Enchanted Forest"),
+        (
+            " Forest Level",
+            "Fighting goblins",
+            "forest_map",
+            "Enchanted Forest",
+        ),
         (" Castle", "Boss battle", "castle_map", "Dark Castle"),
         (" Victory Screen", "Quest completed!", "victory", "Victory!"),
     ];
@@ -26,7 +31,7 @@ fn main() -> Result<()> {
             .state(*state)
             .details(*details)
             .start_timestamp_now()
-            .large_image(*image_key)  // You'd need to upload these to Discord
+            .large_image(*image_key) // You'd need to upload these to Discord
             .large_text(*image_text)
             .small_image("player_avatar")
             .small_text("Level 25 Warrior")
@@ -35,7 +40,7 @@ fn main() -> Result<()> {
             .build();
 
         client.set_activity(&activity)?;
-        
+
         // Stay in this state for 8 seconds
         thread::sleep(Duration::from_secs(8));
     }
