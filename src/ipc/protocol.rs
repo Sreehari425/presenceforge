@@ -3,13 +3,26 @@ use serde_json::Value;
 
 /// Discord IPC Opcodes
 #[repr(u32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Opcode {
     Handshake = 0,
     Frame = 1,
     Close = 2,
     Ping = 3,
     Pong = 4,
+}
+
+impl Opcode {
+    /// Check if this opcode is a response to a handshake
+    /// In Discord IPC protocol, handshake responses actually use the Frame opcode (1)
+    pub fn is_handshake_response(&self) -> bool {
+        *self == Opcode::Frame
+    }
+
+    /// Check if this opcode is a response to a frame
+    pub fn is_frame_response(&self) -> bool {
+        *self == Opcode::Frame
+    }
 }
 
 impl From<u32> for Opcode {
