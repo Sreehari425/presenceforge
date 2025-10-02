@@ -8,6 +8,9 @@ This directory contains examples demonstrating how to use the PresenceForge libr
 # Basic example - Simple Rich Presence setup (synchronous)
 cargo run --example basic
 
+# Complete Builder Reference - Shows ALL ActivityBuilder options with explanations
+cargo run --example builder_all
+
 # Basic Flatpak - Simple example for Flatpak Discord with custom path
 cargo run --example basic_flatpak
 
@@ -46,6 +49,23 @@ Simple example showing:
 - Setting activity with builder pattern
 - Using assets and buttons
 - Clearing activity
+
+### `builder_all.rs` ⭐ **Comprehensive Reference**
+
+**Complete ActivityBuilder documentation example** showing:
+
+- **Every single builder method** with detailed explanations
+- **Visual layout guide** showing where each field appears in Discord
+- **Practical tips** for each option (images, timestamps, party, buttons, secrets)
+- **What is what**: Clear explanations of confusing terms:
+  - What's the difference between large_image and small_image?
+  - What do "state" and "details" mean?
+  - How do timestamps work (elapsed vs remaining)?
+  - What are secrets used for?
+  - What does "instance" do?
+- **Perfect reference** when you need to know all available options
+
+**Use this example when:** You want to see everything the ActivityBuilder can do!
 
 ### `basic_flatpak.rs`
 
