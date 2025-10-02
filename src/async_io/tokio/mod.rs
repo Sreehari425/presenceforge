@@ -1,10 +1,10 @@
 //! Tokio-specific implementations for async Discord IPC
 
+use crate::debug_println;
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
 #[cfg(unix)]
 use tokio::net::UnixStream;
 
