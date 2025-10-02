@@ -52,7 +52,10 @@ impl TokioConnection {
     }
 
     /// Create a new connection with pipe configuration and timeout
-    pub async fn new_with_config_and_timeout(config: Option<PipeConfig>, timeout_ms: u64) -> Result<Self> {
+    pub async fn new_with_config_and_timeout(
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+    ) -> Result<Self> {
         use tokio::time::{timeout, Duration};
 
         let timeout_duration = Duration::from_millis(timeout_ms);
@@ -68,18 +71,10 @@ impl TokioConnection {
     async fn connect_unix_with_config(config: &PipeConfig) -> Result<Self> {
         match config {
             PipeConfig::Auto => Self::connect_unix_auto().await,
-            PipeConfig::PipeNumber(pipe_num) => {
-                if *pipe_num >= constants::MAX_IPC_SOCKETS {
-                    return Err(DiscordIpcError::InvalidPipeNumber(*pipe_num));
-                }
-                Self::connect_unix_specific(*pipe_num).await
-            }
-            PipeConfig::CustomPath(path) => {
-                UnixStream::connect(path)
-                    .await
-                    .map(Self::Unix)
-                    .map_err(DiscordIpcError::ConnectionFailed)
-            }
+            PipeConfig::CustomPath(path) => UnixStream::connect(path)
+                .await
+                .map(Self::Unix)
+                .map_err(DiscordIpcError::ConnectionFailed),
         }
     }
 
@@ -92,13 +87,21 @@ impl TokioConnection {
 
         for env_key in &env_keys {
             if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
+                directories.push(dir.clone());
+
+                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
+                if env_key == &"XDG_RUNTIME_DIR" {
+                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
+                }
             }
         }
 
         // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
+            let uid = unsafe { libc::getuid() };
+            directories.push(format!("/run/user/{}", uid));
+            // Also try Flatpak path as fallback
+            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
         }
 
         // Try each directory with each socket number
@@ -136,69 +139,15 @@ impl TokioConnection {
         }
     }
 
-    #[cfg(unix)]
-    /// Connect to a specific Discord IPC socket number
-    async fn connect_unix_specific(pipe_num: u8) -> Result<Self> {
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
-            }
-        }
-
-        if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
-        }
-
-        let mut last_error = None;
-
-        for dir in &directories {
-            let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, pipe_num);
-
-            match UnixStream::connect(&socket_path).await {
-                Ok(stream) => {
-                    return Ok(Self::Unix(stream));
-                }
-                Err(err) => {
-                    last_error = Some(err);
-                    continue;
-                }
-            }
-        }
-
-        if let Some(err) = last_error {
-            if err.kind() == io::ErrorKind::PermissionDenied {
-                Err(DiscordIpcError::ConnectionFailed(io::Error::new(
-                    io::ErrorKind::PermissionDenied,
-                    format!("Permission denied when connecting to Discord IPC socket {}. Check file permissions.", pipe_num)
-                )))
-            } else {
-                Err(DiscordIpcError::ConnectionFailed(err))
-            }
-        } else {
-            Err(DiscordIpcError::NoValidSocket)
-        }
-    }
-
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows with configuration
     async fn connect_windows_with_config(config: &PipeConfig) -> Result<Self> {
         match config {
             PipeConfig::Auto => Self::connect_windows_auto().await,
-            PipeConfig::PipeNumber(pipe_num) => {
-                if *pipe_num >= constants::MAX_IPC_SOCKETS {
-                    return Err(DiscordIpcError::InvalidPipeNumber(*pipe_num));
-                }
-                Self::connect_windows_specific(*pipe_num).await
-            }
-            PipeConfig::CustomPath(path) => {
-                ClientOptions::new()
-                    .open(path)
-                    .map(Self::Windows)
-                    .map_err(DiscordIpcError::ConnectionFailed)
-            }
+            PipeConfig::CustomPath(path) => ClientOptions::new()
+                .open(path)
+                .map(Self::Windows)
+                .map_err(DiscordIpcError::ConnectionFailed),
         }
     }
 
@@ -239,31 +188,6 @@ impl TokioConnection {
             }
         } else {
             Err(DiscordIpcError::NoValidSocket)
-        }
-    }
-
-    #[cfg(windows)]
-    /// Connect to a specific Discord IPC named pipe number
-    async fn connect_windows_specific(pipe_num: u8) -> Result<Self> {
-        let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", pipe_num);
-
-        debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
-        match ClientOptions::new().open(pipe_path.clone()) {
-            Ok(client) => {
-                debug_println!("Successfully connected to named pipe: {}", pipe_path);
-                Ok(Self::Windows(client))
-            }
-            Err(err) => {
-                debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
-                if err.kind() == io::ErrorKind::PermissionDenied {
-                    Err(DiscordIpcError::ConnectionFailed(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        format!("Permission denied when connecting to Discord IPC pipe {}. Is Discord running with the right permissions?", pipe_num)
-                    )))
-                } else {
-                    Err(DiscordIpcError::ConnectionFailed(err))
-                }
-            }
         }
     }
 }

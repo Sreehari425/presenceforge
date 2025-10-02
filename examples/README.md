@@ -8,6 +8,9 @@ This directory contains examples demonstrating how to use the PresenceForge libr
 # Basic example - Simple Rich Presence setup (synchronous)
 cargo run --example basic
 
+# Basic Flatpak - Simple example for Flatpak Discord with custom path
+cargo run --example basic_flatpak
+
 # Game demo - Dynamic game status that changes over time
 cargo run --example game_demo
 
@@ -25,6 +28,12 @@ cargo run --example async_std --features async-std-runtime
 
 # Async example with smol
 cargo run --example async_smol --features smol-runtime
+
+# Pipe selection - Discover and select specific Discord pipes
+cargo run --example pipe_selection
+
+# Flatpak Discord - Connect to Flatpak Discord using custom path configuration
+cargo run --example flatpak_discord
 ```
 
 ## Examples Overview
@@ -37,6 +46,17 @@ Simple example showing:
 - Setting activity with builder pattern
 - Using assets and buttons
 - Clearing activity
+
+### `basic_flatpak.rs`
+
+Simple Flatpak Discord example showing:
+
+- Discovering Flatpak Discord pipe
+- Connecting using `PipeConfig::CustomPath`
+- Same simple structure as `basic.rs` but with custom path configuration
+- Perfect starting point for Flatpak Discord integration
+
+**Note:** If Flatpak Discord is not found, the example will show an error. For automatic fallback, use `basic.rs` with auto-discovery.
 
 ### `game_demo.rs`
 
@@ -90,6 +110,28 @@ Async example with smol showing:
 - Using smol's lightweight async runtime
 - Using `smol::block_on()` and `smol::Timer`
 - Using the same Activity builder API
+
+### `pipe_selection.rs`
+
+Advanced pipe discovery example showing:
+
+- Discovering all available Discord IPC pipes
+- Connecting using auto-discovery (default)
+- Connecting to specific pipes using custom paths
+- Connection with timeout configuration
+- Working with both Unix sockets and Windows named pipes
+
+### `flatpak_discord.rs`
+
+Flatpak Discord example showing:
+
+- Discovering Flatpak Discord installations
+- Identifying Flatpak vs standard Discord pipes
+- Connecting using custom path configuration (`PipeConfig::CustomPath`)
+- Setting activity on Flatpak Discord
+- Step-by-step guide with detailed output
+
+**Note:** This example works with both Flatpak and standard Discord. It automatically detects which version is available.
 
 ## Prerequisites
 

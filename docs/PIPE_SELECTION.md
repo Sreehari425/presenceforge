@@ -2,23 +2,20 @@
 
 ## Overview
 
-This document describes the new pipe selection and discovery features added to PresenceForge, giving developers full control over which Discord IPC pipe to connect to.
+This document describes the pipe selection and discovery features in PresenceForge, giving developers control over which Discord IPC pipe to connect to.
 
 ## Key Features
 
 ### 1. **PipeConfig Enum**
 
-The `PipeConfig` enum provides three ways to specify which pipe to use:
+The `PipeConfig` enum provides two ways to specify which pipe to use:
 
 ```rust
 pub enum PipeConfig {
     /// Automatically discover and connect to the first available pipe (default)
     Auto,
 
-    /// Connect to a specific pipe number (0-9)
-    PipeNumber(u8),
-
-    /// Connect to a custom pipe path (advanced usage)
+    /// Connect to a custom pipe path
     CustomPath(String),
 }
 ```
@@ -36,34 +33,61 @@ for pipe in pipes {
 }
 ```
 
-### 3. **Flexible Connection Options**
+**Note:** Discovery automatically checks both standard Discord installations and Flatpak-packaged Discord on Linux systems.
 
-#### Auto-Discovery (Default Behavior)
+The `DiscoveredPipe` struct contains:
 
 ```rust
-// Keeps existing behavior - no breaking changes
+pub struct DiscoveredPipe {
+    /// The pipe number (0-9) - informational only
+    pub pipe_number: u8,
+    /// The full path to the pipe - use this with CustomPath
+    pub path: String,
+}
+```
+
+### 3. **Flexible Connection Options**
+
+#### Auto-Discovery (Default Behavior - Recommended)
+
+```rust
+// Automatically finds and connects to any available Discord instance
 let client = DiscordIpcClient::new("client_id")?;
 ```
 
-#### Specific Pipe Number
+#### Specific Pipe via Custom Path
+
+If you need to connect to a specific pipe, first discover available pipes, then use the path:
 
 ```rust
-use presenceforge::PipeConfig;
+use presenceforge::{PipeConfig, IpcConnection};
 
-let client = DiscordIpcClient::new_with_config(
-    "client_id",
-    Some(PipeConfig::PipeNumber(0))
-)?;
+// Discover available pipes
+let pipes = IpcConnection::discover_pipes();
+
+// Connect to the first pipe (or choose based on your logic)
+if let Some(pipe) = pipes.first() {
+    let client = DiscordIpcClient::new_with_config(
+        "client_id",
+        Some(PipeConfig::CustomPath(pipe.path.clone()))
+    )?;
+}
 ```
 
-#### Custom Pipe Path (Unix)
+#### Flatpak Discord
 
 ```rust
-#[cfg(unix)]
-let client = DiscordIpcClient::new_with_config(
-    "client_id",
-    Some(PipeConfig::CustomPath("/tmp/discord-ipc-0".to_string()))
-)?;
+// Discover pipes and find Flatpak Discord
+let pipes = IpcConnection::discover_pipes();
+let flatpak_pipe = pipes.iter()
+    .find(|p| p.path.contains("app/com.discordapp.Discord"));
+
+if let Some(pipe) = flatpak_pipe {
+    let client = DiscordIpcClient::new_with_config(
+        "client_id",
+        Some(PipeConfig::CustomPath(pipe.path.clone()))
+    )?;
+}
 ```
 
 #### With Timeout
@@ -73,11 +97,14 @@ let client = DiscordIpcClient::new_with_config(
 let client = DiscordIpcClient::new_with_timeout("client_id", 5000)?;
 
 // Specific pipe with timeout
-let client = DiscordIpcClient::new_with_config_and_timeout(
-    "client_id",
-    Some(PipeConfig::PipeNumber(0)),
-    5000
-)?;
+let pipes = IpcConnection::discover_pipes();
+if let Some(pipe) = pipes.first() {
+    let client = DiscordIpcClient::new_with_config_and_timeout(
+        "client_id",
+        Some(PipeConfig::CustomPath(pipe.path.clone())),
+        5000
+    )?;
+}
 ```
 
 ## API Reference
@@ -121,19 +148,25 @@ use presenceforge::async_io::tokio::TokioConnection;
 // Auto-discovery
 let conn = TokioConnection::new().await?;
 
-// With configuration
-let conn = TokioConnection::new_with_config(
-    Some(PipeConfig::PipeNumber(0))
-).await?;
+// With configuration and discovered path
+let pipes = IpcConnection::discover_pipes();
+if let Some(pipe) = pipes.first() {
+    let conn = TokioConnection::new_with_config(
+        Some(PipeConfig::CustomPath(pipe.path.clone()))
+    ).await?;
+}
 
 // With timeout
 let conn = TokioConnection::new_with_timeout(5000).await?;
 
 // With configuration and timeout
-let conn = TokioConnection::new_with_config_and_timeout(
-    Some(PipeConfig::PipeNumber(0)),
-    5000
-).await?;
+let pipes = IpcConnection::discover_pipes();
+if let Some(pipe) = pipes.first() {
+    let conn = TokioConnection::new_with_config_and_timeout(
+        Some(PipeConfig::CustomPath(pipe.path.clone())),
+        5000
+    ).await?;
+}
 ```
 
 ### Discovery API
@@ -145,9 +178,9 @@ impl IpcConnection {
 }
 
 pub struct DiscoveredPipe {
-    /// The pipe number (0-9)
+    /// The pipe number (0-9) - for informational purposes
     pub pipe_number: u8,
-    /// The full path to the pipe
+    /// The full path to the pipe - use this with CustomPath
     pub path: String,
 }
 ```
@@ -164,7 +197,13 @@ println!("Available Discord instances:");
 for (i, pipe) in pipes.iter().enumerate() {
     println!("{}. Pipe {} - {}", i + 1, pipe.pipe_number, pipe.path);
 }
-// Let user select...
+
+// Let user select, then connect using the path
+let selected_pipe = &pipes[user_selection];
+let client = DiscordIpcClient::new_with_config(
+    "client_id",
+    Some(PipeConfig::CustomPath(selected_pipe.path.clone()))
+)?;
 ```
 
 ### 2. **Debugging and Testing**
@@ -172,9 +211,14 @@ for (i, pipe) in pipes.iter().enumerate() {
 Connect to a specific pipe for testing:
 
 ```rust
+let pipes = IpcConnection::discover_pipes();
+let test_pipe = pipes.iter()
+    .find(|p| p.pipe_number == 0)
+    .expect("Pipe 0 not found");
+
 let test_client = DiscordIpcClient::new_with_config(
     "test_client_id",
-    Some(PipeConfig::PipeNumber(0))
+    Some(PipeConfig::CustomPath(test_pipe.path.clone()))
 )?;
 ```
 
@@ -190,47 +234,86 @@ let client = DiscordIpcClient::new_with_config(
 )?;
 ```
 
-### 4. **Automatic Retry with Specific Pipes**
+### 4. **Automatic Retry with All Available Pipes**
 
 Retry connection with different pipes:
 
 ```rust
 let pipes = IpcConnection::discover_pipes();
+let mut connected = false;
+
 for pipe in pipes {
     match DiscordIpcClient::new_with_config(
         "client_id",
-        Some(PipeConfig::PipeNumber(pipe.pipe_number))
+        Some(PipeConfig::CustomPath(pipe.path.clone()))
     ) {
         Ok(mut client) => {
-            client.connect()?;
-            // Success!
-            break;
+            match client.connect() {
+                Ok(_) => {
+                    println!("✓ Connected to pipe {} at {}", pipe.pipe_number, pipe.path);
+                    connected = true;
+                    break;
+                }
+                Err(e) => {
+                    eprintln!("✗ Handshake failed for pipe {}: {}", pipe.pipe_number, e);
+                    continue;
+                }
+            }
         }
         Err(e) => {
-            eprintln!("Failed to connect to pipe {}: {}", pipe.pipe_number, e);
+            eprintln!("✗ Failed to create client for pipe {}: {}", pipe.pipe_number, e);
             continue;
         }
     }
 }
+
+if !connected {
+    eprintln!("Failed to connect to any Discord instance");
+}
+```
+
+### 5. **Flatpak Discord Support**
+
+The library automatically detects and connects to Flatpak-packaged Discord on Linux:
+
+```rust
+// Auto-discovery works seamlessly with Flatpak Discord (recommended)
+let client = DiscordIpcClient::new("client_id")?;
+client.connect()?;
+
+// Or explicitly connect to Flatpak Discord socket
+let pipes = IpcConnection::discover_pipes();
+let flatpak_pipe = pipes.iter()
+    .find(|p| p.path.contains("app/com.discordapp.Discord"))
+    .expect("Flatpak Discord not found");
+
+let client = DiscordIpcClient::new_with_config(
+    "client_id",
+    Some(PipeConfig::CustomPath(flatpak_pipe.path.clone()))
+)?;
 ```
 
 ## Error Handling
 
-New error variant added:
+Connection errors are handled through the standard `DiscordIpcError` enum:
 
 ```rust
-#[error("Invalid pipe number: {0}. Pipe number must be between 0 and 9")]
-InvalidPipeNumber(u8)
-```
+use presenceforge::{DiscordIpcError, PipeConfig, DiscordIpcClient};
 
-Example:
-
-```rust
-match DiscordIpcClient::new_with_config("client_id", Some(PipeConfig::PipeNumber(15))) {
-    Err(DiscordIpcError::InvalidPipeNumber(num)) => {
-        eprintln!("Invalid pipe number: {}", num);
+match DiscordIpcClient::new_with_config(
+    "client_id",
+    Some(PipeConfig::CustomPath("/invalid/path".to_string()))
+) {
+    Err(DiscordIpcError::ConnectionFailed(e)) => {
+        eprintln!("Failed to connect: {}", e);
     }
-    _ => {}
+    Err(DiscordIpcError::NoValidSocket) => {
+        eprintln!("No Discord instance found. Is Discord running?");
+    }
+    Ok(mut client) => {
+        // Connection successful
+        client.connect()?;
+    }
 }
 ```
 
@@ -246,23 +329,79 @@ client.connect()?;
 
 The new features are opt-in and don't break existing functionality.
 
+## Why Use CustomPath Instead of Pipe Numbers?
+
+The simplified API using `CustomPath` provides several benefits:
+
+1. **More Explicit**: You see exactly which socket/pipe you're connecting to
+2. **Cross-Platform Clarity**: Works consistently across Unix and Windows
+3. **Better Debugging**: Full paths make troubleshooting easier
+4. **Flatpak Support**: Makes it obvious when connecting to Flatpak vs standard Discord
+5. **Simpler API**: Two choices (Auto/CustomPath) instead of three
+
+**Migration from older versions:**
+
+```rust
+// Old way (if using PipeNumber):
+Some(PipeConfig::PipeNumber(0))
+
+// New way:
+let pipes = IpcConnection::discover_pipes();
+let pipe = pipes.iter().find(|p| p.pipe_number == 0).unwrap();
+Some(PipeConfig::CustomPath(pipe.path.clone()))
+
+// Or just use Auto (recommended):
+None  // or Some(PipeConfig::Auto)
+```
+
 ## Platform Support
 
 - **Unix (Linux, macOS)**: Full support for all features including custom paths
-- **Windows**: Full support for auto-discovery and pipe numbers; custom paths supported via Windows named pipe syntax
+  - Standard Discord: `$XDG_RUNTIME_DIR/discord-ipc-*` or `/tmp/discord-ipc-*`
+  - Flatpak Discord: `$XDG_RUNTIME_DIR/app/com.discordapp.Discord/discord-ipc-*`
+  - Automatically checks both standard and Flatpak paths during auto-discovery
+- **Windows**: Full support for auto-discovery and custom paths via Windows named pipe syntax (`\\?\pipe\discord-ipc-*`)
 
-## Example
+## Examples
 
-See `examples/pipe_selection.rs` for a complete working example demonstrating all features.
+See these examples for complete working demonstrations:
+
+- **`examples/pipe_selection.rs`** - Complete example showing discovery, auto-connection, and custom path usage
+- **`examples/basic_flatpak.rs`** - Simple example for Flatpak Discord with fallback to standard Discord
+- **`examples/flatpak_discord.rs`** - Comprehensive Flatpak Discord example with detailed output
 
 ## Summary
 
 This feature gives developers:
 
-- ✅ Full control over pipe selection
-- ✅ Ability to discover available pipes
-- ✅ Support for custom paths
+- ✅ Full control over pipe selection via custom paths
+- ✅ Ability to discover all available pipes
+- ✅ Simple two-option API (Auto or CustomPath)
 - ✅ Timeout support for all connection methods
 - ✅ Backward compatibility
 - ✅ Cross-platform support (Unix & Windows)
+- ✅ Automatic Flatpak Discord detection on Linux
 - ✅ Works with all async runtimes (tokio, async-std, smol)
+- ✅ Better debugging with explicit paths
+
+## Quick Start
+
+**Most users should use auto-discovery:**
+
+```rust
+let mut client = DiscordIpcClient::new("client_id")?;
+client.connect()?;
+```
+
+**For advanced use cases (multi-instance, Flatpak, testing):**
+
+```rust
+// Discover pipes
+let pipes = IpcConnection::discover_pipes();
+
+// Choose a pipe and connect
+let client = DiscordIpcClient::new_with_config(
+    "client_id",
+    Some(PipeConfig::CustomPath(pipes[0].path.clone()))
+)?;
+```

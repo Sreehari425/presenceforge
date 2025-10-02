@@ -8,12 +8,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Discover all available Discord IPC pipes
     println!("1. Discovering available Discord IPC pipes...");
     let pipes = IpcConnection::discover_pipes();
-    
+
     if pipes.is_empty() {
         println!("   No Discord IPC pipes found. Is Discord running?");
         return Ok(());
     }
-    
+
     println!("   Found {} pipe(s):", pipes.len());
     for pipe in &pipes {
         println!("   - Pipe {}: {}", pipe.pipe_number, pipe.path);
@@ -29,29 +29,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(client1);
     println!();
 
-    // 3. Connect to a specific pipe number
+    // 3. Connect to a specific pipe using discovered path
     if !pipes.is_empty() {
         let pipe_num = pipes[0].pipe_number;
-        println!("3. Connecting to specific pipe number {}...", pipe_num);
+        let pipe_path = pipes[0].path.clone();
+        println!(
+            "3. Connecting to specific pipe {} at {}...",
+            pipe_num, pipe_path
+        );
         let mut client2 = DiscordIpcClient::new_with_config(
             "your_client_id",
-            Some(PipeConfig::PipeNumber(pipe_num))
+            Some(PipeConfig::CustomPath(pipe_path)),
         )?;
         client2.connect()?;
         println!("   ✓ Connected successfully to pipe {}", pipe_num);
-        
+
         // Set an activity
         let activity = ActivityBuilder::new()
             .state("Using pipe selection")
             .details(&format!("Connected to pipe {}", pipe_num))
             .build();
-        
+
         client2.set_activity(&activity)?;
         println!("   ✓ Activity set successfully");
-        
+
         // Keep activity for a moment
         std::thread::sleep(std::time::Duration::from_secs(5));
-        
+
         client2.clear_activity()?;
         println!("   ✓ Activity cleared");
         drop(client2);
@@ -66,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("4. Connecting using custom path: {}...", custom_path);
             let mut client3 = DiscordIpcClient::new_with_config(
                 "your_client_id",
-                Some(PipeConfig::CustomPath(custom_path.clone()))
+                Some(PipeConfig::CustomPath(custom_path.clone())),
             )?;
             client3.connect()?;
             println!("   ✓ Connected successfully using custom path");
@@ -79,11 +83,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 5. Connect with timeout and specific pipe
     if !pipes.is_empty() {
         let pipe_num = pipes[0].pipe_number;
-        println!("5. Connecting with timeout (5000ms) to pipe {}...", pipe_num);
+        let pipe_path = pipes[0].path.clone();
+        println!(
+            "5. Connecting with timeout (5000ms) to pipe {} at {}...",
+            pipe_num, pipe_path
+        );
         let mut client4 = DiscordIpcClient::new_with_config_and_timeout(
             "your_client_id",
-            Some(PipeConfig::PipeNumber(pipe_num)),
-            5000
+            Some(PipeConfig::CustomPath(pipe_path)),
+            5000,
         )?;
         client4.connect()?;
         println!("   ✓ Connected successfully with timeout");

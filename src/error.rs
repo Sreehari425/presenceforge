@@ -91,10 +91,6 @@ pub enum DiscordIpcError {
     #[error("No Discord IPC socket found. Is Discord running?")]
     NoValidSocket,
 
-    /// Invalid pipe number specified (must be 0-9)
-    #[error("Invalid pipe number: {0}. Pipe number must be between 0 and 9")]
-    InvalidPipeNumber(u8),
-
     /// Failed to serialize JSON payload
     #[error("Failed to serialize JSON payload: {0}")]
     SerializationFailed(#[source] serde_json::Error),
@@ -149,7 +145,7 @@ impl DiscordIpcError {
 
             Self::DiscordError { .. } => ErrorCategory::Application,
 
-            Self::InvalidActivity(_) | Self::InvalidPipeNumber(_) => ErrorCategory::Other,
+            Self::InvalidActivity(_) => ErrorCategory::Other,
         }
     }
 

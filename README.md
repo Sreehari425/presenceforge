@@ -10,12 +10,14 @@ A Rust library for Discord Rich Presence that actually works without the headach
 ## What Works
 
 - [x] Linux and macOS (Unix domain sockets)
+- [x] Windows support (named pipes) - needs testing
+- [x] Flatpak Discord support (automatic detection)
 - [x] Basic Rich Presence activities
 - [x] Activity builder pattern
 - [x] Images, buttons, and timestamps
 - [x] Async support with runtime-agnostic design
 - [x] Support for tokio, async-std, and smol
-- [x] Windows support (named pipes) - needs testing
+- [x] Flexible pipe/socket selection
 - [ ] Error handling could be better
 - [ ] Party/lobby features (partial implementation only)
 

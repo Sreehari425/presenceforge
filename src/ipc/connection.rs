@@ -18,13 +18,13 @@ use crate::ipc::protocol::{constants, Opcode};
 pub enum PipeConfig {
     /// Automatically discover and connect to the first available pipe (default behavior)
     Auto,
-    /// Connect to a specific pipe number (0-9)
-    PipeNumber(u8),
-    /// Connect to a custom pipe path (advanced usage)
-    #[cfg(unix)]
-    CustomPath(String),
-    /// Connect to a custom pipe path (advanced usage)
-    #[cfg(windows)]
+    /// Connect to a custom pipe path
+    ///
+    /// # Examples
+    ///
+    /// Unix: `/run/user/1000/discord-ipc-0` or `/run/user/1000/app/com.discordapp.Discord/discord-ipc-0`
+    ///
+    /// Windows: `\\.\pipe\discord-ipc-0`
     CustomPath(String),
 }
 
@@ -91,13 +91,21 @@ impl IpcConnection {
 
         for env_key in &env_keys {
             if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
+                directories.push(dir.clone());
+
+                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
+                if env_key == &"XDG_RUNTIME_DIR" {
+                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
+                }
             }
         }
 
         // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
+            let uid = unsafe { libc::getuid() };
+            directories.push(format!("/run/user/{}", uid));
+            // Also try Flatpak path as fallback
+            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
         }
 
         // Try each directory with each socket number
@@ -225,13 +233,6 @@ impl IpcConnection {
                 // Auto-discovery: try all possible pipes
                 Self::connect_to_discord_unix_auto()
             }
-            PipeConfig::PipeNumber(pipe_num) => {
-                // Connect to specific pipe number
-                if *pipe_num >= constants::MAX_IPC_SOCKETS {
-                    return Err(DiscordIpcError::InvalidPipeNumber(*pipe_num));
-                }
-                Self::connect_to_discord_unix_specific(*pipe_num)
-            }
             PipeConfig::CustomPath(path) => {
                 // Connect to custom path
                 UnixStream::connect(path)
@@ -253,13 +254,21 @@ impl IpcConnection {
 
         for env_key in &env_keys {
             if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
+                directories.push(dir.clone());
+
+                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
+                if env_key == &"XDG_RUNTIME_DIR" {
+                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
+                }
             }
         }
 
         // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
+            let uid = unsafe { libc::getuid() };
+            directories.push(format!("/run/user/{}", uid));
+            // Also try Flatpak path as fallback
+            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
         }
 
         // Try each directory with each socket number
@@ -303,62 +312,6 @@ impl IpcConnection {
         }
     }
 
-    #[cfg(unix)]
-    /// Connect to a specific Discord IPC socket number
-    fn connect_to_discord_unix_specific(pipe_num: u8) -> Result<UnixStream> {
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
-            }
-        }
-
-        // Fallback to /run/user/{uid} if no env vars found
-        if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
-        }
-
-        // Try each directory with the specific socket number
-        let mut last_error = None;
-
-        for dir in &directories {
-            let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, pipe_num);
-
-            match UnixStream::connect(&socket_path) {
-                Ok(stream) => {
-                    // Configure socket
-                    if let Err(err) = stream.set_nonblocking(false) {
-                        last_error = Some(err);
-                        continue;
-                    }
-
-                    return Ok(stream);
-                }
-                Err(err) => {
-                    last_error = Some(err);
-                    continue;
-                }
-            }
-        }
-
-        // If we got here, the specific socket was not found
-        if let Some(err) = last_error {
-            if err.kind() == std::io::ErrorKind::PermissionDenied {
-                Err(DiscordIpcError::ConnectionFailed(std::io::Error::new(
-                    std::io::ErrorKind::PermissionDenied,
-                    format!("Permission denied when connecting to Discord IPC socket {}. Check file permissions.", pipe_num)
-                )))
-            } else {
-                Err(DiscordIpcError::ConnectionFailed(err))
-            }
-        } else {
-            Err(DiscordIpcError::NoValidSocket)
-        }
-    }
-
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows with configuration
     fn connect_to_discord_windows_with_config(
@@ -368,13 +321,6 @@ impl IpcConnection {
             PipeConfig::Auto => {
                 // Auto-discovery: try all possible pipes
                 Self::connect_to_discord_windows_auto()
-            }
-            PipeConfig::PipeNumber(pipe_num) => {
-                // Connect to specific pipe number
-                if *pipe_num >= constants::MAX_IPC_SOCKETS {
-                    return Err(DiscordIpcError::InvalidPipeNumber(*pipe_num));
-                }
-                Self::connect_to_discord_windows_specific(*pipe_num)
             }
             PipeConfig::CustomPath(path) => {
                 // Connect to custom path
@@ -435,38 +381,6 @@ impl IpcConnection {
             }
         } else {
             Err(DiscordIpcError::NoValidSocket)
-        }
-    }
-
-    #[cfg(windows)]
-    /// Connect to a specific Discord IPC named pipe number on Windows
-    fn connect_to_discord_windows_specific(
-        pipe_num: u8,
-    ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
-        let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", pipe_num);
-
-        // Try to open the named pipe
-        match OpenOptions::new().read(true).write(true).open(&pipe_path) {
-            Ok(file) => {
-                // Clone the file handle for reader and writer
-                match file.try_clone() {
-                    Ok(reader_file) => {
-                        let writer_file = file;
-                        Ok((BufReader::new(reader_file), BufWriter::new(writer_file)))
-                    }
-                    Err(err) => Err(DiscordIpcError::ConnectionFailed(err)),
-                }
-            }
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::PermissionDenied {
-                    Err(DiscordIpcError::ConnectionFailed(std::io::Error::new(
-                        std::io::ErrorKind::PermissionDenied,
-                        format!("Permission denied when connecting to Discord IPC pipe {}. Is Discord running with the right permissions?", pipe_num)
-                    )))
-                } else {
-                    Err(DiscordIpcError::ConnectionFailed(err))
-                }
-            }
         }
     }
 
