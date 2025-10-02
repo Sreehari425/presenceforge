@@ -595,6 +595,7 @@ name = "presenceforge"
 version = "0.0.0"
 dependencies = [
  "async-fs",
+ "async-io",
  "async-std",
  "byteorder",
  "futures",

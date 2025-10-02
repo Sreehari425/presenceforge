@@ -22,6 +22,11 @@ async fn main() -> Result {
         .button(" Documentation", "https://docs.rs/presenceforge")
         .build();
 
+    println!(
+        "Activity payload: {}",
+        serde_json::to_string_pretty(&activity).unwrap()
+    );
+
     // Set the activity
     println!("Setting Discord Rich Presence activity...");
     match client.set_activity(&activity).await {

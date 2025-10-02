@@ -12,24 +12,16 @@ use async_std::io::WriteExt as _;
 use async_std::os::unix::net::UnixStream;
 
 #[cfg(windows)]
-use async_fs::File;
+use async_io::Async;
 #[cfg(windows)]
-use std::time::Duration;
+use std::os::windows::io::{AsRawHandle, FromRawHandle};
+#[cfg(windows)]
+use std::fs::OpenOptions as StdOpenOptions;
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::constants;
-
-// Constants for Windows named pipe handling
-#[cfg(windows)]
-pub const WINDOWS_PIPE_STABILIZATION_DELAY_MS: u64 = 100; // Delay to ensure pipe stability between operations
-#[cfg(windows)]
-pub const WINDOWS_HANDLE_CREATION_DELAY_MS: u64 = 100; // Delay to avoid race conditions between handle creation
-#[cfg(windows)]
-pub const WINDOWS_READ_RETRY_DELAY_MS: u64 = 50; // Delay between read retry attempts
-#[cfg(windows)]
-pub const MAX_READ_RETRIES: u8 = 3; // Maximum number of read retry attempts
 
 /// A Discord IPC connection using async-std
 pub enum AsyncStdConnection {
@@ -37,7 +29,7 @@ pub enum AsyncStdConnection {
     Unix(UnixStream),
 
     #[cfg(windows)]
-    Windows { reader: File, writer: File },
+    Windows(Async<std::fs::File>),
 }
 
 impl AsyncStdConnection {
@@ -147,50 +139,37 @@ impl AsyncStdConnection {
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows
     async fn connect_windows() -> Result<Self> {
-        use async_fs::OpenOptions;
-        use std::time::Duration;
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_FLAG_OVERLAPPED: u32 = 0x40000000;
 
         let mut last_error = None;
 
         for i in 0..constants::MAX_IPC_SOCKETS {
             let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
 
-            // Try to open the named pipe
-            debug_println!("Attempting to connect to named pipe: {}", pipe_path);
-            match OpenOptions::new()
+            debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
+            
+            // Open the named pipe with overlapped I/O support for async operations
+            match StdOpenOptions::new()
                 .read(true)
                 .write(true)
+                .custom_flags(FILE_FLAG_OVERLAPPED)
                 .open(&pipe_path)
-                .await
             {
                 Ok(file) => {
                     debug_println!("Successfully opened named pipe: {}", pipe_path);
-                    // On Windows, we need two separate file handles
-                    let writer = file;
-
-                    // Small delay before opening second handle to avoid race conditions on Windows named pipes
-                    // This prevents ERROR_PIPE_BUSY errors when opening multiple handles to the same pipe
-                    async_std::task::sleep(Duration::from_millis(WINDOWS_HANDLE_CREATION_DELAY_MS))
-                        .await;
-
-                    // Open a second handle for reading
-                    let reader = match OpenOptions::new()
-                        .read(true)
-                        .write(true)
-                        .open(&pipe_path)
-                        .await
-                    {
-                        Ok(f) => {
-                            debug_println!("Successfully opened second handle to named pipe");
-                            f
+                    
+                    // Wrap in async-io's Async wrapper for async operations
+                    match Async::new(file) {
+                        Ok(async_file) => {
+                            debug_println!("Successfully created async wrapper for named pipe");
+                            return Ok(Self::Windows(async_file));
                         }
                         Err(e) => {
-                            debug_println!("Failed to open second handle to named pipe: {}", e);
+                            debug_println!("Failed to create async wrapper: {}", e);
                             return Err(DiscordIpcError::ConnectionFailed(e));
                         }
-                    };
-
-                    return Ok(Self::Windows { reader, writer });
+                    }
                 }
                 Err(err) => {
                     debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
@@ -228,40 +207,9 @@ impl AsyncRead for AsyncStdConnection {
                 Self::Unix(stream) => stream.read(buf).await,
 
                 #[cfg(windows)]
-                Self::Windows { reader, .. } => {
-                    // Improved read implementation with retry logic for Windows
-                    let mut total_read = 0;
-                    let mut retries = 0;
-
-                    while total_read == 0 && retries < MAX_READ_RETRIES {
-                        match futures::io::AsyncReadExt::read(reader, buf).await {
-                            Ok(0) => {
-                                // No data yet, retry after a short delay
-                                // This addresses Windows named pipe behavior where reads may initially return
-                                // no data even when data is available shortly after
-                                async_std::task::sleep(Duration::from_millis(
-                                    WINDOWS_READ_RETRY_DELAY_MS,
-                                ))
-                                .await;
-                                retries += 1;
-                            }
-                            Ok(n) => {
-                                total_read = n;
-                                break;
-                            }
-                            Err(e) => return Err(e),
-                        }
-                    }
-
-                    if total_read == 0 && retries >= MAX_READ_RETRIES {
-                        // If we still have no data after retries, return would block
-                        Err(io::Error::new(
-                            io::ErrorKind::WouldBlock,
-                            "No data available after retries",
-                        ))
-                    } else {
-                        Ok(total_read)
-                    }
+                Self::Windows(pipe) => {
+                    use futures::io::AsyncReadExt;
+                    pipe.read(buf).await
                 }
             }
         })
@@ -279,14 +227,9 @@ impl AsyncWrite for AsyncStdConnection {
                 Self::Unix(stream) => stream.write(buf).await,
 
                 #[cfg(windows)]
-                Self::Windows { writer, .. } => {
-                    // Improved write implementation for Windows
-                    let result = futures::io::AsyncWriteExt::write(writer, buf).await?;
-
-                    // Ensure data is flushed immediately on Windows
-                    futures::io::AsyncWriteExt::flush(writer).await?;
-
-                    Ok(result)
+                Self::Windows(pipe) => {
+                    use futures::io::AsyncWriteExt;
+                    pipe.write(buf).await
                 }
             }
         })
@@ -299,7 +242,10 @@ impl AsyncWrite for AsyncStdConnection {
                 Self::Unix(stream) => stream.flush().await,
 
                 #[cfg(windows)]
-                Self::Windows { writer, .. } => futures::io::AsyncWriteExt::flush(writer).await,
+                Self::Windows(pipe) => {
+                    use futures::io::AsyncWriteExt;
+                    pipe.flush().await
+                }
             }
         })
     }
@@ -311,9 +257,6 @@ pub mod client {
     use crate::async_io::client::AsyncDiscordIpcClient;
     use crate::debug_println;
     use crate::error::Result;
-
-    #[cfg(windows)]
-    use std::time::Duration;
 
     /// Create a new async-std-based Discord IPC client
     pub async fn new_discord_ipc_client(
@@ -336,15 +279,6 @@ pub mod client {
                 return Err(e);
             }
         };
-
-        // Give the connection a moment to stabilize (important for Windows)
-        // This delay ensures that the pipe is fully ready before sending/receiving data
-        // Windows named pipes can sometimes report as connected but not be fully ready
-        #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(
-            super::WINDOWS_PIPE_STABILIZATION_DELAY_MS,
-        ))
-        .await;
 
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
@@ -375,14 +309,6 @@ pub mod client {
             }
         };
 
-        // Give the connection a moment to stabilize (important for Windows)
-        // This delay ensures that the pipe is fully ready before sending/receiving data
-        // Windows named pipes can sometimes report as connected but not be fully ready
-        #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(
-            super::WINDOWS_PIPE_STABILIZATION_DELAY_MS,
-        ))
-        .await;
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
         Ok(client)
