@@ -22,6 +22,9 @@ cargo run --example async_tokio --features tokio-runtime
 
 # Async example with async-std
 cargo run --example async_std --features async-std-runtime
+
+# Async example with smol
+cargo run --example async_smol --features smol-runtime
 ```
 
 ## Examples Overview
@@ -76,6 +79,16 @@ Async example with async-std showing:
 - Asynchronous client setup with async-std
 - Async/await pattern for Discord IPC
 - Using async-std's async runtime
+- Using the same Activity builder API
+
+### `async_smol.rs`
+
+Async example with smol showing:
+
+- Asynchronous client setup with smol
+- Async/await pattern for Discord IPC
+- Using smol's lightweight async runtime
+- Using `smol::block_on()` and `smol::Timer`
 - Using the same Activity builder API
 
 ## Prerequisites
