@@ -163,6 +163,8 @@ impl SmolConnection {
 
             // Open the named pipe with overlapped I/O support
             // We use blocking operations wrapped in async context via smol's unblock
+            // Note : there is chance this can create a bottleneck
+            // Todo : write a better implemntation of below code
             let result = smol::unblock(move || {
                 OpenOptions::new()
                     .read(true)
