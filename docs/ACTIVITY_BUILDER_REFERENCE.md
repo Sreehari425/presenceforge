@@ -132,7 +132,7 @@ let end_time = now + 300;
 
 ### 6. **Party** (`party()`)
 
-# Note: Partialy tested feature
+#### Note: Partialy tested feature
 
 ```rust
 .party("unique-party-id", 2, 4)  // party_id, current_size, max_size
