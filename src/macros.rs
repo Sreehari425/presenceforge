@@ -2,7 +2,9 @@
 /// Set to `true` to enable debug prints or use PRESENCEFORGE_DEBUG=1 environment variable
 #[doc(hidden)]
 pub fn is_debug_enabled() -> bool {
-    std::env::var("PRESENCEFORGE_DEBUG").map(|val| val == "1").unwrap_or(false)
+    std::env::var("PRESENCEFORGE_DEBUG")
+        .map(|val| val == "1")
+        .unwrap_or(false)
 }
 
 /// Macro for conditional debug printing

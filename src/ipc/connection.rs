@@ -39,14 +39,14 @@ impl IpcConnection {
             Ok(Self { reader, writer })
         }
     }
-    
+
     /// Create a new IPC connection with a timeout
     pub fn new_with_timeout(timeout_ms: u64) -> Result<Self> {
         use std::time::{Duration, Instant};
-        
+
         let start = Instant::now();
         let timeout = Duration::from_millis(timeout_ms);
-        
+
         // Keep trying to connect until we succeed or timeout
         while start.elapsed() < timeout {
             match Self::try_connect() {
@@ -59,10 +59,10 @@ impl IpcConnection {
                 Err(e) => return Err(e),
             }
         }
-        
+
         Err(DiscordIpcError::ConnectionTimeout(timeout_ms))
     }
-    
+
     /// Try to connect to Discord
     fn try_connect() -> Result<Self> {
         #[cfg(unix)]
@@ -98,7 +98,7 @@ impl IpcConnection {
 
         // Try each directory with each socket number
         let mut last_error = None;
-        
+
         for dir in &directories {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
@@ -110,9 +110,9 @@ impl IpcConnection {
                             last_error = Some(err);
                             continue;
                         }
-                        
+
                         return Ok(stream);
-                    },
+                    }
                     Err(err) => {
                         last_error = Some(err);
                         continue;
@@ -142,7 +142,7 @@ impl IpcConnection {
     fn connect_to_discord_windows() -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)>
     {
         let mut last_error = None;
-        
+
         for i in 0..constants::MAX_IPC_SOCKETS {
             let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", i);
 
@@ -154,7 +154,7 @@ impl IpcConnection {
                         Ok(reader_file) => {
                             let writer_file = file;
                             return Ok((BufReader::new(reader_file), BufWriter::new(writer_file)));
-                        },
+                        }
                         Err(err) => {
                             last_error = Some(err);
                             continue;

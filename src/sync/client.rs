@@ -23,20 +23,20 @@ impl DiscordIpcClient {
             connection,
         })
     }
-    
+
     /// Create a new Discord IPC client with a connection timeout
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `client_id` - The Discord application client ID
     /// * `timeout_ms` - Connection timeout in milliseconds
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new Discord IPC client
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns a `DiscordIpcError::ConnectionTimeout` if the connection times out
     pub fn new_with_timeout<S: Into<String>>(client_id: S, timeout_ms: u64) -> Result<Self> {
         let client_id = client_id.into();
@@ -49,13 +49,13 @@ impl DiscordIpcClient {
     }
 
     /// Perform handshake with Discord
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// The Discord handshake response as a JSON Value
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns a `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub fn connect(&mut self) -> Result<Value> {
         let handshake = HandshakePayload {
@@ -63,55 +63,64 @@ impl DiscordIpcClient {
             client_id: self.client_id.clone(),
         };
 
-        let payload = serde_json::to_value(handshake)
-            .map_err(|e| DiscordIpcError::SerializationFailed(e))?;
-            
+        let payload =
+            serde_json::to_value(handshake).map_err(DiscordIpcError::SerializationFailed)?;
+
         self.connection.send(Opcode::Handshake, &payload)?;
 
         let (opcode, response) = self.connection.recv()?;
         debug_println!("Handshake response: {}", response);
-        
+
         // Check for error in the response
         if let Some(err) = response.get("error") {
-            if let (Some(code), Some(message)) = (err.get("code").and_then(|c| c.as_i64()), 
-                                                 err.get("message").and_then(|m| m.as_str())) {
+            if let (Some(code), Some(message)) = (
+                err.get("code").and_then(|c| c.as_i64()),
+                err.get("message").and_then(|m| m.as_str()),
+            ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::HandshakeFailed(format!("Invalid error format: {}", err)));
+                return Err(DiscordIpcError::HandshakeFailed(format!(
+                    "Invalid error format: {}",
+                    err
+                )));
             }
         }
-        
+
         // Verify opcode is correct for handshake response
         if !opcode.is_handshake_response() {
-            return Err(DiscordIpcError::HandshakeFailed(
-                format!("Expected handshake response opcode, got {:?}", opcode)
-            ));
+            return Err(DiscordIpcError::HandshakeFailed(format!(
+                "Expected handshake response opcode, got {:?}",
+                opcode
+            )));
         }
-        
+
         Ok(response)
     }
 
     /// Set Discord Rich Presence activity
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `activity` - The activity to set
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns a `DiscordIpcError` if serialization fails or if Discord returns an error
     pub fn set_activity(&mut self, activity: &Activity) -> Result {
         // Validate the activity first
         if let Err(reason) = activity.validate() {
             return Err(DiscordIpcError::InvalidActivity(reason));
         }
-        
+
         // Generate a unique nonce for this request using a timestamp
-        let nonce = format!("set-activity-{}", std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis());
-        
+        let nonce = format!(
+            "set-activity-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
+
         let message = IpcMessage {
             cmd: Command::SetActivity,
             args: json!({
@@ -123,35 +132,40 @@ impl DiscordIpcClient {
 
         let payload = serde_json::to_value(message)?;
         self.connection.send(Opcode::Frame, &payload)?;
-        
+
         // Receive the response to check for errors
         let (opcode, response) = self.connection.recv()?;
-        
+
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(
-                format!("Expected frame response, got {:?}", opcode)
-            ));
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Expected frame response, got {:?}",
+                opcode
+            )));
         }
-        
+
         // Check for error in the response
         if let Some(err) = response.get("error") {
-            if let (Some(code), Some(message)) = (err.get("code").and_then(|c| c.as_i64()), 
-                                                 err.get("message").and_then(|m| m.as_str())) {
+            if let (Some(code), Some(message)) = (
+                err.get("code").and_then(|c| c.as_i64()),
+                err.get("message").and_then(|m| m.as_str()),
+            ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(
-                    format!("Invalid error format in response: {}", err)
-                ));
+                return Err(DiscordIpcError::InvalidResponse(format!(
+                    "Invalid error format in response: {}",
+                    err
+                )));
             }
         }
-        
+
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(
-                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce)
-                ));
+                return Err(DiscordIpcError::InvalidResponse(format!(
+                    "Nonce mismatch: expected {}, got {}",
+                    nonce, resp_nonce
+                )));
             }
         }
 
@@ -159,21 +173,24 @@ impl DiscordIpcClient {
     }
 
     /// Clear Discord Rich Presence activity
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// The response from Discord as a JSON Value
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns a `DiscordIpcError` if communication fails or if Discord returns an error
     pub fn clear_activity(&mut self) -> Result<Value> {
         // Generate a unique nonce
-        let nonce = format!("clear-activity-{}", std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis());
-            
+        let nonce = format!(
+            "clear-activity-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
+
         let message = IpcMessage {
             cmd: Command::SetActivity,
             args: json!({
@@ -188,35 +205,40 @@ impl DiscordIpcClient {
 
         let (opcode, response) = self.connection.recv()?;
         debug_println!("Clear Activity response: {}", response);
-        
+
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(
-                format!("Expected frame response, got {:?}", opcode)
-            ));
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Expected frame response, got {:?}",
+                opcode
+            )));
         }
-        
+
         // Check for error in the response
         if let Some(err) = response.get("error") {
-            if let (Some(code), Some(message)) = (err.get("code").and_then(|c| c.as_i64()), 
-                                                 err.get("message").and_then(|m| m.as_str())) {
+            if let (Some(code), Some(message)) = (
+                err.get("code").and_then(|c| c.as_i64()),
+                err.get("message").and_then(|m| m.as_str()),
+            ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(
-                    format!("Invalid error format in response: {}", err)
-                ));
+                return Err(DiscordIpcError::InvalidResponse(format!(
+                    "Invalid error format in response: {}",
+                    err
+                )));
             }
         }
-        
+
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(
-                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce)
-                ));
+                return Err(DiscordIpcError::InvalidResponse(format!(
+                    "Nonce mismatch: expected {}, got {}",
+                    nonce, resp_nonce
+                )));
             }
         }
-        
+
         Ok(response)
     }
 
