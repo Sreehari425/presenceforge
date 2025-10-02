@@ -15,9 +15,9 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Images, buttons, and timestamps
 - [x] Async support with runtime-agnostic design
 - [x] Support for tokio, async-std, and smol
-- [ ] Windows support (named pipes) - needs testing
+- [x] Windows support (named pipes) - needs testing
 - [ ] Error handling could be better
-- [ ] Party/lobby features (not implemented yet)
+- [ ] Party/lobby features (partial implementation only)
 
 ## Quick Start
 
@@ -318,9 +318,9 @@ match client.connect() {
 - [ ] More comprehensive examples
 - [ ] Publish to crates.io
 - [ ] CI/CD pipeline
-- [ ] Property documentation
+- [ ] Proper documentation
 - [ ] Connection retry logic
-- [ ] Activity validation
+- [x] Activity validation (need to test)
 
 ## License
 
