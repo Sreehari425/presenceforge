@@ -1,63 +1,49 @@
+//! Async Discord IPC Client implementation
+
 use serde_json::{json, Value};
 use std::process;
 
+use super::traits::ipc_utils::{read_u32_le, write_u32_le};
+use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode};
+use crate::ipc::{constants, Command, HandshakePayload, IpcMessage, Opcode};
 
-/// Discord IPC Client
-pub struct DiscordIpcClient {
+/// Async implementation of Discord IPC client
+pub struct AsyncDiscordIpcClient<T>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    connection: T,
     client_id: String,
-    connection: IpcConnection,
 }
 
-impl DiscordIpcClient {
-    /// Create a new Discord IPC client
-    pub fn new<S: Into<String>>(client_id: S) -> Result<Self> {
-        let client_id = client_id.into();
-        let connection = IpcConnection::new()?;
-
-        Ok(Self {
-            client_id,
+impl<T> AsyncDiscordIpcClient<T>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    /// Creates a new async Discord IPC client
+    ///
+    /// This constructor doesn't establish a connection yet.
+    /// Call `connect()` to establish a connection.
+    pub fn new(client_id: impl Into<String>, connection: T) -> Self {
+        Self {
             connection,
-        })
+            client_id: client_id.into(),
+        }
     }
 
-    /// Create a new Discord IPC client with a connection timeout
-    ///
-    /// # Arguments
-    ///
-    /// * `client_id` - The Discord application client ID
-    /// * `timeout_ms` - Connection timeout in milliseconds
+    /// Performs handshake with Discord
     ///
     /// # Returns
     ///
-    /// A new Discord IPC client
+    /// A `Result` containing the Discord handshake response
     ///
     /// # Errors
     ///
-    /// Returns a `DiscordIpcError::ConnectionTimeout` if the connection times out
-    pub fn new_with_timeout<S: Into<String>>(client_id: S, timeout_ms: u64) -> Result<Self> {
-        let client_id = client_id.into();
-        let connection = IpcConnection::new_with_timeout(timeout_ms)?;
-
-        Ok(Self {
-            client_id,
-            connection,
-        })
-    }
-
-    /// Perform handshake with Discord
-    ///
-    /// # Returns
-    ///
-    /// The Discord handshake response as a JSON Value
-    ///
-    /// # Errors
-    ///
-    /// Returns a `DiscordIpcError::HandshakeFailed` if the handshake fails
-    pub fn connect(&mut self) -> Result<Value> {
+    /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
+    pub async fn connect(&mut self) -> Result<Value> {
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
             client_id: self.client_id.clone(),
@@ -66,9 +52,9 @@ impl DiscordIpcClient {
         let payload =
             serde_json::to_value(handshake).map_err(DiscordIpcError::SerializationFailed)?;
 
-        self.connection.send(Opcode::Handshake, &payload)?;
+        self.send_message(Opcode::Handshake, &payload).await?;
 
-        let (opcode, response) = self.connection.recv()?;
+        let (opcode, response) = self.recv_message().await?;
         debug_println!("Handshake response: {}", response);
 
         // Check for error in the response
@@ -97,7 +83,7 @@ impl DiscordIpcClient {
         Ok(response)
     }
 
-    /// Set Discord Rich Presence activity
+    /// Sets Discord Rich Presence activity
     ///
     /// # Arguments
     ///
@@ -106,7 +92,7 @@ impl DiscordIpcClient {
     /// # Errors
     ///
     /// Returns a `DiscordIpcError` if serialization fails or if Discord returns an error
-    pub fn set_activity(&mut self, activity: &Activity) -> Result {
+    pub async fn set_activity(&mut self, activity: &Activity) -> Result<()> {
         // Validate the activity first
         if let Err(reason) = activity.validate() {
             return Err(DiscordIpcError::InvalidActivity(reason));
@@ -131,10 +117,10 @@ impl DiscordIpcClient {
         };
 
         let payload = serde_json::to_value(message)?;
-        self.connection.send(Opcode::Frame, &payload)?;
+        self.send_message(Opcode::Frame, &payload).await?;
 
         // Receive the response to check for errors
-        let (opcode, response) = self.connection.recv()?;
+        let (opcode, response) = self.recv_message().await?;
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
@@ -172,16 +158,16 @@ impl DiscordIpcClient {
         Ok(())
     }
 
-    /// Clear Discord Rich Presence activity
+    /// Clears Discord Rich Presence activity
     ///
     /// # Returns
     ///
-    /// The response from Discord as a JSON Value
+    /// A `Result` containing the Discord response
     ///
     /// # Errors
     ///
     /// Returns a `DiscordIpcError` if communication fails or if Discord returns an error
-    pub fn clear_activity(&mut self) -> Result<Value> {
+    pub async fn clear_activity(&mut self) -> Result<Value> {
         // Generate a unique nonce
         let nonce = format!(
             "clear-activity-{}",
@@ -201,9 +187,9 @@ impl DiscordIpcClient {
         };
 
         let payload = serde_json::to_value(message)?;
-        self.connection.send(Opcode::Frame, &payload)?;
+        self.send_message(Opcode::Frame, &payload).await?;
 
-        let (opcode, response) = self.connection.recv()?;
+        let (opcode, response) = self.recv_message().await?;
         debug_println!("Clear Activity response: {}", response);
 
         // Check if we got the correct response type
@@ -242,24 +228,53 @@ impl DiscordIpcClient {
         Ok(response)
     }
 
-    /// Send a raw IPC message
-    pub fn send_message(&mut self, opcode: Opcode, payload: &Value) -> Result {
-        self.connection.send(opcode, payload)
+    /// Sends a raw IPC message
+    ///
+    /// # Arguments
+    ///
+    /// * `opcode` - The opcode to send
+    /// * `payload` - The JSON payload to send
+    ///
+    /// # Errors
+    ///
+    /// Returns a `DiscordIpcError` if serialization or communication fails
+    pub async fn send_message(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
+        let raw = serde_json::to_vec(payload)?;
+
+        // Write header
+        write_u32_le(&mut self.connection, opcode.into()).await?;
+        write_u32_le(&mut self.connection, raw.len() as u32).await?;
+
+        // Write payload
+        write_all(&mut self.connection, &raw).await?;
+
+        Ok(())
     }
 
-    /// Receive a raw IPC message
-    pub fn recv_message(&mut self) -> Result<(Opcode, Value)> {
-        self.connection.recv()
-    }
+    /// Receives a raw IPC message
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the opcode and JSON payload
+    ///
+    /// # Errors
+    ///
+    /// Returns a `DiscordIpcError` if deserialization or communication fails
+    pub async fn recv_message(&mut self) -> Result<(Opcode, Value)> {
+        // Read header
+        let opcode_raw = read_u32_le(&mut self.connection).await?;
+        let length = read_u32_le(&mut self.connection).await?;
 
-    /// Close the connection
-    pub fn close(&mut self) {
-        self.connection.close();
-    }
-}
+        let opcode = Opcode::from(opcode_raw);
 
-impl Drop for DiscordIpcClient {
-    fn drop(&mut self) {
-        self.close();
+        // Read payload
+        let mut data = vec![0u8; length as usize];
+        read_exact(&mut self.connection, &mut data)
+            .await
+            .map_err(|_| DiscordIpcError::SocketClosed)?;
+
+        let value: Value = serde_json::from_slice(&data)?;
+
+        Ok((opcode, value))
     }
 }

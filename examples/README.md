@@ -5,7 +5,7 @@ This directory contains examples demonstrating how to use the PresenceForge libr
 ## Running Examples
 
 ```bash
-# Basic example - Simple Rich Presence setup
+# Basic example - Simple Rich Presence setup (synchronous)
 cargo run --example basic
 
 # Game demo - Dynamic game status that changes over time
@@ -16,6 +16,15 @@ cargo run --example coding_status
 
 # Custom activity - Manual activity creation without builder pattern
 cargo run --example custom_activity
+
+# Async example with Tokio
+cargo run --example async_tokio --features tokio-runtime
+
+# Async example with async-std
+cargo run --example async_std --features async-std-runtime
+
+# Async example with smol
+cargo run --example async_smol --features smol-runtime
 ```
 
 ## Examples Overview
@@ -31,7 +40,7 @@ Simple example showing:
 
 ### `game_demo.rs`
 
-integration showing:
+Game integration showing:
 
 - Dynamic status updates
 - Multiple game states
@@ -53,6 +62,34 @@ Low-level example showing:
 - Manual `Activity` struct creation
 - Full control over all fields
 - Advanced customization
+
+### `async_tokio.rs`
+
+Async example with Tokio showing:
+
+- Asynchronous client setup with Tokio
+- Async/await pattern for Discord IPC
+- Using Tokio's async runtime
+- Using the same Activity builder API
+
+### `async_std.rs`
+
+Async example with async-std showing:
+
+- Asynchronous client setup with async-std
+- Async/await pattern for Discord IPC
+- Using async-std's async runtime
+- Using the same Activity builder API
+
+### `async_smol.rs`
+
+Async example with smol showing:
+
+- Asynchronous client setup with smol
+- Async/await pattern for Discord IPC
+- Using smol's lightweight async runtime
+- Using `smol::block_on()` and `smol::Timer`
+- Using the same Activity builder API
 
 ## Prerequisites
 
