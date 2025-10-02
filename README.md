@@ -14,7 +14,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Activity builder pattern
 - [x] Images, buttons, and timestamps
 - [x] Async support with runtime-agnostic design
-- [x] Support for tokio and async-std
+- [x] Support for tokio, async-std, and smol
 - [ ] Windows support (named pipes) - needs testing
 - [ ] Error handling could be better
 - [ ] Party/lobby features (not implemented yet)
@@ -35,6 +35,8 @@ For async support, add one of the runtime features:
 presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
 # OR
 presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+# OR
+presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
 ```
 
 > **Note**: Not published to crates.io yet. Use the git dependency for now.
@@ -137,6 +139,44 @@ async fn main() -> Result {
     client.clear_activity().await?;
 
     Ok(())
+}
+```
+
+### Async Usage with smol
+
+```rust
+use presenceforge::{ActivityBuilder, Result};
+use presenceforge::async_io::smol::client::new_discord_ipc_client;
+use std::time::Duration;
+
+fn main() -> Result {
+    smol::block_on(async {
+        let client_id = "your_client_id";
+        let mut client = new_discord_ipc_client(client_id).await?;
+
+        // Perform handshake
+        client.connect().await?;
+
+        // Create activity using the builder pattern
+        let activity = ActivityBuilder::new()
+            .state("Playing a game")
+            .details("In the menu")
+            .start_timestamp_now()
+            .large_image("game_logo")
+            .large_text("My Awesome Game")
+            .build();
+
+        // Set the activity
+        client.set_activity(&activity).await?;
+
+        // Keep activity for some time
+        smol::Timer::after(Duration::from_secs(10)).await;
+
+        // Clear the activity
+        client.clear_activity().await?;
+
+        Ok(())
+    })
 }
 ```
 
@@ -246,6 +286,9 @@ cargo run --example async_tokio --features tokio-runtime
 
 # Async example with async-std
 cargo run --example async_std --features async-std-runtime
+
+# Async example with smol
+cargo run --example async_smol --features smol-runtime
 ```
 
 Remember to replace `"YOUR-CLIENT-ID"` with your actual Discord application ID.

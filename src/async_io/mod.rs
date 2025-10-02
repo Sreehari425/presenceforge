@@ -7,6 +7,7 @@
 //!
 //! - **Tokio**: Enable with the `tokio-runtime` feature
 //! - **async-std**: Enable with the `async-std-runtime` feature
+//! - **smol**: Enable with the `smol-runtime` feature
 //!
 //! ## Usage Examples
 //!
@@ -53,6 +54,29 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! ### With smol
+//!
+//! ```rust,no_run
+//! use presenceforge::{ActivityBuilder, Result};
+//! use presenceforge::async_io::smol::client::new_discord_ipc_client;
+//!
+//! fn main() -> Result {
+//!     smol::block_on(async {
+//!         let client_id = "your_client_id";
+//!         let mut client = new_discord_ipc_client(client_id).await?;
+//!         client.connect().await?;
+//!
+//!         let activity = ActivityBuilder::new()
+//!             .state("Playing a game")
+//!             .details("In the menu")
+//!             .build();
+//!
+//!         client.set_activity(&activity).await?;
+//!         Ok(())
+//!     })
+//! }
+//! ```
 
 mod client;
 mod traits;
@@ -66,3 +90,6 @@ pub mod tokio;
 
 #[cfg(feature = "async-std-runtime")]
 pub mod async_std;
+
+#[cfg(feature = "smol-runtime")]
+pub mod smol;
