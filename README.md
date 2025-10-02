@@ -178,7 +178,7 @@ match client.connect() {
 
 ## TODO
 
-- [ ] Better error messages (currently pretty cryptic)
+- [ ] Better error messages (on progress)
 - [ ] Party/lobby functionality
 - [ ] Async support (tokio integration)
 - [ ] More comprehensive examples
