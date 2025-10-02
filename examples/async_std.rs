@@ -1,6 +1,6 @@
-use presenceforge::{ActivityBuilder, Result};
-use presenceforge::async_io::async_std::client::new_discord_ipc_client;
 use async_std::task;
+use presenceforge::async_io::async_std::client::new_discord_ipc_client;
+use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;
 
 #[async_std::main]

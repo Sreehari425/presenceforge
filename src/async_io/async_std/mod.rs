@@ -149,19 +149,23 @@ impl AsyncStdConnection {
             let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
 
             debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
-            
+
             // Clone pipe_path for the closure
             let pipe_path_clone = pipe_path.clone();
-            
+
             // Open the named pipe with overlapped I/O support
             // We use blocking operations wrapped in async context via the blocking crate
+            // this can cause a perfomance loss but there was no other way i could think of
+            // Todo : write a better solution for the below code
+
             let result = blocking::unblock(move || {
                 OpenOptions::new()
                     .read(true)
                     .write(true)
                     .custom_flags(FILE_FLAG_OVERLAPPED)
                     .open(&pipe_path_clone)
-            }).await;
+            })
+            .await;
 
             match result {
                 Ok(file) => {
@@ -208,7 +212,7 @@ impl AsyncRead for AsyncStdConnection {
                     // Clone the Arc to pass into the blocking task
                     let pipe_clone = Arc::clone(pipe);
                     let buf_len = buf.len();
-                    
+
                     // Use blocking crate to handle synchronous I/O in async context
                     let result = blocking::unblock(move || {
                         let mut local_buf = vec![0u8; buf_len];
@@ -220,7 +224,8 @@ impl AsyncRead for AsyncStdConnection {
                             Ok(n) => Ok((n, local_buf)),
                             Err(e) => Err(e),
                         }
-                    }).await;
+                    })
+                    .await;
 
                     match result {
                         Ok((n, data)) => {
@@ -250,12 +255,13 @@ impl AsyncWrite for AsyncStdConnection {
                     // Clone the Arc to pass into the blocking task
                     let pipe_clone = Arc::clone(pipe);
                     let data = buf.to_vec();
-                    
+
                     // Use blocking crate to handle synchronous I/O in async context
                     blocking::unblock(move || {
                         let mut file = pipe_clone.lock().unwrap();
                         file.write(&data)
-                    }).await
+                    })
+                    .await
                 }
             }
         })
@@ -271,11 +277,12 @@ impl AsyncWrite for AsyncStdConnection {
                 Self::Windows(pipe) => {
                     // Clone the Arc to pass into the blocking task
                     let pipe_clone = Arc::clone(pipe);
-                    
+
                     blocking::unblock(move || {
                         let mut file = pipe_clone.lock().unwrap();
                         file.flush()
-                    }).await
+                    })
+                    .await
                 }
             }
         })
