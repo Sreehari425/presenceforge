@@ -35,8 +35,8 @@ impl DiscordIpcClient {
     /// // Auto-discovery (default)
     /// let client = DiscordIpcClient::new_with_config("client_id", None)?;
     ///
-    /// // Connect to specific pipe number
-    /// let client = DiscordIpcClient::new_with_config("client_id", Some(PipeConfig::PipeNumber(0)))?;
+    /// // Connect using auto-discovery (explicit)
+    /// let client = DiscordIpcClient::new_with_config("client_id", Some(PipeConfig::Auto))?;
     ///
     /// // Connect to custom path (Unix)
     /// # #[cfg(unix)]
