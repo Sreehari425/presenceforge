@@ -341,7 +341,10 @@ pub mod client {
         // This delay ensures that the pipe is fully ready before sending/receiving data
         // Windows named pipes can sometimes report as connected but not be fully ready
         #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(super::WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
+        async_std::task::sleep(Duration::from_millis(
+            super::WINDOWS_PIPE_STABILIZATION_DELAY_MS,
+        ))
+        .await;
 
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
@@ -376,7 +379,10 @@ pub mod client {
         // This delay ensures that the pipe is fully ready before sending/receiving data
         // Windows named pipes can sometimes report as connected but not be fully ready
         #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(super::WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
+        async_std::task::sleep(Duration::from_millis(
+            super::WINDOWS_PIPE_STABILIZATION_DELAY_MS,
+        ))
+        .await;
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
         Ok(client)
