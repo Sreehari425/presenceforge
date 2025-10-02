@@ -19,6 +19,7 @@ use futures::io::AsyncReadExt;
 use futures::io::AsyncWriteExt;
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
+use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::constants;
 
@@ -49,20 +50,27 @@ impl AsyncStdConnection {
     pub async fn new_with_timeout(timeout_ms: u64) -> Result<Self> {
         use async_std::future::timeout;
         use std::time::Duration;
-        
+
         #[cfg(windows)]
-        println!("Attempting to connect to Discord IPC with timeout {} ms (Windows)", timeout_ms);
-        
+        debug_println!(
+            "Attempting to connect to Discord IPC with timeout {} ms (Windows)",
+            timeout_ms
+        );
+
         #[cfg(unix)]
-        println!("Attempting to connect to Discord IPC with timeout {} ms (Unix)", timeout_ms);
-        
+        debug_println!(
+            "Attempting to connect to Discord IPC with timeout {} ms (Unix)",
+            timeout_ms
+        );
+
         let timeout_duration = Duration::from_millis(timeout_ms);
-        
+
         match timeout(timeout_duration, Self::try_connect()).await {
             Ok(result) => result,
             Err(_) => Err(DiscordIpcError::ConnectionTimeout(timeout_ms)),
         }
-    }    /// Try to connect to Discord
+    }
+    /// Try to connect to Discord
     async fn try_connect() -> Result<Self> {
         #[cfg(unix)]
         {
@@ -132,6 +140,7 @@ impl AsyncStdConnection {
     /// Connect to Discord IPC named pipe on Windows
     async fn connect_windows() -> Result<Self> {
         use async_fs::OpenOptions;
+        use std::time::Duration;
 
         let mut last_error = None;
 
@@ -139,6 +148,7 @@ impl AsyncStdConnection {
             let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
 
             // Try to open the named pipe
+            debug_println!("Attempting to connect to named pipe: {}", pipe_path);
             match OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -146,22 +156,34 @@ impl AsyncStdConnection {
                 .await
             {
                 Ok(file) => {
-                    println!("Successfully opened named pipe: {}", pipe_path);
+                    debug_println!("Successfully opened named pipe: {}", pipe_path);
                     // On Windows, we need two separate file handles
                     let writer = file;
-                    let reader = OpenOptions::new()
+
+                    // Small delay before opening second handle to avoid race conditions
+                    async_std::task::sleep(Duration::from_millis(100)).await;
+
+                    // Open a second handle for reading
+                    let reader = match OpenOptions::new()
                         .read(true)
                         .write(true)
                         .open(&pipe_path)
                         .await
-                        .map_err(|e| {
-                            println!("Failed to open second handle to named pipe: {}", e);
-                            DiscordIpcError::ConnectionFailed(e)
-                        })?;
-                    println!("Successfully opened second handle to named pipe");
+                    {
+                        Ok(f) => {
+                            debug_println!("Successfully opened second handle to named pipe");
+                            f
+                        }
+                        Err(e) => {
+                            debug_println!("Failed to open second handle to named pipe: {}", e);
+                            return Err(DiscordIpcError::ConnectionFailed(e));
+                        }
+                    };
+
                     return Ok(Self::Windows { reader, writer });
                 }
                 Err(err) => {
+                    debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
                     last_error = Some(err);
                     continue; // Try next pipe number
                 }
@@ -196,7 +218,37 @@ impl AsyncRead for AsyncStdConnection {
                 Self::Unix(stream) => stream.read(buf).await,
 
                 #[cfg(windows)]
-                Self::Windows { reader, .. } => futures::io::AsyncReadExt::read(reader, buf).await,
+                Self::Windows { reader, .. } => {
+                    // Improved read implementation with retry logic for Windows
+                    let mut total_read = 0;
+                    let mut retries = 0;
+                    const MAX_RETRIES: u8 = 3;
+
+                    while total_read == 0 && retries < MAX_RETRIES {
+                        match futures::io::AsyncReadExt::read(reader, buf).await {
+                            Ok(0) => {
+                                // No data yet, retry after a short delay
+                                async_std::task::sleep(std::time::Duration::from_millis(50)).await;
+                                retries += 1;
+                            }
+                            Ok(n) => {
+                                total_read = n;
+                                break;
+                            }
+                            Err(e) => return Err(e),
+                        }
+                    }
+
+                    if total_read == 0 && retries >= MAX_RETRIES {
+                        // If we still have no data after retries, return would block
+                        Err(io::Error::new(
+                            io::ErrorKind::WouldBlock,
+                            "No data available after retries",
+                        ))
+                    } else {
+                        Ok(total_read)
+                    }
+                }
             }
         })
     }
@@ -214,7 +266,13 @@ impl AsyncWrite for AsyncStdConnection {
 
                 #[cfg(windows)]
                 Self::Windows { writer, .. } => {
-                    futures::io::AsyncWriteExt::write(writer, buf).await
+                    // Improved write implementation for Windows
+                    let result = futures::io::AsyncWriteExt::write(writer, buf).await?;
+
+                    // Ensure data is flushed immediately on Windows
+                    futures::io::AsyncWriteExt::flush(writer).await?;
+
+                    Ok(result)
                 }
             }
         })
@@ -237,6 +295,7 @@ impl AsyncWrite for AsyncStdConnection {
 pub mod client {
     use super::AsyncStdConnection;
     use crate::async_io::client::AsyncDiscordIpcClient;
+    use crate::debug_println;
     use crate::error::Result;
 
     /// Create a new async-std-based Discord IPC client
@@ -244,13 +303,30 @@ pub mod client {
         client_id: impl Into<String>,
     ) -> Result<AsyncDiscordIpcClient<AsyncStdConnection>> {
         let client_id_str = client_id.into();
-        println!("Creating Discord IPC client with client ID: {}", client_id_str);
-        
-        println!("Attempting to establish connection to Discord...");
-        let connection = AsyncStdConnection::new().await?;
-        println!("Connection established successfully");
-        
-        Ok(AsyncDiscordIpcClient::new(client_id_str, connection))
+        debug_println!(
+            "Creating Discord IPC client with client ID: {}",
+            client_id_str
+        );
+
+        debug_println!("Attempting to establish connection to Discord...");
+        let connection = match AsyncStdConnection::new().await {
+            Ok(conn) => {
+                debug_println!("Connection established successfully");
+                conn
+            }
+            Err(e) => {
+                debug_println!("Failed to connect to Discord: {:?}", e);
+                return Err(e);
+            }
+        };
+
+        // Give the connection a moment to stabilize (important for Windows)
+        #[cfg(windows)]
+        async_std::task::sleep(Duration::from_millis(100)).await;
+
+        let client = AsyncDiscordIpcClient::new(client_id_str, connection);
+
+        Ok(client)
     }
 
     /// Create a new async-std-based Discord IPC client with a connection timeout
@@ -258,7 +334,31 @@ pub mod client {
         client_id: impl Into<String>,
         timeout_ms: u64,
     ) -> Result<AsyncDiscordIpcClient<AsyncStdConnection>> {
-        let connection = AsyncStdConnection::new_with_timeout(timeout_ms).await?;
-        Ok(AsyncDiscordIpcClient::new(client_id, connection))
+        let client_id_str = client_id.into();
+        debug_println!(
+            "Creating Discord IPC client with timeout {}ms and client ID: {}",
+            timeout_ms,
+            client_id_str
+        );
+
+        debug_println!("Attempting to establish connection to Discord with timeout...");
+        let connection = match AsyncStdConnection::new_with_timeout(timeout_ms).await {
+            Ok(conn) => {
+                debug_println!("Connection established successfully within timeout");
+                conn
+            }
+            Err(e) => {
+                debug_println!("Failed to connect to Discord within timeout: {:?}", e);
+                return Err(e);
+            }
+        };
+
+        // Give the connection a moment to stabilize (important for Windows)
+        #[cfg(windows)]
+        async_std::task::sleep(Duration::from_millis(100)).await;
+
+        let client = AsyncDiscordIpcClient::new(client_id_str, connection);
+
+        Ok(client)
     }
 }

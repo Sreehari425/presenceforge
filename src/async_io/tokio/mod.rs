@@ -125,14 +125,14 @@ impl TokioConnection {
             let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
 
             // Try to open the named pipe
-            println!("Attempting to connect to Windows named pipe: {}", pipe_path);
+            debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
             match ClientOptions::new().open(pipe_path.clone()) {
                 Ok(client) => {
-                    println!("Successfully connected to named pipe: {}", pipe_path);
+                    debug_println!("Successfully connected to named pipe: {}", pipe_path);
                     return Ok(Self::Windows(client));
                 }
                 Err(err) => {
-                    println!("Failed to connect to named pipe {}: {}", pipe_path, err);
+                    debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
                     last_error = Some(err);
                     continue; // Try next pipe number
                 }
@@ -140,7 +140,7 @@ impl TokioConnection {
         }
 
         // If we got here, no valid pipe was found
-        println!("No valid Discord IPC pipe found after trying all options");
+        debug_println!("No valid Discord IPC pipe found after trying all options");
         if let Some(err) = last_error {
             // Return the last error we encountered for diagnostic purposes
             if err.kind() == io::ErrorKind::PermissionDenied {
