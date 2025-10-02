@@ -12,11 +12,11 @@ use async_std::io::WriteExt as _;
 use async_std::os::unix::net::UnixStream;
 
 #[cfg(windows)]
-use async_io::Async;
+use std::fs::File;
 #[cfg(windows)]
-use std::os::windows::io::{AsRawHandle, FromRawHandle};
+use std::io::{Read, Write};
 #[cfg(windows)]
-use std::fs::OpenOptions as StdOpenOptions;
+use std::sync::{Arc, Mutex};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
@@ -29,7 +29,7 @@ pub enum AsyncStdConnection {
     Unix(UnixStream),
 
     #[cfg(windows)]
-    Windows(Async<std::fs::File>),
+    Windows(Arc<Mutex<File>>),
 }
 
 impl AsyncStdConnection {
@@ -139,6 +139,7 @@ impl AsyncStdConnection {
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows
     async fn connect_windows() -> Result<Self> {
+        use std::fs::OpenOptions;
         use std::os::windows::fs::OpenOptionsExt;
         const FILE_FLAG_OVERLAPPED: u32 = 0x40000000;
 
@@ -149,27 +150,23 @@ impl AsyncStdConnection {
 
             debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
             
-            // Open the named pipe with overlapped I/O support for async operations
-            match StdOpenOptions::new()
-                .read(true)
-                .write(true)
-                .custom_flags(FILE_FLAG_OVERLAPPED)
-                .open(&pipe_path)
-            {
+            // Clone pipe_path for the closure
+            let pipe_path_clone = pipe_path.clone();
+            
+            // Open the named pipe with overlapped I/O support
+            // We use blocking operations wrapped in async context via the blocking crate
+            let result = blocking::unblock(move || {
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .custom_flags(FILE_FLAG_OVERLAPPED)
+                    .open(&pipe_path_clone)
+            }).await;
+
+            match result {
                 Ok(file) => {
                     debug_println!("Successfully opened named pipe: {}", pipe_path);
-                    
-                    // Wrap in async-io's Async wrapper for async operations
-                    match Async::new(file) {
-                        Ok(async_file) => {
-                            debug_println!("Successfully created async wrapper for named pipe");
-                            return Ok(Self::Windows(async_file));
-                        }
-                        Err(e) => {
-                            debug_println!("Failed to create async wrapper: {}", e);
-                            return Err(DiscordIpcError::ConnectionFailed(e));
-                        }
-                    }
+                    return Ok(Self::Windows(Arc::new(Mutex::new(file))));
                 }
                 Err(err) => {
                     debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
@@ -208,8 +205,27 @@ impl AsyncRead for AsyncStdConnection {
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    use futures::io::AsyncReadExt;
-                    pipe.read(buf).await
+                    // Clone the Arc to pass into the blocking task
+                    let pipe_clone = Arc::clone(pipe);
+                    let buf_len = buf.len();
+                    
+                    // Use blocking crate to handle synchronous I/O in async context
+                    let result = blocking::unblock(move || {
+                        let mut local_buf = vec![0u8; buf_len];
+                        let mut file = pipe_clone.lock().unwrap();
+                        match file.read(&mut local_buf) {
+                            Ok(n) => Ok((n, local_buf)),
+                            Err(e) => Err(e),
+                        }
+                    }).await;
+
+                    match result {
+                        Ok((n, data)) => {
+                            buf[..n].copy_from_slice(&data[..n]);
+                            Ok(n)
+                        }
+                        Err(e) => Err(e),
+                    }
                 }
             }
         })
@@ -228,8 +244,15 @@ impl AsyncWrite for AsyncStdConnection {
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    use futures::io::AsyncWriteExt;
-                    pipe.write(buf).await
+                    // Clone the Arc to pass into the blocking task
+                    let pipe_clone = Arc::clone(pipe);
+                    let data = buf.to_vec();
+                    
+                    // Use blocking crate to handle synchronous I/O in async context
+                    blocking::unblock(move || {
+                        let mut file = pipe_clone.lock().unwrap();
+                        file.write(&data)
+                    }).await
                 }
             }
         })
@@ -243,8 +266,13 @@ impl AsyncWrite for AsyncStdConnection {
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    use futures::io::AsyncWriteExt;
-                    pipe.flush().await
+                    // Clone the Arc to pass into the blocking task
+                    let pipe_clone = Arc::clone(pipe);
+                    
+                    blocking::unblock(move || {
+                        let mut file = pipe_clone.lock().unwrap();
+                        file.flush()
+                    }).await
                 }
             }
         })

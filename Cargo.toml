@@ -20,8 +20,7 @@ futures = { version = "0.3", optional = true }
 # Async runtime dependencies
 tokio = { version = "1", features = ["net", "io-util", "fs", "rt", "rt-multi-thread", "time", "macros"], optional = true }
 async-std = { version = "1", features = ["attributes"], optional = true }
-async-fs = { version = "1", optional = true }
-async-io = { version = "2", optional = true }
+blocking = { version = "1", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -30,7 +29,7 @@ libc = "0.2"
 default = []
 # Async runtimes
 tokio-runtime = ["tokio", "futures"]
-async-std-runtime = ["async-std", "async-io", "futures"]
+async-std-runtime = ["async-std", "blocking", "futures"]
 
 [[example]]
 name = "basic"
