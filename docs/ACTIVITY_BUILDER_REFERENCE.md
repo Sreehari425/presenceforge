@@ -171,7 +171,7 @@ let end_time = now + 300;
 
 ### 8. **Secrets**(For "Ask to Join" and Spectate features)
 
-# Note: untested feature
+#### Note: untested feature
 
 #### Join Secret
 
@@ -185,7 +185,7 @@ let end_time = now + 300;
 
 #### Spectate Secret
 
-# Note: untested feature
+##### Note: untested feature
 
 ```rust
 .spectate_secret("spectate_secret_xyz789")
@@ -211,7 +211,7 @@ let end_time = now + 300;
 
 ### 9. **Instance** (`instance()`)
 
-# Note: untested feature
+##### Note: untested feature
 
 ```rust
 .instance(true)   // or false
