@@ -212,7 +212,10 @@ impl AsyncRead for AsyncStdConnection {
                     // Use blocking crate to handle synchronous I/O in async context
                     let result = blocking::unblock(move || {
                         let mut local_buf = vec![0u8; buf_len];
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock().map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Mutex poisoned: {}", e))) {
+                            Ok(f) => f,
+                            Err(e) => return Err(e),
+                        };
                         match file.read(&mut local_buf) {
                             Ok(n) => Ok((n, local_buf)),
                             Err(e) => Err(e),
