@@ -4,6 +4,7 @@ use std::io;
 use std::pin::Pin;
 use std::future::Future;
 
+#[cfg(unix)]
 use async_std::os::unix::net::UnixStream;
 use async_std::io::{ReadExt, WriteExt};
 
@@ -134,9 +135,10 @@ impl AsyncStdConnection {
             // Try to open the named pipe
             match OpenOptions::new().read(true).write(true).open(&pipe_path).await {
                 Ok(file) => {
-                    // Clone the file handle for reader and writer
-                    let reader = file.clone();
+                    // On Windows, we need two separate file handles
                     let writer = file;
+                    let reader = OpenOptions::new().read(true).write(true).open(&pipe_path).await?
+;
                     return Ok(Self::Windows { reader, writer });
                 }
                 Err(err) => {
@@ -171,7 +173,7 @@ impl AsyncRead for AsyncStdConnection {
                 Self::Unix(stream) => stream.read(buf).await,
                 
                 #[cfg(windows)]
-                Self::Windows { reader, .. } => reader.read(buf).await,
+                Self::Windows { reader, .. } => futures::io::AsyncReadExt::read(reader, buf).await,
             }
         })
     }
@@ -185,7 +187,7 @@ impl AsyncWrite for AsyncStdConnection {
                 Self::Unix(stream) => stream.write(buf).await,
                 
                 #[cfg(windows)]
-                Self::Windows { writer, .. } => writer.write(buf).await,
+                Self::Windows { writer, .. } => futures::io::AsyncWriteExt::write(writer, buf).await,
             }
         })
     }
@@ -197,7 +199,7 @@ impl AsyncWrite for AsyncStdConnection {
                 Self::Unix(stream) => stream.flush().await,
                 
                 #[cfg(windows)]
-                Self::Windows { writer, .. } => writer.flush().await,
+                Self::Windows { writer, .. } => futures::io::AsyncWriteExt::flush(writer).await,
             }
         })
     }

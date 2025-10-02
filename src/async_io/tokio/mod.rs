@@ -4,6 +4,8 @@ use std::io;
 use std::pin::Pin;
 use std::future::Future;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+#[cfg(unix)]
 use tokio::net::UnixStream;
 
 #[cfg(windows)]
@@ -123,7 +125,7 @@ impl TokioConnection {
             let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
 
             // Try to open the named pipe
-            match ClientOptions::new().open(pipe_path).await {
+            match ClientOptions::new().open(pipe_path) {
                 Ok(client) => {
                     return Ok(Self::Windows(client));
                 }
