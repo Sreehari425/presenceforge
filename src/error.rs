@@ -24,4 +24,4 @@ pub enum DiscordIpcError {
 }
 
 /// Result type for Discord IPC operations
-pub type Result<T> = std::result::Result<T, DiscordIpcError>;
+pub type Result<T = ()> = std::result::Result<T, DiscordIpcError>;

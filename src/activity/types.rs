@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Rich Presence Activity
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Activity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
@@ -29,17 +29,17 @@ pub struct Activity {
 }
 
 /// Activity timestamps
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActivityTimestamps {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start: Option<i64>,
+    pub start: Option<u64>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<i64>,
 }
 
 /// Activity assets (images)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActivityAssets {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub large_image: Option<String>,
@@ -65,7 +65,7 @@ pub struct ActivityParty {
 }
 
 /// Activity secrets for join/spectate
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActivitySecrets {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub join: Option<String>,
@@ -82,19 +82,4 @@ pub struct ActivitySecrets {
 pub struct ActivityButton {
     pub label: String,
     pub url: String,
-}
-
-impl Default for Activity {
-    fn default() -> Self {
-        Self {
-            state: None,
-            details: None,
-            timestamps: None,
-            assets: None,
-            party: None,
-            secrets: None,
-            buttons: None,
-            instance: None,
-        }
-    }
 }

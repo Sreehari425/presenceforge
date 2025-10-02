@@ -3,7 +3,7 @@ name = "presenceforge"
 version = "0.0.0"
 edition = "2021"
 authors = ["Sreehari Anil <sreehari7102008@gmail.com>"]
-description = "A Rust library for Discord Rich Presence (IPC) integration"
+description = "A library for Discord Rich Presence (IPC) integration"
 readme = "README.md"
 repository = "https://github.com/Sreehari425/presenceforge"
 license = "MIT OR Apache-2.0"
@@ -11,12 +11,11 @@ keywords = ["discord", "rpc", "rich-presence", "ipc", "gaming"]
 categories = ["api-bindings", "games"]
 
 [dependencies]
-thiserror = "2.0.17"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-byteorder = "1.5"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+byteorder = "1"
 
-# Unix-specific dependencies
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
