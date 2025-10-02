@@ -14,9 +14,7 @@ use async_std::os::unix::net::UnixStream;
 #[cfg(windows)]
 use async_fs::File;
 #[cfg(windows)]
-use futures::io::AsyncReadExt;
-#[cfg(windows)]
-use futures::io::AsyncWriteExt;
+use std::time::Duration;
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
@@ -25,13 +23,13 @@ use crate::ipc::constants;
 
 // Constants for Windows named pipe handling
 #[cfg(windows)]
-const WINDOWS_PIPE_STABILIZATION_DELAY_MS: u64 = 100; // Delay to ensure pipe stability between operations
+pub const WINDOWS_PIPE_STABILIZATION_DELAY_MS: u64 = 100; // Delay to ensure pipe stability between operations
 #[cfg(windows)]
-const WINDOWS_HANDLE_CREATION_DELAY_MS: u64 = 100; // Delay to avoid race conditions between handle creation
+pub const WINDOWS_HANDLE_CREATION_DELAY_MS: u64 = 100; // Delay to avoid race conditions between handle creation
 #[cfg(windows)]
-const WINDOWS_READ_RETRY_DELAY_MS: u64 = 50; // Delay between read retry attempts
+pub const WINDOWS_READ_RETRY_DELAY_MS: u64 = 50; // Delay between read retry attempts
 #[cfg(windows)]
-const MAX_READ_RETRIES: u8 = 3; // Maximum number of read retry attempts
+pub const MAX_READ_RETRIES: u8 = 3; // Maximum number of read retry attempts
 
 /// A Discord IPC connection using async-std
 pub enum AsyncStdConnection {
@@ -314,6 +312,9 @@ pub mod client {
     use crate::debug_println;
     use crate::error::Result;
 
+    #[cfg(windows)]
+    use std::time::Duration;
+
     /// Create a new async-std-based Discord IPC client
     pub async fn new_discord_ipc_client(
         client_id: impl Into<String>,
@@ -340,7 +341,7 @@ pub mod client {
         // This delay ensures that the pipe is fully ready before sending/receiving data
         // Windows named pipes can sometimes report as connected but not be fully ready
         #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
+        async_std::task::sleep(Duration::from_millis(super::WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
 
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
@@ -375,7 +376,7 @@ pub mod client {
         // This delay ensures that the pipe is fully ready before sending/receiving data
         // Windows named pipes can sometimes report as connected but not be fully ready
         #[cfg(windows)]
-        async_std::task::sleep(Duration::from_millis(WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
+        async_std::task::sleep(Duration::from_millis(super::WINDOWS_PIPE_STABILIZATION_DELAY_MS)).await;
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
         Ok(client)

@@ -1,5 +1,6 @@
 //! Tokio-specific implementations for async Discord IPC
 
+#[cfg(windows)]
 use crate::debug_println;
 use std::future::Future;
 use std::io;
