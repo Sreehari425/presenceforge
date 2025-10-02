@@ -54,7 +54,6 @@
 //! # }
 //! ```
 
-mod adapters;
 mod client;
 mod traits;
 
