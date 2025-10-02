@@ -4,7 +4,9 @@ use std::process;
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode};
+use crate::ipc::{
+    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+};
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -13,10 +15,43 @@ pub struct DiscordIpcClient {
 }
 
 impl DiscordIpcClient {
-    /// Create a new Discord IPC client
+    /// Create a new Discord IPC client (uses auto-discovery)
     pub fn new<S: Into<String>>(client_id: S) -> Result<Self> {
+        Self::new_with_config(client_id, None)
+    }
+
+    /// Create a new Discord IPC client with pipe configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `client_id` - The Discord application client ID
+    /// * `config` - Optional pipe configuration. If `None`, auto-discovery is used.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use presenceforge::{DiscordIpcClient, PipeConfig};
+    ///
+    /// // Auto-discovery (default)
+    /// let client = DiscordIpcClient::new_with_config("client_id", None)?;
+    ///
+    /// // Connect to specific pipe number
+    /// let client = DiscordIpcClient::new_with_config("client_id", Some(PipeConfig::PipeNumber(0)))?;
+    ///
+    /// // Connect to custom path (Unix)
+    /// # #[cfg(unix)]
+    /// let client = DiscordIpcClient::new_with_config(
+    ///     "client_id",
+    ///     Some(PipeConfig::CustomPath("/tmp/discord-ipc-0".to_string()))
+    /// )?;
+    /// # Ok::<(), presenceforge::DiscordIpcError>(())
+    /// ```
+    pub fn new_with_config<S: Into<String>>(
+        client_id: S,
+        config: Option<PipeConfig>,
+    ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new()?;
+        let connection = IpcConnection::new_with_config(config)?;
 
         Ok(Self {
             client_id,
@@ -24,7 +59,7 @@ impl DiscordIpcClient {
         })
     }
 
-    /// Create a new Discord IPC client with a connection timeout
+    /// Create a new Discord IPC client with a connection timeout (uses auto-discovery)
     ///
     /// # Arguments
     ///
@@ -39,8 +74,40 @@ impl DiscordIpcClient {
     ///
     /// Returns a `DiscordIpcError::ConnectionTimeout` if the connection times out
     pub fn new_with_timeout<S: Into<String>>(client_id: S, timeout_ms: u64) -> Result<Self> {
+        Self::new_with_config_and_timeout(client_id, None, timeout_ms)
+    }
+
+    /// Create a new Discord IPC client with pipe configuration and timeout
+    ///
+    /// # Arguments
+    ///
+    /// * `client_id` - The Discord application client ID
+    /// * `config` - Optional pipe configuration. If `None`, auto-discovery is used.
+    /// * `timeout_ms` - Connection timeout in milliseconds
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use presenceforge::{DiscordIpcClient, PipeConfig};
+    ///
+    /// // Auto-discovery with timeout
+    /// let client = DiscordIpcClient::new_with_config_and_timeout("client_id", None, 5000)?;
+    ///
+    /// // Specific pipe with timeout
+    /// let client = DiscordIpcClient::new_with_config_and_timeout(
+    ///     "client_id",
+    ///     Some(PipeConfig::PipeNumber(0)),
+    ///     5000
+    /// )?;
+    /// # Ok::<(), presenceforge::DiscordIpcError>(())
+    /// ```
+    pub fn new_with_config_and_timeout<S: Into<String>>(
+        client_id: S,
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+    ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new_with_timeout(timeout_ms)?;
+        let connection = IpcConnection::new_with_config_and_timeout(config, timeout_ms)?;
 
         Ok(Self {
             client_id,

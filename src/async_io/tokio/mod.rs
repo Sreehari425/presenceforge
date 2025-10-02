@@ -14,7 +14,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::constants;
+use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using Tokio
 pub enum TokioConnection {
@@ -26,60 +26,82 @@ pub enum TokioConnection {
 }
 
 impl TokioConnection {
-    /// Create a new Tokio connection to Discord
+    /// Create a new Tokio connection to Discord (uses auto-discovery)
     pub async fn new() -> Result<Self> {
+        Self::new_with_config(None).await
+    }
+
+    /// Create a new Tokio connection with pipe configuration
+    pub async fn new_with_config(config: Option<PipeConfig>) -> Result<Self> {
+        let config = config.unwrap_or_default();
+
         #[cfg(unix)]
         {
-            Self::connect_unix().await
+            Self::connect_unix_with_config(&config).await
         }
 
         #[cfg(windows)]
         {
-            Self::connect_windows().await
+            Self::connect_windows_with_config(&config).await
         }
     }
 
-    /// Create a new connection with timeout
+    /// Create a new connection with timeout (uses auto-discovery)
     pub async fn new_with_timeout(timeout_ms: u64) -> Result<Self> {
+        Self::new_with_config_and_timeout(None, timeout_ms).await
+    }
+
+    /// Create a new connection with pipe configuration and timeout
+    pub async fn new_with_config_and_timeout(
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+    ) -> Result<Self> {
         use tokio::time::{timeout, Duration};
 
         let timeout_duration = Duration::from_millis(timeout_ms);
 
-        match timeout(timeout_duration, Self::try_connect()).await {
+        match timeout(timeout_duration, Self::new_with_config(config)).await {
             Ok(result) => result,
             Err(_) => Err(DiscordIpcError::ConnectionTimeout(timeout_ms)),
         }
     }
 
-    /// Try to connect to Discord
-    async fn try_connect() -> Result<Self> {
-        #[cfg(unix)]
-        {
-            Self::connect_unix().await
-        }
-
-        #[cfg(windows)]
-        {
-            Self::connect_windows().await
+    #[cfg(unix)]
+    /// Connect to Discord IPC socket on Unix systems with configuration
+    async fn connect_unix_with_config(config: &PipeConfig) -> Result<Self> {
+        match config {
+            PipeConfig::Auto => Self::connect_unix_auto().await,
+            PipeConfig::CustomPath(path) => UnixStream::connect(path)
+                .await
+                .map(Self::Unix)
+                .map_err(DiscordIpcError::ConnectionFailed),
         }
     }
 
     #[cfg(unix)]
-    /// Connect to Discord IPC socket on Unix systems
-    async fn connect_unix() -> Result<Self> {
+    /// Connect to Discord IPC socket using auto-discovery
+    async fn connect_unix_auto() -> Result<Self> {
         // Try environment variables in order of preference
         let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
         let mut directories = Vec::new();
 
         for env_key in &env_keys {
             if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir);
+                directories.push(dir.clone());
+
+                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
+                if env_key == &"XDG_RUNTIME_DIR" {
+                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
+                }
             }
         }
 
         // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            directories.push(format!("/run/user/{}", unsafe { libc::getuid() }));
+            let uid = unsafe { libc::getuid() };
+            directories.push(format!("/run/user/{}", uid));
+            // Also try Flatpak path as fallback
+            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
         }
 
         // Try each directory with each socket number
@@ -118,8 +140,20 @@ impl TokioConnection {
     }
 
     #[cfg(windows)]
-    /// Connect to Discord IPC named pipe on Windows
-    async fn connect_windows() -> Result<Self> {
+    /// Connect to Discord IPC named pipe on Windows with configuration
+    async fn connect_windows_with_config(config: &PipeConfig) -> Result<Self> {
+        match config {
+            PipeConfig::Auto => Self::connect_windows_auto().await,
+            PipeConfig::CustomPath(path) => ClientOptions::new()
+                .open(path)
+                .map(Self::Windows)
+                .map_err(DiscordIpcError::ConnectionFailed),
+        }
+    }
+
+    #[cfg(windows)]
+    /// Connect to Discord IPC named pipe using auto-discovery
+    async fn connect_windows_auto() -> Result<Self> {
         let mut last_error = None;
 
         for i in 0..constants::MAX_IPC_SOCKETS {
