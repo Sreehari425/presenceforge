@@ -14,9 +14,10 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum PipeConfig {
     /// Automatically discover and connect to the first available pipe (default behavior)
+    #[default]
     Auto,
     /// Connect to a custom pipe path
     ///
@@ -26,12 +27,6 @@ pub enum PipeConfig {
     ///
     /// Windows: `\\.\pipe\discord-ipc-0`
     CustomPath(String),
-}
-
-impl Default for PipeConfig {
-    fn default() -> Self {
-        PipeConfig::Auto
-    }
 }
 
 /// Information about a discovered Discord IPC pipe

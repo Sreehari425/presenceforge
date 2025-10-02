@@ -4,7 +4,9 @@ use std::process;
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig};
+use crate::ipc::{
+    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+};
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -44,7 +46,10 @@ impl DiscordIpcClient {
     /// )?;
     /// # Ok::<(), presenceforge::DiscordIpcError>(())
     /// ```
-    pub fn new_with_config<S: Into<String>>(client_id: S, config: Option<PipeConfig>) -> Result<Self> {
+    pub fn new_with_config<S: Into<String>>(
+        client_id: S,
+        config: Option<PipeConfig>,
+    ) -> Result<Self> {
         let client_id = client_id.into();
         let connection = IpcConnection::new_with_config(config)?;
 
@@ -99,7 +104,7 @@ impl DiscordIpcClient {
     pub fn new_with_config_and_timeout<S: Into<String>>(
         client_id: S,
         config: Option<PipeConfig>,
-        timeout_ms: u64
+        timeout_ms: u64,
     ) -> Result<Self> {
         let client_id = client_id.into();
         let connection = IpcConnection::new_with_config_and_timeout(config, timeout_ms)?;

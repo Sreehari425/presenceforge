@@ -57,7 +57,10 @@ impl SmolConnection {
     }
 
     /// Create a new connection with pipe configuration and timeout
-    pub async fn new_with_config_and_timeout(config: Option<PipeConfig>, timeout_ms: u64) -> Result<Self> {
+    pub async fn new_with_config_and_timeout(
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+    ) -> Result<Self> {
         use smol::Timer;
         use std::time::Duration;
 
@@ -95,12 +98,10 @@ impl SmolConnection {
     async fn connect_unix_with_config(config: &PipeConfig) -> Result<Self> {
         match config {
             PipeConfig::Auto => Self::connect_unix_auto().await,
-            PipeConfig::CustomPath(path) => {
-                UnixStream::connect(path)
-                    .await
-                    .map(Self::Unix)
-                    .map_err(DiscordIpcError::ConnectionFailed)
-            }
+            PipeConfig::CustomPath(path) => UnixStream::connect(path)
+                .await
+                .map(Self::Unix)
+                .map_err(DiscordIpcError::ConnectionFailed),
         }
     }
 
@@ -114,7 +115,7 @@ impl SmolConnection {
         for env_key in &env_keys {
             if let Ok(dir) = std::env::var(env_key) {
                 directories.push(dir.clone());
-                
+
                 // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
                 if env_key == &"XDG_RUNTIME_DIR" {
                     directories.push(format!("{}/app/com.discordapp.Discord", dir));
