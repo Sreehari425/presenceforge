@@ -50,10 +50,10 @@ Simple example showing:
 - Using assets and buttons
 - Clearing activity
 
-### `builder_all.rs` ⭐ **Comprehensive Reference**
+### `builder_all.rs`  **Comprehensive Reference**
 
 **Complete ActivityBuilder documentation example** showing:
-
+- Note all methods at the time of writing dosent work
 - **Every single builder method** with detailed explanations
 - **Visual layout guide** showing where each field appears in Discord
 - **Practical tips** for each option (images, timestamps, party, buttons, secrets)
