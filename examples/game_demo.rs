@@ -9,7 +9,7 @@ fn main() -> Result {
 
     println!("🎮 Starting Discord Rich Presence for Game Demo...");
     client.connect()?;
-    println!("✅ Connected to Discord!");
+    println!(" Connected to Discord!");
 
     // Game states to cycle through
     let game_states = vec![
@@ -48,7 +48,7 @@ fn main() -> Result {
     // Clear activity when game ends
     println!("\n Game ended, clearing activity...");
     client.clear_activity()?;
-    println!("✅ Activity cleared!");
+    println!(" Activity cleared!");
 
     Ok(())
 }
