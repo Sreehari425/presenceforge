@@ -2,6 +2,8 @@
 
 This document explains every field available in the ActivityBuilder and how it appears in Discord.
 
+> Note: This is currently in early development (v0.0.0). Things might break.
+
 ## Visual Layout
 
 ```
@@ -270,6 +272,7 @@ let mut client = DiscordIpcClient::new("your_client_id")?;
 client.connect()?;
 client.set_activity(&activity)?;
 ```
+
 ## See Also
 
 - **Example:** `examples/builder_all.rs` - Complete working example with all fields

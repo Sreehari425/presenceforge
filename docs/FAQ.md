@@ -2,6 +2,8 @@
 
 Frequently asked questions and solutions to common problems.
 
+> Note: This is currently in early development (v0.0.0). Things might break.
+
 ## Table of Contents
 
 - [General Questions](#general-questions)

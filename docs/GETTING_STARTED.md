@@ -2,6 +2,8 @@
 
 Welcome to PresenceForge! This guide will help you get started with integrating Discord Rich Presence into your Rust application.
 
+> Note: This is currently in early development (v0.0.0). Things might break.
+
 ## What is Discord Rich Presence?
 
 Discord Rich Presence allows your application to display custom status information in Discord, showing users what you're doing in real-time. This can include:

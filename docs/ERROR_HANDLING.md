@@ -2,6 +2,8 @@
 
 A comprehensive guide to handling errors in PresenceForge.
 
+> Note: This is currently in early development (v0.0.0). Things might break.
+
 ## Table of Contents
 
 - [Overview](#overview)

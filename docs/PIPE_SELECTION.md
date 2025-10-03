@@ -4,6 +4,8 @@
 
 This document describes the pipe selection and discovery features in PresenceForge, giving developers control over which Discord IPC pipe to connect to.
 
+> Note: This is currently in early development (v0.0.0). Things might break.
+
 ## Key Features
 
 ### 1. **PipeConfig Enum**
