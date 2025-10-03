@@ -7,6 +7,18 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 > **Note**: This is currently in early development (v0.0.0). Things might break
 
+## Documentation
+
+**[Read the full documentation →](docs/README.md)**
+
+- [Getting Started Guide](docs/GETTING_STARTED.md) - Installation and first steps
+- [API Reference](docs/API_REFERENCE.md) - Complete API documentation
+- [Activity Builder Reference](docs/ACTIVITY_BUILDER_REFERENCE.md) - Detailed guide to all fields
+- [Async Runtimes Guide](docs/ASYNC_RUNTIMES.md) - Using async/await with Tokio, async-std, or smol
+- [Error Handling Guide](docs/ERROR_HANDLING.md) - Proper error handling patterns
+
+- [FAQ & Troubleshooting](docs/FAQ.md) - Common questions and solutions
+
 ## What Works
 
 - [x] Linux and macOS (Unix domain sockets)
