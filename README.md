@@ -9,8 +9,6 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 ## Documentation
 
-**[Read the full documentation →](docs/README.md)**
-
 - [Getting Started Guide](docs/GETTING_STARTED.md) - Installation and first steps
 - [API Reference](docs/API_REFERENCE.md) - Complete API documentation
 - [Activity Builder Reference](docs/ACTIVITY_BUILDER_REFERENCE.md) - Detailed guide to all fields
