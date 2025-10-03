@@ -329,30 +329,20 @@ client.connect()?;
 
 The new features are opt-in and don't break existing functionality.
 
-## Why Use CustomPath Instead of Pipe Numbers?
+## Design Philosophy
 
-The simplified API using `CustomPath` provides several benefits:
+The `PipeConfig` API is designed around two simple, explicit options:
+
+1. **Auto**: Let the library handle discovery automatically (works for 99% of cases)
+2. **CustomPath**: Full control with explicit paths when you need it
+
+**Benefits of this approach:**
 
 1. **More Explicit**: You see exactly which socket/pipe you're connecting to
 2. **Cross-Platform Clarity**: Works consistently across Unix and Windows
 3. **Better Debugging**: Full paths make troubleshooting easier
 4. **Flatpak Support**: Makes it obvious when connecting to Flatpak vs standard Discord
-5. **Simpler API**: Two choices (Auto/CustomPath) instead of three
-
-**Migration from older versions:**
-
-```rust
-// Old way (if using PipeNumber):
-Some(PipeConfig::PipeNumber(0))
-
-// New way:
-let pipes = IpcConnection::discover_pipes();
-let pipe = pipes.iter().find(|p| p.pipe_number == 0).unwrap();
-Some(PipeConfig::CustomPath(pipe.path.clone()))
-
-// Or just use Auto (recommended):
-None  // or Some(PipeConfig::Auto)
-```
+5. **Simpler API**: Two clear choices (Auto or CustomPath)
 
 ## Platform Support
 
