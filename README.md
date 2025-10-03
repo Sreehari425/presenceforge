@@ -6,6 +6,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 
 > **Note**: This is currently in early development (v0.0.0). Things might break
+> This is a learning/hobby project.
 
 ## Documentation
 
