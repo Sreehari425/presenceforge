@@ -7,6 +7,8 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 > **Note**: This is currently in early development (v0.0.0). Things might break
 > This is a learning/hobby project.
+>
+> ⚠️ FINAL WARNING: PresenceForge is a learning/hobby project. If you need production-ready Discord Rich Presence, use a mature library like pypresence, discord-rpc, or CraftPresence.
 
 ## Documentation
 

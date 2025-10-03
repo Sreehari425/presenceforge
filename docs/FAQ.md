@@ -2,7 +2,8 @@
 
 Frequently asked questions and solutions to common problems.
 
-> Note: This is currently in early development (v0.0.0). Things might break.
+> ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
+> ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
 
 ## Table of Contents
 
@@ -20,7 +21,6 @@ Frequently asked questions and solutions to common problems.
 ### What is PresenceForge?
 
 PresenceForge is a Rust library for integrating Discord Rich Presence into your applications. It allows you to display custom status information in Discord, showing what users are doing in real-time.
-
 
 ---
 
