@@ -270,44 +270,6 @@ let mut client = DiscordIpcClient::new("your_client_id")?;
 client.connect()?;
 client.set_activity(&activity)?;
 ```
-
-## Tips and Best Practices
-
-### Images
-
-- ✅ Upload assets in Discord Developer Portal first
-- ✅ Use descriptive asset keys (`game_logo`, not `img1`)
-- ✅ Recommended sizes: 1024x1024 (large), 256x256 (small)
-- ✅ Use PNG or JPG format
-- ❌ Asset keys are case-sensitive!
-
-### Text Fields
-
-- ✅ Keep state and details concise (128 char limit each)
-- ✅ Use state for current action, details for context
-- ✅ Add emojis for visual appeal (but don't overdo it!)
-- ❌ Don't put long paragraphs
-
-### Timestamps
-
-- ✅ Use start_timestamp for "elapsed" time
-- ✅ Use end_timestamp for "countdown" timers
-- ✅ Call `.start_timestamp_now()` for current time
-- ❌ Don't set both unless you specifically want countdown
-
-### Buttons
-
-- ✅ Use clear, action-oriented labels ("Join", "View", "Play")
-- ✅ Add emojis to make buttons stand out
-- ✅ URLs must be valid and start with http:// or https://
-- ❌ Max 2 buttons only!
-
-### Party
-
-- ✅ Update party size when players join/leave
-- ✅ Use meaningful party IDs for tracking
-- ❌ Don't exceed max_size or show negative numbers
-
 ## See Also
 
 - **Example:** `examples/builder_all.rs` - Complete working example with all fields
