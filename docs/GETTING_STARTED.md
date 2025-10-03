@@ -297,9 +297,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 Now that you have the basics working, explore more features:
 
-- **[Activity Builder Reference](ACTIVITY_BUILDER_REFERENCE.md)** - Complete guide to all ActivityBuilder options
+- **[Activity Builder Reference](ACTIVITY_BUILDER_REFERENCE.md)** - Guide to ActivityBuilder options
 - **[Async Runtimes](ASYNC_RUNTIMES.md)** - Using async/await with Tokio, async-std, or smol
-- **[API Reference](API_REFERENCE.md)** - Complete API documentation
+- **[API Reference](API_REFERENCE.md)** - API documentation (WIP)
 - **[Examples](../examples/)** - More code examples
 
 ## Need Help?

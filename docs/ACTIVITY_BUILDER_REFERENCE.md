@@ -1,4 +1,4 @@
-# ActivityBuilder Complete Reference
+# ActivityBuilder Reference (WIP)
 
 This document explains every field available in the ActivityBuilder and how it appears in Discord.
 
@@ -231,7 +231,7 @@ let end_time = now + 300;
 
 ---
 
-## Complete Example
+## Example (all fields)
 
 Here's an activity using all fields:
 
@@ -276,6 +276,6 @@ client.set_activity(&activity)?;
 
 ## See Also
 
-- **Example:** `examples/builder_all.rs` - Complete working example with all fields
+- **Example:** `examples/builder_all.rs` - Working example with all fields
 - **Example:** `examples/basic.rs` - Simple example to get started
 - **Example:** `examples/game_demo.rs` - Game-focused example with dynamic updates

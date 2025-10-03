@@ -1,6 +1,6 @@
 # Error Handling Guide
 
-A comprehensive guide to handling errors in PresenceForge.
+A guide to handling errors in PresenceForge (subject to change).
 
 > ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
 > ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
@@ -660,6 +660,6 @@ fn connect_with_user_feedback(
 
 ## See Also
 
-- [API Reference](API_REFERENCE.md) - Complete error type documentation
+- [API Reference](API_REFERENCE.md) - Error type documentation (WIP)
 - [FAQ](FAQ.md) - Common issues and solutions
 - [Getting Started](GETTING_STARTED.md) - Basic setup guide
