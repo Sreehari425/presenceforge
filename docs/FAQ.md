@@ -19,17 +19,6 @@ Frequently asked questions and solutions to common problems.
 
 PresenceForge is a Rust library for integrating Discord Rich Presence into your applications. It allows you to display custom status information in Discord, showing what users are doing in real-time.
 
----
-
-### Is this the official Discord library?
-
-No, PresenceForge is a third-party library. It implements the Discord IPC protocol to communicate with the Discord client.
-
----
-
-### Can I use this in production?
-
-PresenceForge is currently in early development (v0.0.0). While it works well, the API may change. Consider this before using in production.
 
 ---
 
