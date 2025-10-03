@@ -360,20 +360,6 @@ See these examples for complete working demonstrations:
 - **`examples/basic_flatpak.rs`** - Simple example for Flatpak Discord with fallback to standard Discord
 - **`examples/flatpak_discord.rs`** - Comprehensive Flatpak Discord example with detailed output
 
-## Summary
-
-This feature gives developers:
-
-- ✅ Full control over pipe selection via custom paths
-- ✅ Ability to discover all available pipes
-- ✅ Simple two-option API (Auto or CustomPath)
-- ✅ Timeout support for all connection methods
-- ✅ Backward compatibility
-- ✅ Cross-platform support (Unix & Windows)
-- ✅ Automatic Flatpak Discord detection on Linux
-- ✅ Works with all async runtimes (tokio, async-std, smol)
-- ✅ Better debugging with explicit paths
-
 ## Quick Start
 
 **Most users should use auto-discovery:**
