@@ -269,8 +269,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 - Make sure Discord is running
 - Try restarting Discord
-- On Linux: Check if `/tmp/discord-ipc-0` exists
-- On Flatpak: See [Platform-Specific Guide](PLATFORM_SPECIFIC.md)
+- On Linux: Check if `/tmp/discord-ipc-0` or equivalent exists
 
 ### "Invalid Client ID" Error
 
