@@ -162,6 +162,7 @@ pub use activity::{
 };
 pub use error::{DiscordIpcError, Result};
 pub use ipc::{Command, DiscoveredPipe, IpcConnection, Opcode, PipeConfig};
+pub use ipc::protocol::IpcConfig;
 pub use macros::is_debug_enabled;
 
 // Re-export the synchronous API for backwards compatibility

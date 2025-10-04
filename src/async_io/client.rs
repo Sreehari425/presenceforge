@@ -265,6 +265,15 @@ where
         let opcode_raw = read_u32_le(&mut self.connection).await?;
         let length = read_u32_le(&mut self.connection).await?;
 
+        // Validate payload size to prevent excessive memory allocation
+        if length > crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Payload size {} exceeds maximum allowed size of {} bytes",
+                length,
+                crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE
+            )));
+        }
+
         let opcode = Opcode::try_from(opcode_raw)?;
 
         // Read payload

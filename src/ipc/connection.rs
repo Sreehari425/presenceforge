@@ -195,7 +195,7 @@ impl IpcConnection {
                 Ok(connection) => return Ok(connection),
                 Err(DiscordIpcError::NoValidSocket) => {
                     // Wait a bit before trying again
-                    std::thread::sleep(Duration::from_millis(100));
+                    std::thread::sleep(Duration::from_millis(constants::DEFAULT_RETRY_INTERVAL_MS));
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -425,6 +425,15 @@ impl IpcConnection {
         let mut header_reader = &header[..];
         let opcode_raw = header_reader.read_u32::<LittleEndian>()?;
         let length = header_reader.read_u32::<LittleEndian>()?;
+
+        // Validate payload size to prevent excessive memory allocation
+        if length > constants::MAX_PAYLOAD_SIZE {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Payload size {} exceeds maximum allowed size of {} bytes",
+                length,
+                constants::MAX_PAYLOAD_SIZE
+            )));
+        }
 
         let opcode = Opcode::try_from(opcode_raw)?;
 

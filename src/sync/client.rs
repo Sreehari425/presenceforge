@@ -96,7 +96,7 @@ impl DiscordIpcClient {
     /// // Custom pipe path with timeout
     /// let client = DiscordIpcClient::new_with_config_and_timeout(
     ///     "client_id",
-    ///     Some(PipeConfig::CustomPath(\"/tmp/discord-ipc-0\".into())),
+    ///     Some(PipeConfig::CustomPath("/tmp/discord-ipc-0".into())),
     ///     5000
     /// )?;
     /// # Ok::<(), presenceforge::DiscordIpcError>(())
