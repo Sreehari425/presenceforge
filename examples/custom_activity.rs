@@ -1,8 +1,8 @@
+use clap::Parser;
 use presenceforge::{
     Activity, ActivityAssets, ActivityButton, ActivityTimestamps, DiscordIpcClient, Result,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
-use clap::Parser;
 
 /// Discord Rich Presence Custom Activity Example
 #[derive(Parser, Debug)]
@@ -17,20 +17,25 @@ struct Args {
 fn main() -> Result {
     // Load .env file if it exists (optional)
     let _ = dotenvy::dotenv();
-    
+
     let args = Args::parse();
-    
-    let client_id = args.client_id
+
+    let client_id = args
+        .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
         .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
             eprintln!("Provide it via:");
-            eprintln!("  - Command line: cargo run --example custom_activity -- --client-id YOUR_ID");
-            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example custom_activity");
+            eprintln!(
+                "  - Command line: cargo run --example custom_activity -- --client-id YOUR_ID"
+            );
+            eprintln!(
+                "  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example custom_activity"
+            );
             eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
             std::process::exit(1);
         });
-    
+
     let mut client = DiscordIpcClient::new(&client_id)?;
 
     println!(" Creating custom activity manually");

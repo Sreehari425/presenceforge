@@ -1,7 +1,7 @@
+use clap::Parser;
 use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
 use std::thread;
 use std::time::Duration;
-use clap::Parser;
 
 /// Discord Rich Presence Game Demo Example
 #[derive(Parser, Debug)]
@@ -16,10 +16,11 @@ struct Args {
 fn main() -> Result {
     // Load .env file if it exists (optional)
     let _ = dotenvy::dotenv();
-    
+
     let args = Args::parse();
-    
-    let client_id = args.client_id
+
+    let client_id = args
+        .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
         .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
@@ -29,7 +30,7 @@ fn main() -> Result {
             eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
             std::process::exit(1);
         });
-    
+
     let mut client = DiscordIpcClient::new(&client_id)?;
 
     println!("🎮 Starting Discord Rich Presence for Game Demo...");

@@ -3,9 +3,9 @@
 // This example shows every available builder method with explanations
 // of what each field does and how it appears in Discord.
 
+use clap::Parser;
 use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
 use std::time::Duration;
-use clap::Parser;
 
 /// Discord Rich Presence Complete Builder Example
 #[derive(Parser, Debug)]
@@ -19,10 +19,11 @@ struct Args {
 fn main() -> Result {
     // Load .env file if it exists (optional)
     let _ = dotenvy::dotenv();
-    
+
     let args = Args::parse();
-    
-    let client_id = args.client_id
+
+    let client_id = args
+        .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
         .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
@@ -32,7 +33,7 @@ fn main() -> Result {
             eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
             std::process::exit(1);
         });
-    
+
     println!("=== Complete ActivityBuilder Reference Example ===\n");
 
     let mut client = DiscordIpcClient::new(&client_id)?;

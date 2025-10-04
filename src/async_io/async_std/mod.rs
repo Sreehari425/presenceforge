@@ -350,7 +350,7 @@ pub mod client {
     use std::time::Duration;
 
     /// A reconnectable async-std-based Discord IPC client
-    /// 
+    ///
     /// This wrapper stores the connection configuration and client ID,
     /// allowing you to reconnect after connection loss.
     pub struct AsyncStdDiscordIpcClient {
@@ -368,9 +368,10 @@ pub mod client {
             timeout_ms: Option<u64>,
         ) -> Result<Self> {
             let client_id = client_id.into();
-            
+
             let connection = if let Some(timeout) = timeout_ms {
-                AsyncStdConnection::new_with_config_and_timeout(pipe_config.clone(), timeout).await?
+                AsyncStdConnection::new_with_config_and_timeout(pipe_config.clone(), timeout)
+                    .await?
             } else {
                 AsyncStdConnection::new_with_config(pipe_config.clone()).await?
             };
@@ -405,7 +406,8 @@ pub mod client {
         pub async fn reconnect(&mut self) -> Result<Value> {
             // Create a new connection with the same configuration
             let connection = if let Some(timeout) = self.timeout_ms {
-                AsyncStdConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout).await?
+                AsyncStdConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)
+                    .await?
             } else {
                 AsyncStdConnection::new_with_config(self.pipe_config.clone()).await?
             };
@@ -459,7 +461,11 @@ pub mod client {
         }
 
         /// Send a raw IPC message
-        pub async fn send_message(&mut self, opcode: crate::ipc::Opcode, payload: &Value) -> Result<()> {
+        pub async fn send_message(
+            &mut self,
+            opcode: crate::ipc::Opcode,
+            payload: &Value,
+        ) -> Result<()> {
             self.inner.send_message(opcode, payload).await
         }
 
@@ -470,7 +476,7 @@ pub mod client {
     }
 
     /// Create a new async-std-based Discord IPC client (backward compatible function)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `AsyncStdDiscordIpcClient::new()` instead.
     pub async fn new_discord_ipc_client(
@@ -500,7 +506,7 @@ pub mod client {
     }
 
     /// Create a new async-std-based Discord IPC client with a connection timeout (backward compatible)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `AsyncStdDiscordIpcClient::new_with_timeout()` instead.
     pub async fn new_discord_ipc_client_with_timeout(

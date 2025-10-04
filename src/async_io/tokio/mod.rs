@@ -252,7 +252,7 @@ pub mod client {
     use tokio::time::timeout;
 
     /// A reconnectable Tokio-based Discord IPC client
-    /// 
+    ///
     /// This wrapper stores the connection configuration and client ID,
     /// allowing you to reconnect after connection loss.
     pub struct TokioDiscordIpcClient {
@@ -270,7 +270,7 @@ pub mod client {
             timeout_ms: Option<u64>,
         ) -> Result<Self> {
             let client_id = client_id.into();
-            
+
             let connection = if let Some(timeout) = timeout_ms {
                 TokioConnection::new_with_config_and_timeout(pipe_config.clone(), timeout).await?
             } else {
@@ -338,7 +338,8 @@ pub mod client {
         pub async fn reconnect(&mut self) -> Result<Value> {
             // Create a new connection with the same configuration
             let connection = if let Some(timeout) = self.timeout_ms {
-                TokioConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout).await?
+                TokioConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)
+                    .await?
             } else {
                 TokioConnection::new_with_config(self.pipe_config.clone()).await?
             };
@@ -392,7 +393,11 @@ pub mod client {
         }
 
         /// Send a raw IPC message
-        pub async fn send_message(&mut self, opcode: crate::ipc::Opcode, payload: &Value) -> Result<()> {
+        pub async fn send_message(
+            &mut self,
+            opcode: crate::ipc::Opcode,
+            payload: &Value,
+        ) -> Result<()> {
             self.inner.send_message(opcode, payload).await
         }
 
@@ -403,7 +408,7 @@ pub mod client {
     }
 
     /// Create a new Tokio-based Discord IPC client (backward compatible function)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `TokioDiscordIpcClient::new()` instead.
     pub async fn new_discord_ipc_client(
@@ -414,7 +419,7 @@ pub mod client {
     }
 
     /// Create a new Tokio-based Discord IPC client with a connection timeout (backward compatible)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `TokioDiscordIpcClient::new_with_timeout()` instead.
     pub async fn new_discord_ipc_client_with_timeout(

@@ -4,9 +4,9 @@
 // by discovering and selecting the Flatpak Discord pipe path.
 // If Flatpak Discord is not active, it will fallback to standard Discord.
 
+use clap::Parser;
 use presenceforge::{ActivityBuilder, DiscordIpcClient, IpcConnection, PipeConfig, Result};
 use std::time::Duration;
-use clap::Parser;
 
 /// Discord Rich Presence Flatpak Example
 #[derive(Parser, Debug)]
@@ -20,20 +20,23 @@ struct Args {
 fn main() -> Result {
     // Load .env file if it exists (optional)
     let _ = dotenvy::dotenv();
-    
+
     let args = Args::parse();
-    
-    let client_id = args.client_id
+
+    let client_id = args
+        .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
         .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
             eprintln!("Provide it via:");
             eprintln!("  - Command line: cargo run --example basic_flatpak -- --client-id YOUR_ID");
-            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example basic_flatpak");
+            eprintln!(
+                "  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example basic_flatpak"
+            );
             eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
             std::process::exit(1);
         });
-    
+
     // Discover all available Discord pipes
     let pipes = IpcConnection::discover_pipes();
 

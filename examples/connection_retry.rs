@@ -20,13 +20,18 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let args = Args::parse();
 
-    let client_id = args.client_id
+    let client_id = args
+        .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
         .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
             eprintln!("Provide it via:");
-            eprintln!("  - Command line: cargo run --example connection_retry -- --client-id YOUR_ID");
-            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example connection_retry");
+            eprintln!(
+                "  - Command line: cargo run --example connection_retry -- --client-id YOUR_ID"
+            );
+            eprintln!(
+                "  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example connection_retry"
+            );
             eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
             std::process::exit(1);
         });
@@ -138,10 +143,10 @@ fn example_custom_retry(client_id: &str) -> Result {
 
     // Create a custom retry configuration
     let config = RetryConfig::new(
-        5,      // max_attempts
-        500,    // initial_delay_ms
-        8000,   // max_delay_ms
-        2.0,    // backoff_multiplier
+        5,    // max_attempts
+        500,  // initial_delay_ms
+        8000, // max_delay_ms
+        2.0,  // backoff_multiplier
     );
 
     // Show the delay progression
@@ -197,8 +202,8 @@ fn example_resilient_operation(client_id: &str) -> Result {
     let mut client = with_retry(&config, &mut connect)?;
 
     // Helper function to perform operations with automatic reconnect
-    let mut perform_with_retry = |op: &dyn Fn(&mut DiscordIpcClient) -> Result| {
-        match op(&mut client) {
+    let mut perform_with_retry =
+        |op: &dyn Fn(&mut DiscordIpcClient) -> Result| match op(&mut client) {
             Ok(_) => Ok(()),
             Err(e) if e.is_recoverable() => {
                 println!("  Operation failed, reconnecting...");
@@ -206,8 +211,7 @@ fn example_resilient_operation(client_id: &str) -> Result {
                 op(&mut client)
             }
             Err(e) => Err(e),
-        }
-    };
+        };
 
     // Set activity with auto-retry
     let activity = ActivityBuilder::new()

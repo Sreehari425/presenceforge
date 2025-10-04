@@ -107,7 +107,8 @@ async fn example_auto_retry(client_id: &str) -> Result {
             println!("  Attempting to connect...");
             TokioDiscordIpcClient::new(client_id).await
         })
-    }).await?;
+    })
+    .await?;
 
     println!("✓ Connected successfully!");
 
@@ -138,9 +139,8 @@ async fn example_resilient_loop(client_id: &str) -> Result {
 
     // Connect with retry
     let config = RetryConfig::with_max_attempts(3);
-    let mut client = with_retry_async(&config, || {
-        Box::pin(TokioDiscordIpcClient::new(client_id))
-    }).await?;
+    let mut client =
+        with_retry_async(&config, || Box::pin(TokioDiscordIpcClient::new(client_id))).await?;
 
     client.connect().await?;
     println!("✓ Connected!");
@@ -161,7 +161,7 @@ async fn example_resilient_loop(client_id: &str) -> Result {
             }
             Err(e) if e.is_connection_error() => {
                 println!("  ⚠ Connection lost on update #{}, reconnecting...", i);
-                
+
                 // Try to reconnect
                 match client.reconnect().await {
                     Ok(_) => {

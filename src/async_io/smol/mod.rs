@@ -82,7 +82,10 @@ impl SmolConnection {
         match smol::future::or(
             async {
                 Timer::after(timeout_duration).await;
-                Err(DiscordIpcError::ConnectionTimeout { timeout_ms, last_error: None })
+                Err(DiscordIpcError::ConnectionTimeout {
+                    timeout_ms,
+                    last_error: None,
+                })
             },
             Self::new_with_config(config),
         )
@@ -355,7 +358,7 @@ pub mod client {
     use std::time::Duration;
 
     /// A reconnectable smol-based Discord IPC client
-    /// 
+    ///
     /// This wrapper stores the connection configuration and client ID,
     /// allowing you to reconnect after connection loss.
     pub struct SmolDiscordIpcClient {
@@ -373,7 +376,7 @@ pub mod client {
             timeout_ms: Option<u64>,
         ) -> Result<Self> {
             let client_id = client_id.into();
-            
+
             let connection = if let Some(timeout) = timeout_ms {
                 SmolConnection::new_with_config_and_timeout(pipe_config.clone(), timeout).await?
             } else {
@@ -410,7 +413,8 @@ pub mod client {
         pub async fn reconnect(&mut self) -> Result<Value> {
             // Create a new connection with the same configuration
             let connection = if let Some(timeout) = self.timeout_ms {
-                SmolConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout).await?
+                SmolConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)
+                    .await?
             } else {
                 SmolConnection::new_with_config(self.pipe_config.clone()).await?
             };
@@ -465,15 +469,21 @@ pub mod client {
                         None,
                     ))
                 },
-                self.inner.connect()
-            ).await {
+                self.inner.connect(),
+            )
+            .await
+            {
                 Ok(result) => Ok(result),
                 Err(e) => Err(e),
             }
         }
 
         /// Send a raw IPC message
-        pub async fn send_message(&mut self, opcode: crate::ipc::Opcode, payload: &Value) -> Result<()> {
+        pub async fn send_message(
+            &mut self,
+            opcode: crate::ipc::Opcode,
+            payload: &Value,
+        ) -> Result<()> {
             self.inner.send_message(opcode, payload).await
         }
 
@@ -484,7 +494,7 @@ pub mod client {
     }
 
     /// Create a new smol-based Discord IPC client (backward compatible function)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `SmolDiscordIpcClient::new()` instead.
     pub async fn new_discord_ipc_client(
@@ -514,7 +524,7 @@ pub mod client {
     }
 
     /// Create a new smol-based Discord IPC client with a connection timeout (backward compatible)
-    /// 
+    ///
     /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
     /// For reconnection support, use `SmolDiscordIpcClient::new_with_timeout()` instead.
     pub async fn new_discord_ipc_client_with_timeout(
@@ -561,11 +571,17 @@ pub mod client {
         ///
         /// Returns `DiscordIpcError::ConnectionTimeout` if the operation times out
         /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
-        fn connect_with_timeout(&mut self, timeout_duration: Duration) -> impl std::future::Future<Output = Result<Value>> + Send;
+        fn connect_with_timeout(
+            &mut self,
+            timeout_duration: Duration,
+        ) -> impl std::future::Future<Output = Result<Value>> + Send;
     }
 
     impl SmolClientExt for AsyncDiscordIpcClient<SmolConnection> {
-        fn connect_with_timeout(&mut self, timeout_duration: Duration) -> impl std::future::Future<Output = Result<Value>> + Send {
+        fn connect_with_timeout(
+            &mut self,
+            timeout_duration: Duration,
+        ) -> impl std::future::Future<Output = Result<Value>> + Send {
             use smol::future::or;
             use smol::Timer;
 
@@ -578,8 +594,10 @@ pub mod client {
                             None,
                         ))
                     },
-                    self.connect()
-                ).await {
+                    self.connect(),
+                )
+                .await
+                {
                     Ok(result) => Ok(result),
                     Err(e) => Err(e),
                 }
