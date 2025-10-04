@@ -14,7 +14,7 @@ This document explains every field available in the ActivityBuilder and how it a
 │  │   ┌───┐  │    Party: 2 of 4                  │
 │  │   │ S │  │    ⏱ 00:15 elapsed                │
 │  └───┴───┘──┘                                   │
-│                                                  │
+│                                                 │
 │  ┌─────────────┐    ┌──────────────┐            │
 │  │  Button 1   │    │   Button 2   │            │
 │  └─────────────┘    └──────────────┘            │
