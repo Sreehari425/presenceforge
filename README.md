@@ -17,8 +17,11 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [Activity Builder Reference](docs/ACTIVITY_BUILDER_REFERENCE.md) - Detailed guide to all fields
 - [Async Runtimes Guide](docs/ASYNC_RUNTIMES.md) - Using async/await with Tokio, async-std, or smol
 - [Error Handling Guide](docs/ERROR_HANDLING.md) - Proper error handling patterns
-
 - [FAQ & Troubleshooting](docs/FAQ.md) - Common questions and solutions
+
+**Want to build your own RPC client?**
+
+- [Discord RPC from Scratch](docs/DISCORD_RPC_FROM_SCRATCH.md) - this is What I found while building this library. I could be wrong about some things, so feel free to correct me!
 
 ## What Works
 
