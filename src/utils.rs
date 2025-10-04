@@ -1,5 +1,4 @@
 /// Utility functions for the library
-
 use uuid::Uuid;
 
 /// Generate a cryptographically secure nonce for IPC requests
@@ -54,7 +53,7 @@ mod tests {
     fn test_generate_nonce_different_prefixes() {
         let nonce1 = generate_nonce("set-activity");
         let nonce2 = generate_nonce("clear-activity");
-        
+
         assert!(nonce1.starts_with("set-activity-"));
         assert!(nonce2.starts_with("clear-activity-"));
         assert_ne!(nonce1, nonce2);
