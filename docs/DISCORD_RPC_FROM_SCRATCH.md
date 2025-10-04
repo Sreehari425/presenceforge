@@ -56,8 +56,7 @@ You know when you see someone playing a game and their Discord status shows fanc
 
 Before we dive into code, let's understand the flow:
 
-````
-    ```
+```
 ┌───────────────────────────────────────────────┐
 │           Your Application                    │
 └───────────────────┬───────────────────────────┘
@@ -87,8 +86,6 @@ Before we dive into code, let's understand the flow:
 │  6. Close when done                           │
 │                                               │
 └───────────────────────────────────────────────┘
-````
-
 ```
 
 **Key concept:** Discord RPC uses **IPC** (Inter-Process Communication). Your app talks to the Discord client running on the same computer. It's local, fast, and doesn't need the internet!
@@ -109,18 +106,18 @@ Discord uses a simple framing protocol:
 
 Every message has two parts:
 ┌──────────────┬────────────────────────────┐
-│ Header │ Payload │
-│ (8 bytes) │ (variable length) │
+│   Header     │         Payload            │
+│  (8 bytes)   │    (variable length)       │
 └──────────────┴────────────────────────────┘
 
 Header breakdown:
 ┌──────────────┬────────────────────────────┐
-│ Opcode │ Length │
-│ (4 bytes) │ (4 bytes) │
-│ (u32, LE) │ (u32, LE) │
+│   Opcode     │         Length             │
+│  (4 bytes)   │       (4 bytes)            │
+│  (u32, LE)   │       (u32, LE)            │
 └──────────────┴────────────────────────────┘
 
-````
+```
 
 - **Opcode**: What kind of message is this? (handshake, frame, close, etc.)
 - **Length**: How many bytes is the payload?
@@ -138,7 +135,7 @@ Opcode 1 = FRAME        // Regular messages (set presence, etc.)
 Opcode 2 = CLOSE        // Closing the connection
 Opcode 3 = PING         // Keep-alive ping
 Opcode 4 = PONG         // Keep-alive response
-````
+```
 
 For a basic client, we mainly use:
 
