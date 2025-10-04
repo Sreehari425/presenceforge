@@ -10,6 +10,10 @@ license = "MIT OR Apache-2.0"
 keywords = ["discord", "rpc", "rich-presence", "ipc", "gaming"]
 categories = ["api-bindings", "games"]
 
+# Configuration for docs.rs to build documentation with all features
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }

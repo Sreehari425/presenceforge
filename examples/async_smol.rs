@@ -1,6 +1,5 @@
 use clap::Parser;
-use presenceforge::async_io::smol::SmolDiscordIpcClient;
-use presenceforge::{ActivityBuilder, Result};
+use presenceforge::{ActivityBuilder, AsyncDiscordIpcClient, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Smol Example
@@ -30,7 +29,7 @@ fn main() -> Result {
         });
 
     smol::block_on(async {
-        let mut client = SmolDiscordIpcClient::new(&client_id).await?;
+        let mut client = AsyncDiscordIpcClient::new(&client_id).await?;
 
         // Perform handshake
         client.connect().await?;

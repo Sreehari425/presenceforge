@@ -8,6 +8,7 @@
 //! ## Features
 //!
 //! - Synchronous and asynchronous API
+//! - **Unified async API** - Write once, run on any async runtime
 //! - Runtime-agnostic async design (supports tokio, async-std, and smol)
 //! - Activity builder pattern
 //! - Cross-platform support (Linux, macOS, Windows)
@@ -39,94 +40,96 @@
 //! # }
 //! ```
 //!
-//! ## Async Example with Tokio
+//! ## Unified Async API
 //!
-//! ```rust,ignore
-//! use presenceforge::{ActivityBuilder, Result};
-//! use presenceforge::async_io::tokio::client::new_discord_ipc_client;
+//! The library provides a single `AsyncDiscordIpcClient` type that automatically
+//! adapts to your chosen async runtime through feature flags. No need for
+//! runtime-specific imports!
 //!
-//! # #[tokio::main]
-//! # async fn main() -> Result {
-//! let client_id = "your_client_id";
-//! let mut client = new_discord_ipc_client(client_id).await?;
+//! ### With Tokio
 //!
-//! // Perform handshake
-//! client.connect().await?;
+//! Enable the `tokio-runtime` feature in your `Cargo.toml`:
 //!
-//! // Create activity using the builder pattern
-//! let activity = ActivityBuilder::new()
-//!     .state("Playing a game")
-//!     .details("In the menu")
-//!     .start_timestamp_now()
-//!     .large_image("game_logo")
-//!     .large_text("My Awesome Game")
-//!     .build();
-//!
-//! // Set the activity
-//! client.set_activity(&activity).await?;
-//!
-//! // Keep activity for some time
-//! tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-//!
-//! // Clear the activity
-//! client.clear_activity().await?;
-//! # Ok(())
-//! # }
+//! ```toml
+//! [dependencies]
+//! presenceforge = { version = "0.0.0", features = ["tokio-runtime"] }
+//! tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 //! ```
 //!
-//! ## Async Example with async-std
+//! ```rust,no_run
+//! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
-//! ```rust,ignore
-//! use presenceforge::{ActivityBuilder, Result};
-//! use presenceforge::async_io::async_std::client::new_discord_ipc_client;
-//! use async_std::task;
-//! use std::time::Duration;
+//! #[tokio::main]
+//! async fn main() -> Result {
+//!     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
+//!     client.connect().await?;
 //!
-//! # #[async_std::main]
-//! # async fn main() -> Result {
-//! let client_id = "your_client_id";
-//! let mut client = new_discord_ipc_client(client_id).await?;
+//!     let activity = ActivityBuilder::new()
+//!         .state("Playing a game")
+//!         .details("In the menu")
+//!         .start_timestamp_now()
+//!         .large_image("game_logo")
+//!         .large_text("My Awesome Game")
+//!         .build();
 //!
-//! // Perform handshake
-//! client.connect().await?;
-//!
-//! // Create activity using the builder pattern
-//! let activity = ActivityBuilder::new()
-//!     .state("Playing a game")
-//!     .details("In the menu")
-//!     .start_timestamp_now()
-//!     .large_image("game_logo")
-//!     .large_text("My Awesome Game")
-//!     .build();
-//!
-//! // Set the activity
-//! client.set_activity(&activity).await?;
-//!
-//! // Keep activity for some time
-//! task::sleep(Duration::from_secs(10)).await;
-//!
-//! // Clear the activity
-//! client.clear_activity().await?;
-//! # Ok(())
-//! # }
+//!     client.set_activity(&activity).await?;
+//!     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+//!     client.clear_activity().await?;
+//!     Ok(())
+//! }
 //! ```
 //!
-//! ## Async Example with smol
+//! ### With async-std
 //!
-//! ```rust,ignore
-//! use presenceforge::{ActivityBuilder, Result};
-//! use presenceforge::async_io::smol::client::new_discord_ipc_client;
-//! use std::time::Duration;
+//! Enable the `async-std-runtime` feature:
+//!
+//! ```toml
+//! [dependencies]
+//! presenceforge = { version = "0.0.0", features = ["async-std-runtime"] }
+//! async-std = { version = "1", features = ["attributes"] }
+//! ```
+//!
+//! ```rust,no_run
+//! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
+//!
+//! #[async_std::main]
+//! async fn main() -> Result {
+//!     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
+//!     client.connect().await?;
+//!
+//!     let activity = ActivityBuilder::new()
+//!         .state("Playing a game")
+//!         .details("In the menu")
+//!         .start_timestamp_now()
+//!         .large_image("game_logo")
+//!         .large_text("My Awesome Game")
+//!         .build();
+//!
+//!     client.set_activity(&activity).await?;
+//!     async_std::task::sleep(std::time::Duration::from_secs(10)).await;
+//!     client.clear_activity().await?;
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ### With smol
+//!
+//! Enable the `smol-runtime` feature:
+//!
+//! ```toml
+//! [dependencies]
+//! presenceforge = { version = "0.0.0", features = ["smol-runtime"] }
+//! smol = "2"
+//! ```
+//!
+//! ```rust,no_run
+//! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
 //! fn main() -> Result {
 //!     smol::block_on(async {
-//!         let client_id = "your_client_id";
-//!         let mut client = new_discord_ipc_client(client_id).await?;
-//!
-//!         // Perform handshake
+//!         let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
 //!         client.connect().await?;
 //!
-//!         // Create activity using the builder pattern
 //!         let activity = ActivityBuilder::new()
 //!             .state("Playing a game")
 //!             .details("In the menu")
@@ -135,17 +138,27 @@
 //!             .large_text("My Awesome Game")
 //!             .build();
 //!
-//!         // Set the activity
 //!         client.set_activity(&activity).await?;
-//!
-//!         // Keep activity for some time
-//!         smol::Timer::after(Duration::from_secs(10)).await;
-//!
-//!         // Clear the activity
+//!         smol::Timer::after(std::time::Duration::from_secs(10)).await;
 //!         client.clear_activity().await?;
 //!         Ok(())
 //!     })
 //! }
+//! ```
+//!
+//! ## Runtime-Specific APIs (Advanced)
+//!
+//! For advanced use cases, you can still import runtime-specific clients directly:
+//!
+//! ```rust,no_run
+//! // Tokio-specific client
+//! use presenceforge::async_io::tokio::TokioDiscordIpcClient;
+//!
+//! // async-std-specific client  
+//! use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
+//!
+//! // smol-specific client
+//! use presenceforge::async_io::smol::SmolDiscordIpcClient;
 //! ```
 
 pub mod activity;
@@ -172,3 +185,17 @@ pub use sync::client::DiscordIpcClient;
 
 // The sync module is also accessible for more explicit imports
 pub mod sync;
+
+// Unified async API - automatically selects the correct runtime based on feature flags
+#[cfg(feature = "tokio-runtime")]
+pub use async_io::tokio::TokioDiscordIpcClient as AsyncDiscordIpcClient;
+
+#[cfg(all(feature = "async-std-runtime", not(feature = "tokio-runtime")))]
+pub use async_io::async_std::AsyncStdDiscordIpcClient as AsyncDiscordIpcClient;
+
+#[cfg(all(
+    feature = "smol-runtime",
+    not(feature = "tokio-runtime"),
+    not(feature = "async-std-runtime")
+))]
+pub use async_io::smol::SmolDiscordIpcClient as AsyncDiscordIpcClient;

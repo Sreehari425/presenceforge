@@ -1,7 +1,6 @@
 use async_std::task;
 use clap::Parser;
-use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
-use presenceforge::{ActivityBuilder, Result};
+use presenceforge::{ActivityBuilder, AsyncDiscordIpcClient, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Async-std Example
@@ -31,7 +30,7 @@ async fn main() -> Result {
             std::process::exit(1);
         });
 
-    let mut client = AsyncStdDiscordIpcClient::new(&client_id).await?;
+    let mut client = AsyncDiscordIpcClient::new(&client_id).await?;
 
     // Perform handshake
     client.connect().await?;
