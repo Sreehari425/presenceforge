@@ -613,6 +613,7 @@ dependencies = [
  "async-std",
  "blocking",
  "byteorder",
+ "bytes",
  "futures",
  "libc",
  "serde",

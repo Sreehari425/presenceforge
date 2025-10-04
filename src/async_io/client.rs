@@ -1,9 +1,10 @@
 //! Async Discord IPC Client implementation
 
+use bytes::{BufMut, BytesMut};
 use serde_json::{json, Value};
 use std::process;
 
-use super::traits::ipc_utils::{read_u32_le, write_u32_le};
+use super::traits::ipc_utils::read_u32_le;
 use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
@@ -18,12 +19,17 @@ where
 {
     connection: T,
     client_id: String,
+    read_buf: BytesMut,
+    write_buf: BytesMut,
 }
 
 impl<T> AsyncDiscordIpcClient<T>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
+    /// Initial capacity for read and write buffers (4KB)
+    const INITIAL_BUFFER_CAPACITY: usize = 4096;
+
     /// Creates a new async Discord IPC client
     ///
     /// This constructor doesn't establish a connection yet.
@@ -32,6 +38,8 @@ where
         Self {
             connection,
             client_id: client_id.into(),
+            read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
         }
     }
 
@@ -230,12 +238,17 @@ where
     pub async fn send_message(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
         let raw = serde_json::to_vec(payload)?;
 
-        // Write header
-        write_u32_le(&mut self.connection, opcode.into()).await?;
-        write_u32_le(&mut self.connection, raw.len() as u32).await?;
+        // Clear and prepare write buffer
+        self.write_buf.clear();
+        self.write_buf.reserve(8 + raw.len());
 
-        // Write payload
-        write_all(&mut self.connection, &raw).await?;
+        // Write header and payload to buffer
+        self.write_buf.put_u32_le(opcode.into());
+        self.write_buf.put_u32_le(raw.len() as u32);
+        self.write_buf.extend_from_slice(&raw);
+
+        // Write entire buffer at once
+        write_all(&mut self.connection, &self.write_buf).await?;
 
         Ok(())
     }
@@ -250,7 +263,7 @@ where
     ///
     /// Returns a `DiscordIpcError` if deserialization or communication fails
     pub async fn recv_message(&mut self) -> Result<(Opcode, Value)> {
-        // Read header
+        // Read header using utility function
         let opcode_raw = read_u32_le(&mut self.connection).await?;
         let length = read_u32_le(&mut self.connection).await?;
 
@@ -265,13 +278,15 @@ where
 
         let opcode = Opcode::try_from(opcode_raw)?;
 
-        // Read payload
-        let mut data = vec![0u8; length as usize];
-        read_exact(&mut self.connection, &mut data)
+        // Reuse read buffer for payload
+        self.read_buf.clear();
+        self.read_buf.resize(length as usize, 0);
+
+        read_exact(&mut self.connection, &mut self.read_buf[..])
             .await
             .map_err(|_| DiscordIpcError::SocketClosed)?;
 
-        let value: Value = serde_json::from_slice(&data)?;
+        let value: Value = serde_json::from_slice(&self.read_buf)?;
 
         Ok((opcode, value))
     }

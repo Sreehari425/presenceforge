@@ -1,4 +1,5 @@
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt};
+use bytes::{BufMut, BytesMut};
 use serde_json::Value;
 use std::io::Read;
 
@@ -41,15 +42,22 @@ pub struct DiscoveredPipe {
 #[cfg(unix)]
 pub struct IpcConnection {
     stream: UnixStream,
+    read_buf: BytesMut,
+    write_buf: BytesMut,
 }
 
 #[cfg(windows)]
 pub struct IpcConnection {
     reader: BufReader<std::fs::File>,
     writer: BufWriter<std::fs::File>,
+    read_buf: BytesMut,
+    write_buf: BytesMut,
 }
 
 impl IpcConnection {
+    /// Initial capacity for read and write buffers (4KB)
+    const INITIAL_BUFFER_CAPACITY: usize = 4096;
+
     /// Discover all available Discord IPC pipes
     ///
     /// Returns a list of all Discord IPC pipes that are currently accessible
@@ -153,13 +161,22 @@ impl IpcConnection {
         #[cfg(unix)]
         {
             let stream = Self::connect_to_discord_unix_with_config(&config)?;
-            Ok(Self { stream })
+            Ok(Self {
+                stream,
+                read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            })
         }
 
         #[cfg(windows)]
         {
             let (reader, writer) = Self::connect_to_discord_windows_with_config(&config)?;
-            Ok(Self { reader, writer })
+            Ok(Self {
+                reader,
+                writer,
+                read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            })
         }
     }
 
@@ -210,7 +227,11 @@ impl IpcConnection {
         #[cfg(unix)]
         {
             let stream = Self::connect_to_discord_unix_with_config(config)?;
-            Ok(Self { stream })
+            Ok(Self {
+                stream,
+                read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            })
         }
 
         #[cfg(windows)]
@@ -382,22 +403,26 @@ impl IpcConnection {
     /// Send data with opcode
     pub fn send(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
         let raw = serde_json::to_vec(payload)?;
-        let mut buffer = Vec::with_capacity(8 + raw.len());
 
-        buffer.write_u32::<LittleEndian>(opcode.into())?;
-        buffer.write_u32::<LittleEndian>(raw.len() as u32)?;
-        buffer.extend_from_slice(&raw);
+        // Clear and prepare write buffer
+        self.write_buf.clear();
+        self.write_buf.reserve(8 + raw.len());
+
+        // Write header and payload to buffer
+        self.write_buf.put_u32_le(opcode.into());
+        self.write_buf.put_u32_le(raw.len() as u32);
+        self.write_buf.extend_from_slice(&raw);
 
         #[cfg(unix)]
         {
             use std::io::Write;
-            self.stream.write_all(&buffer)?;
+            self.stream.write_all(&self.write_buf)?;
         }
 
         #[cfg(windows)]
         {
             use std::io::Write;
-            self.writer.write_all(&buffer)?;
+            self.writer.write_all(&self.write_buf)?;
             self.writer.flush()?;
         }
 
@@ -406,6 +431,10 @@ impl IpcConnection {
 
     /// Receive data and return opcode and payload
     pub fn recv(&mut self) -> Result<(Opcode, Value)> {
+        // Read header into buffer
+        self.read_buf.clear();
+        self.read_buf.reserve(8);
+
         let mut header = [0u8; 8];
 
         #[cfg(unix)]
@@ -437,23 +466,25 @@ impl IpcConnection {
 
         let opcode = Opcode::try_from(opcode_raw)?;
 
-        let mut data = vec![0u8; length as usize];
+        // Reuse read buffer for payload
+        self.read_buf.clear();
+        self.read_buf.resize(length as usize, 0);
 
         #[cfg(unix)]
         {
             self.stream
-                .read_exact(&mut data)
+                .read_exact(&mut self.read_buf[..])
                 .map_err(|_| DiscordIpcError::SocketClosed)?;
         }
 
         #[cfg(windows)]
         {
             self.reader
-                .read_exact(&mut data)
+                .read_exact(&mut self.read_buf[..])
                 .map_err(|_| DiscordIpcError::SocketClosed)?;
         }
 
-        let value: Value = serde_json::from_slice(&data)?;
+        let value: Value = serde_json::from_slice(&self.read_buf)?;
         Ok((opcode, value))
     }
 
