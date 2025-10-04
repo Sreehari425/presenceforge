@@ -1,6 +1,6 @@
 # Error Handling Guide
 
-A guide to handling errors in PresenceForge (subject to change).
+A comprehensive guide to handling errors and implementing retry logic in PresenceForge.
 
 > ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
 
@@ -10,6 +10,7 @@ A guide to handling errors in PresenceForge (subject to change).
 - [Error Types](#error-types)
 - [Error Categories](#error-categories)
 - [Common Error Scenarios](#common-error-scenarios)
+- [Connection Retry & Reconnection](#connection-retry--reconnection)
 - [Best Practices](#best-practices)
 - [Recovery Strategies](#recovery-strategies)
 
@@ -357,6 +358,169 @@ fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::er
 
 ---
 
+## Connection Retry & Reconnection
+
+PresenceForge provides built-in support for connection retry and reconnection to handle transient network issues and Discord restarts.
+
+### Using the `reconnect()` Method
+
+The `reconnect()` method closes the existing connection and establishes a new one:
+
+```rust
+use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use std::time::Duration;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut client = DiscordIpcClient::new("your_client_id")?;
+    client.connect()?;
+    
+    let activity = ActivityBuilder::new()
+        .state("Playing a game")
+        .build();
+    
+    // Update activity in a loop
+    loop {
+        match client.set_activity(&activity) {
+            Ok(_) => println!("✓ Activity updated"),
+            Err(e) if e.is_connection_error() => {
+                println!("⚠ Connection lost, reconnecting...");
+                client.reconnect()?;
+                client.set_activity(&activity)?;
+            }
+            Err(e) => return Err(e.into()),
+        }
+        
+        std::thread::sleep(Duration::from_secs(15));
+    }
+}
+```
+
+### Using Retry Utilities
+
+For initial connection, use the `with_retry` function with automatic exponential backoff:
+
+```rust
+use presenceforge::retry::{with_retry, RetryConfig};
+use presenceforge::DiscordIpcClient;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Default: 3 attempts, 1s initial delay, exponential backoff
+    let config = RetryConfig::default();
+    
+    let mut client = with_retry(&config, || {
+        println!("Attempting to connect...");
+        DiscordIpcClient::new("your_client_id")
+    })?;
+    
+    client.connect()?;
+    println!("✓ Connected successfully!");
+    
+    Ok(())
+}
+```
+
+### Custom Retry Configuration
+
+```rust
+use presenceforge::retry::RetryConfig;
+
+// More aggressive retry: 5 attempts, shorter delays
+let config = RetryConfig::new(
+    5,      // max_attempts
+    500,    // initial_delay_ms (0.5s)
+    8000,   // max_delay_ms (8s)
+    2.0,    // backoff_multiplier (exponential)
+);
+
+// Retry delays will be: 500ms, 1s, 2s, 4s, 8s
+let mut client = with_retry(&config, || {
+    DiscordIpcClient::new("your_client_id")
+})?;
+```
+
+### Async Retry & Reconnect
+
+#### Tokio
+
+The new reconnectable wrapper provides automatic retry and manual reconnect capabilities:
+
+```rust
+use presenceforge::async_io::tokio::{TokioDiscordIpcClient, PipeConfig};
+use presenceforge::retry::RetryConfig;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client with reconnect support
+    let mut client = TokioDiscordIpcClient::new(
+        "your_client_id",
+        PipeConfig::Auto,
+        Some(5000)
+    );
+    
+    // Connect with retry
+    let retry_config = RetryConfig::with_max_attempts(5);
+    client.connect_with_retry(&retry_config).await?;
+    
+    // Later: manual reconnect if connection is lost
+    if let Err(e) = client.set_activity(activity).await {
+        if e.is_recoverable() {
+            client.reconnect().await?;
+        }
+    }
+    
+    Ok(())
+}
+```
+
+#### async-std
+
+```rust
+use presenceforge::async_io::async_std::{AsyncStdDiscordIpcClient, PipeConfig};
+
+#[async_std::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut client = AsyncStdDiscordIpcClient::new(
+        "your_client_id",
+        PipeConfig::Auto,
+        Some(5000)
+    );
+    
+    client.connect().await?;
+    
+    // Reconnect when needed
+    client.reconnect().await?;
+    Ok(())
+}
+```
+
+#### smol
+
+```rust
+use presenceforge::async_io::smol::{SmolDiscordIpcClient, PipeConfig};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    smol::block_on(async {
+        let mut client = SmolDiscordIpcClient::new(
+            "your_client_id",
+            PipeConfig::Auto,
+            Some(5000)
+        );
+        
+        client.connect().await?;
+        
+        // Reconnect when needed
+        client.reconnect().await?;
+        Ok(())
+    })
+}
+```
+
+**For complete examples, see:** 
+- `examples/connection_retry.rs` (sync)
+- `examples/async_tokio_reconnect.rs` (async)
+
+---
+
 ### Scenario 3: Invalid Configuration
 
 **Problem:** Environment or configuration issues prevent connection.
@@ -477,23 +641,44 @@ match operation_result {
 
 ### 4. Implement Retry Logic for Transient Errors
 
+PresenceForge includes built-in retry utilities with exponential backoff:
+
 ```rust
-use std::thread;
-use std::time::Duration;
+use presenceforge::retry::{with_retry, RetryConfig};
+use presenceforge::DiscordIpcClient;
 
-fn connect_with_retry(
-    client_id: &str,
-    max_retries: u32
-) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
-    let mut retries = 0;
+fn connect_with_retry(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
+    // Use default retry config (3 attempts, 1s initial delay, exponential backoff)
+    let config = RetryConfig::default();
+    
+    let mut client = with_retry(&config, || {
+        DiscordIpcClient::new(client_id)
+    })?;
+    
+    client.connect()?;
+    Ok(client)
+}
+```
 
-    loop {
-        match DiscordIpcClient::new(client_id) {
-            Ok(mut client) => {
-                match client.connect() {
-                    Ok(_) => return Ok(client),
-                    Err(e) if e.is_recoverable() && retries < max_retries => {
-                        retries += 1;
+**Custom retry configuration:**
+
+```rust
+use presenceforge::retry::RetryConfig;
+
+// Create custom retry configuration
+let config = RetryConfig::new(
+    5,      // max_attempts
+    500,    // initial_delay_ms
+    8000,   // max_delay_ms
+    2.0,    // backoff_multiplier
+);
+
+let mut client = with_retry(&config, || {
+    DiscordIpcClient::new(client_id)
+})?;
+```
+
+**See the full example:** `examples/connection_retry.rs`
                         eprintln!("⚠️ Connection failed (attempt {}/{}): {}",
                                  retries, max_retries, e);
                         thread::sleep(Duration::from_secs(2 * retries as u64));

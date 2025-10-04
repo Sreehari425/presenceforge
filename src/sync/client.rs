@@ -13,6 +13,8 @@ use crate::utils::generate_nonce;
 pub struct DiscordIpcClient {
     client_id: String,
     connection: IpcConnection,
+    pipe_config: Option<PipeConfig>,
+    timeout_ms: Option<u64>,
 }
 
 impl DiscordIpcClient {
@@ -52,11 +54,13 @@ impl DiscordIpcClient {
         config: Option<PipeConfig>,
     ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new_with_config(config)?;
+        let connection = IpcConnection::new_with_config(config.clone())?;
 
         Ok(Self {
             client_id,
             connection,
+            pipe_config: config,
+            timeout_ms: None,
         })
     }
 
@@ -108,11 +112,13 @@ impl DiscordIpcClient {
         timeout_ms: u64,
     ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new_with_config_and_timeout(config, timeout_ms)?;
+        let connection = IpcConnection::new_with_config_and_timeout(config.clone(), timeout_ms)?;
 
         Ok(Self {
             client_id,
             connection,
+            pipe_config: config,
+            timeout_ms: Some(timeout_ms),
         })
     }
 
@@ -311,6 +317,53 @@ impl DiscordIpcClient {
     /// Close the connection
     pub fn close(&mut self) {
         self.connection.close();
+    }
+
+    /// Reconnect to Discord IPC
+    ///
+    /// This method closes the existing connection and establishes a new one,
+    /// then performs the handshake again. This is useful when the connection
+    /// is lost or Discord is restarted.
+    ///
+    /// # Returns
+    ///
+    /// The Discord handshake response as a JSON Value
+    ///
+    /// # Errors
+    ///
+    /// Returns a `DiscordIpcError` if the reconnection or handshake fails
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use presenceforge::DiscordIpcClient;
+    ///
+    /// let mut client = DiscordIpcClient::new("client_id")?;
+    /// client.connect()?;
+    ///
+    /// // Later, if connection is lost
+    /// if let Err(e) = client.set_activity(&activity) {
+    ///     if e.is_connection_error() {
+    ///         println!("Connection lost, reconnecting...");
+    ///         client.reconnect()?;
+    ///         client.set_activity(&activity)?;
+    ///     }
+    /// }
+    /// # Ok::<(), presenceforge::DiscordIpcError>(())
+    /// ```
+    pub fn reconnect(&mut self) -> Result<Value> {
+        // Close the old connection
+        self.close();
+
+        // Create a new connection with the same configuration
+        self.connection = if let Some(timeout) = self.timeout_ms {
+            IpcConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)?
+        } else {
+            IpcConnection::new_with_config(self.pipe_config.clone())?
+        };
+
+        // Perform handshake
+        self.connect()
     }
 }
 

@@ -350,10 +350,143 @@ pub mod client {
     use crate::async_io::client::AsyncDiscordIpcClient;
     use crate::debug_println;
     use crate::error::{DiscordIpcError, Result};
+    use crate::ipc::PipeConfig;
     use serde_json::Value;
     use std::time::Duration;
 
-    /// Create a new smol-based Discord IPC client
+    /// A reconnectable smol-based Discord IPC client
+    /// 
+    /// This wrapper stores the connection configuration and client ID,
+    /// allowing you to reconnect after connection loss.
+    pub struct SmolDiscordIpcClient {
+        inner: AsyncDiscordIpcClient<SmolConnection>,
+        client_id: String,
+        pipe_config: Option<PipeConfig>,
+        timeout_ms: Option<u64>,
+    }
+
+    impl SmolDiscordIpcClient {
+        /// Creates a new reconnectable smol-based Discord IPC client
+        async fn new_internal(
+            client_id: impl Into<String>,
+            pipe_config: Option<PipeConfig>,
+            timeout_ms: Option<u64>,
+        ) -> Result<Self> {
+            let client_id = client_id.into();
+            
+            let connection = if let Some(timeout) = timeout_ms {
+                SmolConnection::new_with_config_and_timeout(pipe_config.clone(), timeout).await?
+            } else {
+                SmolConnection::new_with_config(pipe_config.clone()).await?
+            };
+
+            Ok(Self {
+                inner: AsyncDiscordIpcClient::new(client_id.clone(), connection),
+                client_id,
+                pipe_config,
+                timeout_ms,
+            })
+        }
+
+        /// Performs handshake with Discord
+        pub async fn connect(&mut self) -> Result<Value> {
+            self.inner.connect().await
+        }
+
+        /// Sets Discord Rich Presence activity
+        pub async fn set_activity(&mut self, activity: &crate::activity::Activity) -> Result<()> {
+            self.inner.set_activity(activity).await
+        }
+
+        /// Clears Discord Rich Presence activity
+        pub async fn clear_activity(&mut self) -> Result<Value> {
+            self.inner.clear_activity().await
+        }
+
+        /// Reconnect to Discord IPC
+        ///
+        /// This method closes the existing connection and establishes a new one,
+        /// then performs the handshake again.
+        pub async fn reconnect(&mut self) -> Result<Value> {
+            // Create a new connection with the same configuration
+            let connection = if let Some(timeout) = self.timeout_ms {
+                SmolConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout).await?
+            } else {
+                SmolConnection::new_with_config(self.pipe_config.clone()).await?
+            };
+
+            // Replace the inner client with a new one
+            self.inner = AsyncDiscordIpcClient::new(self.client_id.clone(), connection);
+
+            // Perform handshake
+            self.inner.connect().await
+        }
+
+        /// Create a new smol-based Discord IPC client (uses auto-discovery)
+        pub async fn new(client_id: impl Into<String>) -> Result<Self> {
+            Self::new_internal(client_id, None, None).await
+        }
+
+        /// Create a new smol-based Discord IPC client with pipe configuration
+        pub async fn new_with_config(
+            client_id: impl Into<String>,
+            config: Option<PipeConfig>,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, config, None).await
+        }
+
+        /// Create a new smol-based Discord IPC client with a connection timeout
+        pub async fn new_with_timeout(
+            client_id: impl Into<String>,
+            timeout_ms: u64,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, None, Some(timeout_ms)).await
+        }
+
+        /// Create a new smol-based Discord IPC client with pipe configuration and timeout
+        pub async fn new_with_config_and_timeout(
+            client_id: impl Into<String>,
+            config: Option<PipeConfig>,
+            timeout_ms: u64,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, config, Some(timeout_ms)).await
+        }
+
+        /// Performs handshake with Discord with a timeout
+        pub async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
+            use smol::future::or;
+            use smol::Timer;
+
+            match or(
+                async move {
+                    Timer::after(timeout_duration).await;
+                    Err(DiscordIpcError::connection_timeout(
+                        timeout_duration.as_millis() as u64,
+                        None,
+                    ))
+                },
+                self.inner.connect()
+            ).await {
+                Ok(result) => Ok(result),
+                Err(e) => Err(e),
+            }
+        }
+
+        /// Send a raw IPC message
+        pub async fn send_message(&mut self, opcode: crate::ipc::Opcode, payload: &Value) -> Result<()> {
+            self.inner.send_message(opcode, payload).await
+        }
+
+        /// Receive a raw IPC message
+        pub async fn recv_message(&mut self) -> Result<(crate::ipc::Opcode, Value)> {
+            self.inner.recv_message().await
+        }
+    }
+
+    /// Create a new smol-based Discord IPC client (backward compatible function)
+    /// 
+    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
+    /// For reconnection support, use `SmolDiscordIpcClient::new()` instead.
     pub async fn new_discord_ipc_client(
         client_id: impl Into<String>,
     ) -> Result<AsyncDiscordIpcClient<SmolConnection>> {
@@ -380,7 +513,10 @@ pub mod client {
         Ok(client)
     }
 
-    /// Create a new smol-based Discord IPC client with a connection timeout
+    /// Create a new smol-based Discord IPC client with a connection timeout (backward compatible)
+    /// 
+    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
+    /// For reconnection support, use `SmolDiscordIpcClient::new_with_timeout()` instead.
     pub async fn new_discord_ipc_client_with_timeout(
         client_id: impl Into<String>,
         timeout_ms: u64,

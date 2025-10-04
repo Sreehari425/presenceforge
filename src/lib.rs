@@ -154,6 +154,7 @@ pub mod client;
 pub mod error;
 pub mod ipc;
 pub mod macros;
+pub mod retry;
 pub mod utils;
 
 // Re-export the main public API

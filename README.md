@@ -330,15 +330,15 @@ match client.connect() {
 
 ## TODO
 
-- [ ] Better error messages (in progress)
-- [ ] Party/lobby functionality
-- [x] Async support (tokio and async-std integration)
-- [ ] More comprehensive examples
+- [x] Better error messages
+- [ ] Party/lobby functionality (partial implementation)
+- [x] Async support (tokio, async-std, and smol)
+- [x] More comprehensive examples
 - [ ] Publish to crates.io
 - [ ] CI/CD pipeline
-- [ ] Proper documentation
-- [ ] Connection retry logic
-- [x] Activity validation (need to test)
+- [x] Proper documentation
+- [x] Connection retry logic with exponential backoff
+- [x] Activity validation
 
 ## License
 

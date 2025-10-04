@@ -66,6 +66,12 @@ cargo run --example async_smol --features smol-runtime -- --client-id YOUR_CLIEN
 # Pipe selection - Discover and select specific Discord pipes
 cargo run --example pipe_selection -- --client-id YOUR_CLIENT_ID
 
+# Connection retry - Error handling and reconnection strategies (synchronous)
+cargo run --example connection_retry -- --client-id YOUR_CLIENT_ID
+
+# Async Tokio reconnect - Connection retry with Tokio async runtime
+cargo run --example async_tokio_reconnect --features tokio-runtime -- --client-id YOUR_CLIENT_ID
+
 # Flatpak Discord - Connect to Flatpak Discord using custom path configuration
 cargo run --example flatpak_discord -- --client-id YOUR_CLIENT_ID
 ```
@@ -172,6 +178,26 @@ Advanced pipe discovery example showing:
 - Connecting to specific pipes using custom paths
 - Connection with timeout configuration
 - Working with both Unix sockets and Windows named pipes
+
+### `connection_retry.rs`
+
+Error handling and recovery example (synchronous) showing:
+
+- Basic retry with `with_retry()` function
+- Manual reconnection using `reconnect()` method
+- Custom retry configuration (max attempts, delays, backoff)
+- Handling recoverable vs non-recoverable errors
+- Long-running connection resilience patterns
+
+### `async_tokio_reconnect.rs`
+
+Async error handling with Tokio showing:
+
+- Using `TokioDiscordIpcClient` with reconnect support
+- Manual reconnection in async context
+- Automatic retry with `with_retry_async()`
+- Resilient connection loop with exponential backoff
+- Async error recovery patterns
 
 ### `flatpak_discord.rs`
 
