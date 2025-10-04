@@ -7,6 +7,7 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
     constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
 };
+use crate::utils::generate_nonce;
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -179,14 +180,8 @@ impl DiscordIpcClient {
             return Err(DiscordIpcError::InvalidActivity(reason));
         }
 
-        // Generate a unique nonce for this request using a timestamp
-        let nonce = format!(
-            "set-activity-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()
-        );
+        // Generate a cryptographically secure unique nonce for this request
+        let nonce = generate_nonce("set-activity");
 
         let message = IpcMessage {
             cmd: Command::SetActivity,
@@ -249,14 +244,8 @@ impl DiscordIpcClient {
     ///
     /// Returns a `DiscordIpcError` if communication fails or if Discord returns an error
     pub fn clear_activity(&mut self) -> Result<Value> {
-        // Generate a unique nonce
-        let nonce = format!(
-            "clear-activity-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()
-        );
+        // Generate a cryptographically secure unique nonce
+        let nonce = generate_nonce("clear-activity");
 
         let message = IpcMessage {
             cmd: Command::SetActivity,
