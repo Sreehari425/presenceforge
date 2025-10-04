@@ -2,6 +2,49 @@ use std::fmt::{self, Display};
 use std::io;
 use thiserror::Error;
 
+/// Context information for protocol violations
+#[derive(Debug, Clone)]
+pub struct ProtocolContext {
+    pub expected_opcode: Option<u32>,
+    pub received_opcode: Option<u32>,
+    pub payload_size: Option<usize>,
+}
+
+impl ProtocolContext {
+    /// Create a new ProtocolContext with all fields empty
+    pub fn new() -> Self {
+        Self {
+            expected_opcode: None,
+            received_opcode: None,
+            payload_size: None,
+        }
+    }
+
+    /// Create a ProtocolContext with expected and received opcodes
+    pub fn with_opcodes(expected: u32, received: u32) -> Self {
+        Self {
+            expected_opcode: Some(expected),
+            received_opcode: Some(received),
+            payload_size: None,
+        }
+    }
+
+    /// Create a ProtocolContext with a received opcode and payload size
+    pub fn with_payload(received_opcode: u32, payload_size: usize) -> Self {
+        Self {
+            expected_opcode: None,
+            received_opcode: Some(received_opcode),
+            payload_size: Some(payload_size),
+        }
+    }
+}
+
+impl Default for ProtocolContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCategory {
     /// Errors related to connecting to Discord
@@ -83,9 +126,20 @@ pub enum DiscordIpcError {
     #[error("Failed to connect to Discord IPC socket: {0}")]
     ConnectionFailed(#[source] io::Error),
 
+    /// Failed to discover Discord socket after trying multiple paths
+    #[error("Failed to discover Discord socket. Attempted paths: {}", attempted_paths.join(", "))]
+    SocketDiscoveryFailed {
+        #[source]
+        source: io::Error,
+        attempted_paths: Vec<String>,
+    },
+
     /// Connection timed out
-    #[error("Connection to Discord timed out after {0} ms")]
-    ConnectionTimeout(u64),
+    #[error("Connection timeout after {timeout_ms}ms")]
+    ConnectionTimeout {
+        timeout_ms: u64,
+        last_error: Option<String>,
+    },
 
     /// Failed to find a valid Discord IPC socket or pipe
     #[error("No Discord IPC socket found. Is Discord running?")]
@@ -115,6 +169,13 @@ pub enum DiscordIpcError {
     #[error("Invalid opcode: {0}")]
     InvalidOpcode(u32),
 
+    /// Protocol violation occurred during IPC communication
+    #[error("Protocol violation: {message}")]
+    ProtocolViolation {
+        message: String,
+        context: ProtocolContext,
+    },
+
     #[error("Discord error: {code} - {message}")]
     DiscordError {
         /// The error code returned by Discord
@@ -131,7 +192,8 @@ impl DiscordIpcError {
     pub fn category(&self) -> ErrorCategory {
         match self {
             Self::ConnectionFailed(_)
-            | Self::ConnectionTimeout(_)
+            | Self::SocketDiscoveryFailed { .. }
+            | Self::ConnectionTimeout { .. }
             | Self::NoValidSocket
             | Self::SocketClosed => ErrorCategory::Connection,
 
@@ -139,9 +201,10 @@ impl DiscordIpcError {
                 ErrorCategory::Serialization
             }
 
-            Self::InvalidResponse(_) | Self::HandshakeFailed(_) | Self::InvalidOpcode(_) => {
-                ErrorCategory::Protocol
-            }
+            Self::InvalidResponse(_)
+            | Self::HandshakeFailed(_)
+            | Self::InvalidOpcode(_)
+            | Self::ProtocolViolation { .. } => ErrorCategory::Protocol,
 
             Self::DiscordError { .. } => ErrorCategory::Application,
 
@@ -156,7 +219,10 @@ impl DiscordIpcError {
     pub fn is_recoverable(&self) -> bool {
         matches!(
             self,
-            Self::ConnectionTimeout(_) | Self::SocketClosed | Self::InvalidResponse(_)
+            Self::ConnectionTimeout { .. }
+                | Self::SocketClosed
+                | Self::InvalidResponse(_)
+                | Self::SocketDiscoveryFailed { .. }
         )
     }
 
@@ -164,6 +230,36 @@ impl DiscordIpcError {
         Self::DiscordError {
             code,
             message: message.into(),
+        }
+    }
+
+    /// Create a SocketDiscoveryFailed error with the attempted paths
+    pub fn socket_discovery_failed(
+        source: io::Error,
+        attempted_paths: Vec<String>,
+    ) -> Self {
+        Self::SocketDiscoveryFailed {
+            source,
+            attempted_paths,
+        }
+    }
+
+    /// Create a ConnectionTimeout error with optional last error
+    pub fn connection_timeout(timeout_ms: u64, last_error: Option<String>) -> Self {
+        Self::ConnectionTimeout {
+            timeout_ms,
+            last_error,
+        }
+    }
+
+    /// Create a ProtocolViolation error with message and context
+    pub fn protocol_violation(
+        message: impl Into<String>,
+        context: ProtocolContext,
+    ) -> Self {
+        Self::ProtocolViolation {
+            message: message.into(),
+            context,
         }
     }
 }

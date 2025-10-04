@@ -36,11 +36,7 @@ impl DiscordIpcClient {
     /// // Auto-discovery (default)
     /// let client = DiscordIpcClient::new_with_config("client_id", None)?;
     ///
-    /// // Connect to specific pipe number
-    /// let client = DiscordIpcClient::new_with_config("client_id", Some(PipeConfig::PipeNumber(0)))?;
-    ///
-    /// // Connect to custom path (Unix)
-    /// # #[cfg(unix)]
+    /// // Connect to custom path
     /// let client = DiscordIpcClient::new_with_config(
     ///     "client_id",
     ///     Some(PipeConfig::CustomPath("/tmp/discord-ipc-0".to_string()))
@@ -94,10 +90,10 @@ impl DiscordIpcClient {
     /// // Auto-discovery with timeout
     /// let client = DiscordIpcClient::new_with_config_and_timeout("client_id", None, 5000)?;
     ///
-    /// // Specific pipe with timeout
+    /// // Custom pipe path with timeout
     /// let client = DiscordIpcClient::new_with_config_and_timeout(
     ///     "client_id",
-    ///     Some(PipeConfig::PipeNumber(0)),
+    ///     Some(PipeConfig::CustomPath("/tmp/discord-ipc-0".to_string())),
     ///     5000
     /// )?;
     /// # Ok::<(), presenceforge::DiscordIpcError>(())

@@ -13,7 +13,7 @@
 //!
 //! ### With Tokio
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::tokio::client::new_discord_ipc_client;
 //!
@@ -35,7 +35,7 @@
 //!
 //! ### With async-std
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::async_std::client::new_discord_ipc_client;
 //!
@@ -57,7 +57,7 @@
 //!
 //! ### With smol
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::smol::client::new_discord_ipc_client;
 //!

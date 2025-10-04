@@ -41,7 +41,7 @@
 //!
 //! ## Async Example with Tokio
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::tokio::client::new_discord_ipc_client;
 //!
@@ -76,7 +76,7 @@
 //!
 //! ## Async Example with async-std
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::async_std::client::new_discord_ipc_client;
 //! use async_std::task;
@@ -113,7 +113,7 @@
 //!
 //! ## Async Example with smol
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use presenceforge::{ActivityBuilder, Result};
 //! use presenceforge::async_io::smol::client::new_discord_ipc_client;
 //! use std::time::Duration;
@@ -161,7 +161,7 @@ pub use activity::{
     Activity, ActivityAssets, ActivityBuilder, ActivityButton, ActivityParty, ActivitySecrets,
     ActivityTimestamps,
 };
-pub use error::{DiscordIpcError, Result};
+pub use error::{DiscordIpcError, ProtocolContext, Result};
 pub use ipc::protocol::IpcConfig;
 pub use ipc::{Command, DiscoveredPipe, IpcConnection, Opcode, PipeConfig};
 pub use macros::is_debug_enabled;

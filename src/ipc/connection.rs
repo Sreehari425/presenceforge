@@ -11,7 +11,7 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::io::{BufReader, BufWriter};
 
-use crate::error::{DiscordIpcError, Result};
+use crate::error::{DiscordIpcError, ProtocolContext, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
@@ -206,20 +206,32 @@ impl IpcConnection {
         let timeout = Duration::from_millis(timeout_ms);
         let config = config.unwrap_or_default();
 
+        let mut last_error_message = None;
+
         // Keep trying to connect until we succeed or timeout
         while start.elapsed() < timeout {
             match Self::try_connect_with_config(&config) {
                 Ok(connection) => return Ok(connection),
                 Err(DiscordIpcError::NoValidSocket) => {
+                    last_error_message = Some("No valid Discord socket found".to_string());
                     // Wait a bit before trying again
                     std::thread::sleep(Duration::from_millis(constants::DEFAULT_RETRY_INTERVAL_MS));
                     continue;
                 }
-                Err(e) => return Err(e),
+                Err(DiscordIpcError::SocketDiscoveryFailed { ref source, .. }) => {
+                    last_error_message = Some(format!("Socket discovery failed: {}", source));
+                    // Wait a bit before trying again
+                    std::thread::sleep(Duration::from_millis(constants::DEFAULT_RETRY_INTERVAL_MS));
+                    continue;
+                }
+                Err(e) => {
+                    // Non-recoverable error
+                    return Err(e);
+                }
             }
         }
 
-        Err(DiscordIpcError::ConnectionTimeout(timeout_ms))
+        Err(DiscordIpcError::connection_timeout(timeout_ms, last_error_message))
     }
 
     /// Try to connect to Discord with configuration
@@ -289,10 +301,12 @@ impl IpcConnection {
 
         // Try each directory with each socket number
         let mut last_error = None;
+        let mut attempted_paths = Vec::new();
 
         for dir in &directories {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
+                attempted_paths.push(socket_path.clone());
 
                 match UnixStream::connect(&socket_path) {
                     Ok(stream) => {
@@ -314,15 +328,8 @@ impl IpcConnection {
 
         // If we got here, no valid socket was found
         if let Some(err) = last_error {
-            // Return the last error we encountered for diagnostic purposes
-            if err.kind() == std::io::ErrorKind::PermissionDenied {
-                Err(DiscordIpcError::ConnectionFailed(std::io::Error::new(
-                    std::io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
-                )))
-            } else {
-                Err(DiscordIpcError::ConnectionFailed(err))
-            }
+            // Return the last error we encountered for diagnostic purposes with all attempted paths
+            Err(DiscordIpcError::socket_discovery_failed(err, attempted_paths))
         } else {
             Err(DiscordIpcError::NoValidSocket)
         }
@@ -358,9 +365,11 @@ impl IpcConnection {
     fn connect_to_discord_windows_auto(
     ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         let mut last_error = None;
+        let mut attempted_paths = Vec::new();
 
         for i in 0..constants::MAX_IPC_SOCKETS {
             let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", i);
+            attempted_paths.push(pipe_path.clone());
 
             // Try to open the named pipe
             match OpenOptions::new().read(true).write(true).open(&pipe_path) {
@@ -386,15 +395,8 @@ impl IpcConnection {
 
         // If we got here, no valid pipe was found
         if let Some(err) = last_error {
-            // Return the last error we encountered for diagnostic purposes
-            if err.kind() == std::io::ErrorKind::PermissionDenied {
-                Err(DiscordIpcError::ConnectionFailed(std::io::Error::new(
-                    std::io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
-                )))
-            } else {
-                Err(DiscordIpcError::ConnectionFailed(err))
-            }
+            // Return the last error we encountered with all attempted paths
+            Err(DiscordIpcError::socket_discovery_failed(err, attempted_paths))
         } else {
             Err(DiscordIpcError::NoValidSocket)
         }
@@ -457,11 +459,15 @@ impl IpcConnection {
 
         // Validate payload size to prevent excessive memory allocation
         if length > constants::MAX_PAYLOAD_SIZE {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Payload size {} exceeds maximum allowed size of {} bytes",
-                length,
-                constants::MAX_PAYLOAD_SIZE
-            )));
+            let context = ProtocolContext::with_payload(opcode_raw, length as usize);
+            return Err(DiscordIpcError::protocol_violation(
+                format!(
+                    "Payload size {} exceeds maximum allowed size of {} bytes",
+                    length,
+                    constants::MAX_PAYLOAD_SIZE
+                ),
+                context,
+            ));
         }
 
         let opcode = Opcode::try_from(opcode_raw)?;

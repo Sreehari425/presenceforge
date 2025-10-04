@@ -1,4 +1,4 @@
-use crate::error::DiscordIpcError;
+use crate::error::{DiscordIpcError, ProtocolContext};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -36,7 +36,17 @@ impl TryFrom<u32> for Opcode {
             2 => Ok(Opcode::Close),
             3 => Ok(Opcode::Ping),
             4 => Ok(Opcode::Pong),
-            _ => Err(DiscordIpcError::InvalidOpcode(value)),
+            _ => {
+                let context = ProtocolContext {
+                    expected_opcode: None,
+                    received_opcode: Some(value),
+                    payload_size: None,
+                };
+                Err(DiscordIpcError::protocol_violation(
+                    format!("Invalid opcode value: {}", value),
+                    context,
+                ))
+            }
         }
     }
 }
