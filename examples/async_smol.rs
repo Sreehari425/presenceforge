@@ -30,7 +30,7 @@ fn main() -> Result {
         });
 
     smol::block_on(async {
-        let mut client: ! = new_discord_ipc_client(&client_id).await?;
+        let mut client = new_discord_ipc_client(&client_id).await?;
 
         // Perform handshake
         client.connect().await?;
