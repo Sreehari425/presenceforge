@@ -2,7 +2,6 @@
 
 A guide to handling errors in PresenceForge (subject to change).
 
-> ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
 > ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
 
 ## Table of Contents
