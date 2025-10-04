@@ -82,7 +82,10 @@ impl AsyncStdConnection {
 
         match timeout(timeout_duration, Self::new_with_config(config)).await {
             Ok(result) => result,
-            Err(_) => Err(DiscordIpcError::ConnectionTimeout { timeout_ms, last_error: None }),
+            Err(_) => Err(DiscordIpcError::ConnectionTimeout {
+                timeout_ms,
+                last_error: None,
+            }),
         }
     }
 
@@ -341,7 +344,9 @@ pub mod client {
     use super::AsyncStdConnection;
     use crate::async_io::client::AsyncDiscordIpcClient;
     use crate::debug_println;
-    use crate::error::Result;
+    use crate::error::{DiscordIpcError, Result};
+    use serde_json::Value;
+    use std::time::Duration;
 
     /// Create a new async-std-based Discord IPC client
     pub async fn new_discord_ipc_client(
@@ -397,5 +402,44 @@ pub mod client {
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
         Ok(client)
+    }
+
+    /// Helper extension trait for async-std-specific timeout operations
+    pub trait AsyncStdClientExt {
+        /// Performs handshake with Discord with a timeout
+        ///
+        /// # Arguments
+        ///
+        /// * `timeout_duration` - The maximum time to wait for the connection
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing the Discord handshake response
+        ///
+        /// # Errors
+        ///
+        /// Returns `DiscordIpcError::ConnectionTimeout` if the operation times out
+        /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
+        fn connect_with_timeout(
+            &mut self,
+            timeout_duration: Duration,
+        ) -> impl std::future::Future<Output = Result<Value>> + Send;
+    }
+
+    impl AsyncStdClientExt for AsyncDiscordIpcClient<AsyncStdConnection> {
+        fn connect_with_timeout(
+            &mut self,
+            timeout_duration: Duration,
+        ) -> impl std::future::Future<Output = Result<Value>> + Send {
+            async move {
+                match async_std::future::timeout(timeout_duration, self.connect()).await {
+                    Ok(result) => result,
+                    Err(_) => Err(DiscordIpcError::connection_timeout(
+                        timeout_duration.as_millis() as u64,
+                        None,
+                    )),
+                }
+            }
+        }
     }
 }

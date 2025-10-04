@@ -349,7 +349,9 @@ pub mod client {
     use super::SmolConnection;
     use crate::async_io::client::AsyncDiscordIpcClient;
     use crate::debug_println;
-    use crate::error::Result;
+    use crate::error::{DiscordIpcError, Result};
+    use serde_json::Value;
+    use std::time::Duration;
 
     /// Create a new smol-based Discord IPC client
     pub async fn new_discord_ipc_client(
@@ -405,5 +407,47 @@ pub mod client {
         let client = AsyncDiscordIpcClient::new(client_id_str, connection);
 
         Ok(client)
+    }
+
+    /// Helper extension trait for smol-specific timeout operations
+    pub trait SmolClientExt {
+        /// Performs handshake with Discord with a timeout
+        ///
+        /// # Arguments
+        ///
+        /// * `timeout_duration` - The maximum time to wait for the connection
+        ///
+        /// # Returns
+        ///
+        /// A `Result` containing the Discord handshake response
+        ///
+        /// # Errors
+        ///
+        /// Returns `DiscordIpcError::ConnectionTimeout` if the operation times out
+        /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
+        fn connect_with_timeout(&mut self, timeout_duration: Duration) -> impl std::future::Future<Output = Result<Value>> + Send;
+    }
+
+    impl SmolClientExt for AsyncDiscordIpcClient<SmolConnection> {
+        fn connect_with_timeout(&mut self, timeout_duration: Duration) -> impl std::future::Future<Output = Result<Value>> + Send {
+            use smol::future::or;
+            use smol::Timer;
+
+            async move {
+                match or(
+                    async move {
+                        Timer::after(timeout_duration).await;
+                        Err(DiscordIpcError::connection_timeout(
+                            timeout_duration.as_millis() as u64,
+                            None,
+                        ))
+                    },
+                    self.connect()
+                ).await {
+                    Ok(result) => Ok(result),
+                    Err(e) => Err(e),
+                }
+            }
+        }
     }
 }
