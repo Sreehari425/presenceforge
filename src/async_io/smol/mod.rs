@@ -82,7 +82,7 @@ impl SmolConnection {
         match smol::future::or(
             async {
                 Timer::after(timeout_duration).await;
-                Err(DiscordIpcError::ConnectionTimeout(timeout_ms))
+                Err(DiscordIpcError::ConnectionTimeout { timeout_ms, last_error: None })
             },
             Self::new_with_config(config),
         )

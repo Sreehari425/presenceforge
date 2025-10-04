@@ -82,7 +82,7 @@ impl AsyncStdConnection {
 
         match timeout(timeout_duration, Self::new_with_config(config)).await {
             Ok(result) => result,
-            Err(_) => Err(DiscordIpcError::ConnectionTimeout(timeout_ms)),
+            Err(_) => Err(DiscordIpcError::ConnectionTimeout { timeout_ms, last_error: None }),
         }
     }
 

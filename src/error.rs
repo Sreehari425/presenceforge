@@ -234,10 +234,7 @@ impl DiscordIpcError {
     }
 
     /// Create a SocketDiscoveryFailed error with the attempted paths
-    pub fn socket_discovery_failed(
-        source: io::Error,
-        attempted_paths: Vec<String>,
-    ) -> Self {
+    pub fn socket_discovery_failed(source: io::Error, attempted_paths: Vec<String>) -> Self {
         Self::SocketDiscoveryFailed {
             source,
             attempted_paths,
@@ -253,10 +250,7 @@ impl DiscordIpcError {
     }
 
     /// Create a ProtocolViolation error with message and context
-    pub fn protocol_violation(
-        message: impl Into<String>,
-        context: ProtocolContext,
-    ) -> Self {
+    pub fn protocol_violation(message: impl Into<String>, context: ProtocolContext) -> Self {
         Self::ProtocolViolation {
             message: message.into(),
             context,

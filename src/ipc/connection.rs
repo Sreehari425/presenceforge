@@ -231,7 +231,10 @@ impl IpcConnection {
             }
         }
 
-        Err(DiscordIpcError::connection_timeout(timeout_ms, last_error_message))
+        Err(DiscordIpcError::connection_timeout(
+            timeout_ms,
+            last_error_message,
+        ))
     }
 
     /// Try to connect to Discord with configuration
@@ -329,7 +332,10 @@ impl IpcConnection {
         // If we got here, no valid socket was found
         if let Some(err) = last_error {
             // Return the last error we encountered for diagnostic purposes with all attempted paths
-            Err(DiscordIpcError::socket_discovery_failed(err, attempted_paths))
+            Err(DiscordIpcError::socket_discovery_failed(
+                err,
+                attempted_paths,
+            ))
         } else {
             Err(DiscordIpcError::NoValidSocket)
         }
@@ -396,7 +402,10 @@ impl IpcConnection {
         // If we got here, no valid pipe was found
         if let Some(err) = last_error {
             // Return the last error we encountered with all attempted paths
-            Err(DiscordIpcError::socket_discovery_failed(err, attempted_paths))
+            Err(DiscordIpcError::socket_discovery_failed(
+                err,
+                attempted_paths,
+            ))
         } else {
             Err(DiscordIpcError::NoValidSocket)
         }
