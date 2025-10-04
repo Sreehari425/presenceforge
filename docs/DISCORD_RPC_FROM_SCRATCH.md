@@ -1271,8 +1271,8 @@ Every packet sent over the wire:
 Byte:   0       1       2       3       4       5       6       7       8...
       ┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────────────>
       │       │       │       │       │       │       │       │       │
-      │ Opcode (little-endian u32)    │ Length (little-endian u32)    │  Payload...
-      │                               │                               │
+      │  Opcode (u32, little-endian)  │  Length (u32, little-endian)  │  Payload...
+      │         bytes 0-3              │         bytes 4-7              │  bytes 8+
       └───────────────────────────────┴───────────────────────────────┴───────────────>
 
 Example: HANDSHAKE with 44-byte JSON payload
