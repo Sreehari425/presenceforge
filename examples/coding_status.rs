@@ -1,10 +1,35 @@
 use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
 use std::time::Duration;
+use clap::Parser;
+
+/// Discord Rich Presence Coding Status Example
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Discord Application Client ID
+    #[arg(short, long)]
+    client_id: Option<String>,
+}
 
 /// Example showing developer coding status
 fn main() -> Result {
-    let client_id = "YOUR-CLIENT-ID"; // Replace with your Discord app client ID
-    let mut client = DiscordIpcClient::new(client_id)?;
+    // Load .env file if it exists (optional)
+    let _ = dotenvy::dotenv();
+    
+    let args = Args::parse();
+    
+    let client_id = args.client_id
+        .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
+        .unwrap_or_else(|| {
+            eprintln!("Error: DISCORD_CLIENT_ID is required!");
+            eprintln!("Provide it via:");
+            eprintln!("  - Command line: cargo run --example coding_status -- --client-id YOUR_ID");
+            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example coding_status");
+            eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
+            std::process::exit(1);
+        });
+    
+    let mut client = DiscordIpcClient::new(&client_id)?;
 
     println!(" Starting Discord Rich Presence for Codings");
     client.connect()?;

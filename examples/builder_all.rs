@@ -5,12 +5,37 @@
 
 use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
 use std::time::Duration;
+use clap::Parser;
+
+/// Discord Rich Presence Complete Builder Example
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Discord Application Client ID
+    #[arg(short, long)]
+    client_id: Option<String>,
+}
 
 fn main() -> Result {
+    // Load .env file if it exists (optional)
+    let _ = dotenvy::dotenv();
+    
+    let args = Args::parse();
+    
+    let client_id = args.client_id
+        .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
+        .unwrap_or_else(|| {
+            eprintln!("Error: DISCORD_CLIENT_ID is required!");
+            eprintln!("Provide it via:");
+            eprintln!("  - Command line: cargo run --example builder_all -- --client-id YOUR_ID");
+            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example builder_all");
+            eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
+            std::process::exit(1);
+        });
+    
     println!("=== Complete ActivityBuilder Reference Example ===\n");
 
-    let client_id = "1416069067697033216";
-    let mut client = DiscordIpcClient::new(client_id)?;
+    let mut client = DiscordIpcClient::new(&client_id)?;
 
     // Perform handshake
     println!("Connecting to Discord...");

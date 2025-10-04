@@ -6,8 +6,34 @@
 
 use presenceforge::{ActivityBuilder, DiscordIpcClient, IpcConnection, PipeConfig, Result};
 use std::time::Duration;
+use clap::Parser;
+
+/// Discord Rich Presence Flatpak Example
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Discord Application Client ID
+    #[arg(short, long)]
+    client_id: Option<String>,
+}
 
 fn main() -> Result {
+    // Load .env file if it exists (optional)
+    let _ = dotenvy::dotenv();
+    
+    let args = Args::parse();
+    
+    let client_id = args.client_id
+        .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
+        .unwrap_or_else(|| {
+            eprintln!("Error: DISCORD_CLIENT_ID is required!");
+            eprintln!("Provide it via:");
+            eprintln!("  - Command line: cargo run --example basic_flatpak -- --client-id YOUR_ID");
+            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example basic_flatpak");
+            eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
+            std::process::exit(1);
+        });
+    
     // Discover all available Discord pipes
     let pipes = IpcConnection::discover_pipes();
 
@@ -33,10 +59,9 @@ fn main() -> Result {
         (&pipes[0], false)
     };
 
-    let client_id = "1416069067697033216";
     let config = Some(PipeConfig::CustomPath(selected_pipe.path.clone()));
 
-    let mut client = DiscordIpcClient::new_with_config(client_id, config.clone())?;
+    let mut client = DiscordIpcClient::new_with_config(&client_id, config.clone())?;
 
     // Try to perform handshake
     match client.connect() {

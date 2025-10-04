@@ -1,8 +1,34 @@
 // Example demonstrating pipe selection and discovery features
 
 use presenceforge::{ActivityBuilder, DiscordIpcClient, IpcConnection, PipeConfig};
+use clap::Parser;
+
+/// Discord IPC Pipe Selection Example
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Discord Application Client ID
+    #[arg(short, long)]
+    client_id: Option<String>,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load .env file if it exists (optional)
+    let _ = dotenvy::dotenv();
+    
+    let args = Args::parse();
+    
+    let client_id = args.client_id
+        .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
+        .unwrap_or_else(|| {
+            eprintln!("Error: DISCORD_CLIENT_ID is required!");
+            eprintln!("Provide it via:");
+            eprintln!("  - Command line: cargo run --example pipe_selection -- --client-id YOUR_ID");
+            eprintln!("  - Environment: DISCORD_CLIENT_ID=YOUR_ID cargo run --example pipe_selection");
+            eprintln!("  - .env file: Create .env from .env.example and set DISCORD_CLIENT_ID");
+            std::process::exit(1);
+        });
+    
     println!("=== Discord IPC Pipe Selection Example ===\n");
 
     // 1. Discover all available Discord IPC pipes
@@ -22,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Connect using auto-discovery (default behavior)
     println!("2. Connecting using auto-discovery (default)...");
-    let mut client1 = DiscordIpcClient::new("your_client_id")?;
+    let mut client1 = DiscordIpcClient::new(&client_id)?;
     client1.connect()?;
     println!("   ✓ Connected successfully using auto-discovery");
     client1.clear_activity()?;
@@ -38,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pipe_num, pipe_path
         );
         let mut client2 = DiscordIpcClient::new_with_config(
-            "your_client_id",
+            &client_id,
             Some(PipeConfig::CustomPath(pipe_path)),
         )?;
         client2.connect()?;

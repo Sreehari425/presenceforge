@@ -25,6 +25,10 @@ async-std = { version = "1", features = ["attributes"], optional = true }
 smol = { version = "2", optional = true }
 blocking = { version = "1", optional = true }
 
+[dev-dependencies]
+clap = { version = "4", features = ["derive"] }
+dotenvy = "0.15"
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 

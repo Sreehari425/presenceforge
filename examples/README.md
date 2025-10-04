@@ -2,41 +2,72 @@
 
 This directory contains examples demonstrating how to use the PresenceForge library for Discord Rich Presence integration.
 
+## Configuration
+
+All examples support three ways to provide your Discord Client ID:
+
+### 1. Command-line Argument (Recommended for testing)
+
+```bash
+cargo run --example basic -- --client-id YOUR_CLIENT_ID
+```
+
+### 2. Environment Variable
+
+```bash
+DISCORD_CLIENT_ID=YOUR_CLIENT_ID cargo run --example basic
+```
+
+### 3. .env File (Recommended for development)
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your client ID
+# DISCORD_CLIENT_ID=your_client_id_here
+
+# Then run any example
+cargo run --example basic
+```
+
+**Priority Order**: Command-line argument → Environment variable → .env file
+
 ## Running Examples
 
 ```bash
 # Basic example - Simple Rich Presence setup (synchronous)
-cargo run --example basic
+cargo run --example basic -- --client-id YOUR_CLIENT_ID
 
 # Complete Builder Reference - Shows ALL ActivityBuilder options with explanations
-cargo run --example builder_all
+cargo run --example builder_all -- --client-id YOUR_CLIENT_ID
 
 # Basic Flatpak - Simple example for Flatpak Discord with custom path
-cargo run --example basic_flatpak
+cargo run --example basic_flatpak -- --client-id YOUR_CLIENT_ID
 
 # Game demo - Dynamic game status that changes over time
-cargo run --example game_demo
+cargo run --example game_demo -- --client-id YOUR_CLIENT_ID
 
 # Coding status - Developer activity status
-cargo run --example coding_status
+cargo run --example coding_status -- --client-id YOUR_CLIENT_ID
 
 # Custom activity - Manual activity creation without builder pattern
-cargo run --example custom_activity
+cargo run --example custom_activity -- --client-id YOUR_CLIENT_ID
 
 # Async example with Tokio
-cargo run --example async_tokio --features tokio-runtime
+cargo run --example async_tokio --features tokio-runtime -- --client-id YOUR_CLIENT_ID
 
 # Async example with async-std
-cargo run --example async_std --features async-std-runtime
+cargo run --example async_std --features async-std-runtime -- --client-id YOUR_CLIENT_ID
 
 # Async example with smol
-cargo run --example async_smol --features smol-runtime
+cargo run --example async_smol --features smol-runtime -- --client-id YOUR_CLIENT_ID
 
 # Pipe selection - Discover and select specific Discord pipes
-cargo run --example pipe_selection
+cargo run --example pipe_selection -- --client-id YOUR_CLIENT_ID
 
 # Flatpak Discord - Connect to Flatpak Discord using custom path configuration
-cargo run --example flatpak_discord
+cargo run --example flatpak_discord -- --client-id YOUR_CLIENT_ID
 ```
 
 ## Examples Overview
@@ -50,9 +81,10 @@ Simple example showing:
 - Using assets and buttons
 - Clearing activity
 
-### `builder_all.rs`  **Comprehensive Reference**
+### `builder_all.rs` **Comprehensive Reference**
 
 **Complete ActivityBuilder documentation example** showing:
+
 - Note all methods at the time of writing dosent work
 - **Every single builder method** with detailed explanations
 - **Visual layout guide** showing where each field appears in Discord
@@ -156,7 +188,7 @@ Flatpak Discord example showing:
 ## Prerequisites
 
 1. **Discord Application**: Create one at https://discord.com/developers/applications
-2. **Client ID**: Replace `"YOUR-CLIENT-ID"` with your app's client ID from the Discord Developer Portal
+2. **Client ID**: Get your app's client ID from the Discord Developer Portal (see below)
 3. **Assets**: Upload images to your Discord app's Rich Presence assets (optional, examples will work without them)
 4. **Discord Running**: Make sure Discord is running while testing
 
@@ -165,7 +197,10 @@ Flatpak Discord example showing:
 1. Go to https://discord.com/developers/applications
 2. Click "New Application" and give it a name
 3. Copy the "Application ID" from the General Information page
-4. Replace `"YOUR-CLIENT-ID"` in the examples with this ID
+4. Use this ID with any of the configuration methods above:
+   - Command line: `-- --client-id YOUR_APPLICATION_ID`
+   - Environment: `DISCORD_CLIENT_ID=YOUR_APPLICATION_ID`
+   - .env file: `DISCORD_CLIENT_ID=YOUR_APPLICATION_ID`
 
 ## Asset Keys Used in Examples
 
