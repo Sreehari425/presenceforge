@@ -426,7 +426,7 @@ impl IpcConnection {
         let opcode_raw = header_reader.read_u32::<LittleEndian>()?;
         let length = header_reader.read_u32::<LittleEndian>()?;
 
-        let opcode = Opcode::from(opcode_raw);
+        let opcode = Opcode::try_from(opcode_raw)?;
 
         let mut data = vec![0u8; length as usize];
 

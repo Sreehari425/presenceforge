@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use crate::error::DiscordIpcError;
 
 /// Discord IPC Opcodes
 #[repr(u32)]
@@ -25,15 +26,17 @@ impl Opcode {
     }
 }
 
-impl From<u32> for Opcode {
-    fn from(value: u32) -> Self {
+impl TryFrom<u32> for Opcode {
+    type Error = DiscordIpcError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
-            0 => Opcode::Handshake,
-            1 => Opcode::Frame,
-            2 => Opcode::Close,
-            3 => Opcode::Ping,
-            4 => Opcode::Pong,
-            _ => panic!("Invalid opcode: {value}"),
+            0 => Ok(Opcode::Handshake),
+            1 => Ok(Opcode::Frame),
+            2 => Ok(Opcode::Close),
+            3 => Ok(Opcode::Ping),
+            4 => Ok(Opcode::Pong),
+            _ => Err(DiscordIpcError::InvalidOpcode(value)),
         }
     }
 }

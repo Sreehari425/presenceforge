@@ -265,7 +265,7 @@ where
         let opcode_raw = read_u32_le(&mut self.connection).await?;
         let length = read_u32_le(&mut self.connection).await?;
 
-        let opcode = Opcode::from(opcode_raw);
+        let opcode = Opcode::try_from(opcode_raw)?;
 
         // Read payload
         let mut data = vec![0u8; length as usize];
