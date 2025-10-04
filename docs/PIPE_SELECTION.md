@@ -353,7 +353,7 @@ The `PipeConfig` API is designed around two simple, explicit options:
   - Standard Discord: `$XDG_RUNTIME_DIR/discord-ipc-*` or `/tmp/discord-ipc-*`
   - Flatpak Discord: `$XDG_RUNTIME_DIR/app/com.discordapp.Discord/discord-ipc-*`
   - Automatically checks both standard and Flatpak paths during auto-discovery
-- **Windows**: Support for auto-discovery and custom paths via Windows named pipe syntax (`\\?\pipe\discord-ipc-*`) (experimental)
+- **Windows**: Support for auto-discovery and custom paths via Windows named pipe syntax (`\\.\pipe\discord-ipc-*`) (experimental)
 
 ## Examples
 
@@ -361,7 +361,6 @@ See these examples for working demonstrations:
 
 - **`examples/pipe_selection.rs`** - Example showing discovery, auto-connection, and custom path usage
 - **`examples/basic_flatpak.rs`** - Simple example for Flatpak Discord with fallback to standard Discord
-- **`examples/flatpak_discord.rs`** - Flatpak Discord example with detailed output
 
 ## Quick Start
 
