@@ -1,5 +1,5 @@
 use clap::Parser;
-use presenceforge::async_io::smol::client::new_discord_ipc_client;
+use presenceforge::async_io::smol::SmolDiscordIpcClient;
 use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;
 
@@ -30,7 +30,7 @@ fn main() -> Result {
         });
 
     smol::block_on(async {
-        let mut client = new_discord_ipc_client(&client_id).await?;
+        let mut client = SmolDiscordIpcClient::new(&client_id).await?;
 
         // Perform handshake
         client.connect().await?;

@@ -24,7 +24,7 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using async-std
-pub enum AsyncStdConnection {
+pub(crate) enum AsyncStdConnection {
     #[cfg(unix)]
     Unix(UnixStream),
 
@@ -33,11 +33,6 @@ pub enum AsyncStdConnection {
 }
 
 impl AsyncStdConnection {
-    /// Create a new async-std connection to Discord (uses auto-discovery)
-    pub async fn new() -> Result<Self> {
-        Self::new_with_config(None).await
-    }
-
     /// Create a new async-std connection with pipe configuration
     pub async fn new_with_config(config: Option<PipeConfig>) -> Result<Self> {
         let config = config.unwrap_or_default();
@@ -51,11 +46,6 @@ impl AsyncStdConnection {
         {
             Self::connect_windows_with_config(&config).await
         }
-    }
-
-    /// Create a new connection with timeout (uses auto-discovery)
-    pub async fn new_with_timeout(timeout_ms: u64) -> Result<Self> {
-        Self::new_with_config_and_timeout(None, timeout_ms).await
     }
 
     /// Create a new connection with pipe configuration and timeout
@@ -343,7 +333,6 @@ impl AsyncWrite for AsyncStdConnection {
 pub mod client {
     use super::AsyncStdConnection;
     use crate::async_io::client::AsyncDiscordIpcClient;
-    use crate::debug_println;
     use crate::error::{DiscordIpcError, Result};
     use crate::ipc::PipeConfig;
     use serde_json::Value;
@@ -475,68 +464,6 @@ pub mod client {
         }
     }
 
-    /// Create a new async-std-based Discord IPC client (backward compatible function)
-    ///
-    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
-    /// For reconnection support, use `AsyncStdDiscordIpcClient::new()` instead.
-    pub async fn new_discord_ipc_client(
-        client_id: impl Into<String>,
-    ) -> Result<AsyncDiscordIpcClient<AsyncStdConnection>> {
-        let client_id_str = client_id.into();
-        debug_println!(
-            "Creating Discord IPC client with client ID: {}",
-            client_id_str
-        );
-
-        debug_println!("Attempting to establish connection to Discord...");
-        let connection = match AsyncStdConnection::new().await {
-            Ok(conn) => {
-                debug_println!("Connection established successfully");
-                conn
-            }
-            Err(e) => {
-                debug_println!("Failed to connect to Discord: {:?}", e);
-                return Err(e);
-            }
-        };
-
-        let client = AsyncDiscordIpcClient::new(client_id_str, connection);
-
-        Ok(client)
-    }
-
-    /// Create a new async-std-based Discord IPC client with a connection timeout (backward compatible)
-    ///
-    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
-    /// For reconnection support, use `AsyncStdDiscordIpcClient::new_with_timeout()` instead.
-    pub async fn new_discord_ipc_client_with_timeout(
-        client_id: impl Into<String>,
-        timeout_ms: u64,
-    ) -> Result<AsyncDiscordIpcClient<AsyncStdConnection>> {
-        let client_id_str = client_id.into();
-        debug_println!(
-            "Creating Discord IPC client with timeout {}ms and client ID: {}",
-            timeout_ms,
-            client_id_str
-        );
-
-        debug_println!("Attempting to establish connection to Discord with timeout...");
-        let connection = match AsyncStdConnection::new_with_timeout(timeout_ms).await {
-            Ok(conn) => {
-                debug_println!("Connection established successfully within timeout");
-                conn
-            }
-            Err(e) => {
-                debug_println!("Failed to connect to Discord within timeout: {:?}", e);
-                return Err(e);
-            }
-        };
-
-        let client = AsyncDiscordIpcClient::new(client_id_str, connection);
-
-        Ok(client)
-    }
-
     /// Helper extension trait for async-std-specific timeout operations
     pub trait AsyncStdClientExt {
         /// Performs handshake with Discord with a timeout
@@ -576,3 +503,5 @@ pub mod client {
         }
     }
 }
+
+pub use client::*;

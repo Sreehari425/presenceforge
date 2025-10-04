@@ -1,5 +1,5 @@
 use clap::Parser;
-use presenceforge::async_io::tokio::client::new_discord_ipc_client;
+use presenceforge::async_io::tokio::TokioDiscordIpcClient;
 use presenceforge::{ActivityBuilder, Result};
 
 /// Discord Rich Presence Async Tokio Example
@@ -29,7 +29,7 @@ async fn main() -> Result {
             std::process::exit(1);
         });
 
-    let mut client = new_discord_ipc_client(&client_id).await?;
+    let mut client = TokioDiscordIpcClient::new(&client_id).await?;
 
     // Perform handshake
     client.connect().await?;

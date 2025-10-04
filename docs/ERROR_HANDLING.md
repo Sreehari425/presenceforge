@@ -373,11 +373,11 @@ use std::time::Duration;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
-    
+
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .build();
-    
+
     // Update activity in a loop
     loop {
         match client.set_activity(&activity) {
@@ -389,7 +389,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Err(e) => return Err(e.into()),
         }
-        
+
         std::thread::sleep(Duration::from_secs(15));
     }
 }
@@ -406,15 +406,15 @@ use presenceforge::DiscordIpcClient;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Default: 3 attempts, 1s initial delay, exponential backoff
     let config = RetryConfig::default();
-    
+
     let mut client = with_retry(&config, || {
         println!("Attempting to connect...");
         DiscordIpcClient::new("your_client_id")
     })?;
-    
+
     client.connect()?;
     println!("✓ Connected successfully!");
-    
+
     Ok(())
 }
 ```
@@ -456,18 +456,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PipeConfig::Auto,
         Some(5000)
     );
-    
+
     // Connect with retry
     let retry_config = RetryConfig::with_max_attempts(5);
     client.connect_with_retry(&retry_config).await?;
-    
+
     // Later: manual reconnect if connection is lost
     if let Err(e) = client.set_activity(activity).await {
         if e.is_recoverable() {
             client.reconnect().await?;
         }
     }
-    
+
     Ok(())
 }
 ```
@@ -484,9 +484,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PipeConfig::Auto,
         Some(5000)
     );
-    
+
     client.connect().await?;
-    
+
     // Reconnect when needed
     client.reconnect().await?;
     Ok(())
@@ -505,9 +505,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             PipeConfig::Auto,
             Some(5000)
         );
-        
+
         client.connect().await?;
-        
+
         // Reconnect when needed
         client.reconnect().await?;
         Ok(())
@@ -515,7 +515,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-**For complete examples, see:** 
+**For complete examples, see:**
+
 - `examples/connection_retry.rs` (sync)
 - `examples/async_tokio_reconnect.rs` (async)
 
@@ -650,11 +651,11 @@ use presenceforge::DiscordIpcClient;
 fn connect_with_retry(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
     // Use default retry config (3 attempts, 1s initial delay, exponential backoff)
     let config = RetryConfig::default();
-    
+
     let mut client = with_retry(&config, || {
         DiscordIpcClient::new(client_id)
     })?;
-    
+
     client.connect()?;
     Ok(client)
 }
@@ -679,24 +680,25 @@ let mut client = with_retry(&config, || {
 ```
 
 **See the full example:** `examples/connection_retry.rs`
-                        eprintln!("⚠️ Connection failed (attempt {}/{}): {}",
-                                 retries, max_retries, e);
-                        thread::sleep(Duration::from_secs(2 * retries as u64));
-                    }
-                    Err(e) => return Err(e.into()),
-                }
-            }
-            Err(e) if e.is_recoverable() && retries < max_retries => {
-                retries += 1;
-                eprintln!("⚠️ Failed to create client (attempt {}/{}): {}",
-                         retries, max_retries, e);
-                thread::sleep(Duration::from_secs(2 * retries as u64));
-            }
-            Err(e) => return Err(e.into()),
-        }
-    }
+eprintln!("⚠️ Connection failed (attempt {}/{}): {}",
+retries, max_retries, e);
+thread::sleep(Duration::from_secs(2 _ retries as u64));
 }
-```
+Err(e) => return Err(e.into()),
+}
+}
+Err(e) if e.is_recoverable() && retries < max_retries => {
+retries += 1;
+eprintln!("⚠️ Failed to create client (attempt {}/{}): {}",
+retries, max_retries, e);
+thread::sleep(Duration::from_secs(2 _ retries as u64));
+}
+Err(e) => return Err(e.into()),
+}
+}
+}
+
+````
 
 ---
 
@@ -725,7 +727,7 @@ fn run_presence() -> Result<(), Box<dyn std::error::Error>> {
 
     result
 }
-```
+````
 
 ---
 

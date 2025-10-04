@@ -17,7 +17,7 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using Tokio
-pub enum TokioConnection {
+pub(crate) enum TokioConnection {
     #[cfg(unix)]
     Unix(UnixStream),
 
@@ -26,11 +26,6 @@ pub enum TokioConnection {
 }
 
 impl TokioConnection {
-    /// Create a new Tokio connection to Discord (uses auto-discovery)
-    pub async fn new() -> Result<Self> {
-        Self::new_with_config(None).await
-    }
-
     /// Create a new Tokio connection with pipe configuration
     pub async fn new_with_config(config: Option<PipeConfig>) -> Result<Self> {
         let config = config.unwrap_or_default();
@@ -44,11 +39,6 @@ impl TokioConnection {
         {
             Self::connect_windows_with_config(&config).await
         }
-    }
-
-    /// Create a new connection with timeout (uses auto-discovery)
-    pub async fn new_with_timeout(timeout_ms: u64) -> Result<Self> {
-        Self::new_with_config_and_timeout(None, timeout_ms).await
     }
 
     /// Create a new connection with pipe configuration and timeout
@@ -253,7 +243,7 @@ pub mod client {
 
     /// A reconnectable Tokio-based Discord IPC client
     ///
-    /// This wrapper stores the connection configuration and client ID,
+    /// Thiis wrapper stores the connection configuration and client ID,
     /// allowing you to reconnect after connection loss.
     pub struct TokioDiscordIpcClient {
         inner: AsyncDiscordIpcClient<TokioConnection>,
@@ -407,29 +397,6 @@ pub mod client {
         }
     }
 
-    /// Create a new Tokio-based Discord IPC client (backward compatible function)
-    ///
-    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
-    /// For reconnection support, use `TokioDiscordIpcClient::new()` instead.
-    pub async fn new_discord_ipc_client(
-        client_id: impl Into<String>,
-    ) -> Result<AsyncDiscordIpcClient<TokioConnection>> {
-        let connection = TokioConnection::new().await?;
-        Ok(AsyncDiscordIpcClient::new(client_id, connection))
-    }
-
-    /// Create a new Tokio-based Discord IPC client with a connection timeout (backward compatible)
-    ///
-    /// **Note:** This returns the lower-level `AsyncDiscordIpcClient` which does not support `reconnect()`.
-    /// For reconnection support, use `TokioDiscordIpcClient::new_with_timeout()` instead.
-    pub async fn new_discord_ipc_client_with_timeout(
-        client_id: impl Into<String>,
-        timeout_ms: u64,
-    ) -> Result<AsyncDiscordIpcClient<TokioConnection>> {
-        let connection = TokioConnection::new_with_timeout(timeout_ms).await?;
-        Ok(AsyncDiscordIpcClient::new(client_id, connection))
-    }
-
     /// Helper extension trait for Tokio-specific timeout operations
     pub trait TokioClientExt {
         /// Performs handshake with Discord with a timeout
@@ -469,3 +436,5 @@ pub mod client {
         }
     }
 }
+
+pub use client::*;
