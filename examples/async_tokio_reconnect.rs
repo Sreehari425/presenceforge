@@ -1,7 +1,6 @@
 use clap::Parser;
-use presenceforge::async_io::tokio::client::TokioDiscordIpcClient;
 use presenceforge::retry::{with_retry_async, RetryConfig};
-use presenceforge::{ActivityBuilder, Result};
+use presenceforge::{ActivityBuilder, AsyncDiscordIpcClient, Result};
 use tokio::time::{sleep, Duration};
 
 /// Discord Rich Presence Async Tokio Reconnection Example
@@ -59,7 +58,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 async fn example_manual_reconnect(client_id: &str) -> Result {
     println!("Connecting to Discord...");
 
-    let mut client = TokioDiscordIpcClient::new(client_id).await?;
+    let mut client = AsyncDiscordIpcClient::new(client_id).await?;
     client.connect().await?;
     println!("✓ Connected!");
 
@@ -105,7 +104,7 @@ async fn example_auto_retry(client_id: &str) -> Result {
     let mut client = with_retry_async(&config, || {
         Box::pin(async {
             println!("  Attempting to connect...");
-            TokioDiscordIpcClient::new(client_id).await
+            AsyncDiscordIpcClient::new(client_id).await
         })
     })
     .await?;
@@ -140,7 +139,7 @@ async fn example_resilient_loop(client_id: &str) -> Result {
     // Connect with retry
     let config = RetryConfig::with_max_attempts(3);
     let mut client =
-        with_retry_async(&config, || Box::pin(TokioDiscordIpcClient::new(client_id))).await?;
+        with_retry_async(&config, || Box::pin(AsyncDiscordIpcClient::new(client_id))).await?;
 
     client.connect().await?;
     println!("✓ Connected!");
