@@ -297,7 +297,7 @@ Opcode: 0x00000000 (4 bytes, little-endian)
 Length: 0x2C000000 (44 in hex is 0x2C, little-endian)
 
 In bytes: [00, 00, 00, 00, 2C, 00, 00, 00]
-           └─opcode─┘ └──length──┘
+           └───opcode───┘ └────length────┘
 ```
 
 **Step 4:** Combine header + payload:
