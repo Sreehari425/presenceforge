@@ -50,10 +50,10 @@ The unified API allows you to write runtime-agnostic code that works with any as
 
 ### Why Use the Unified API?
 
-✅ **No Code Changes** - Switch runtimes by just changing your feature flag  
-✅ **DRY Principle** - Write once, run on any runtime  
-✅ **Simple Imports** - Single import works everywhere  
-✅ **Future-Proof** - Your code won't break if you switch runtimes later
+**No Code Changes** - Switch runtimes by just changing your feature flag  
+ **DRY Principle** - Write once, run on any runtime  
+ **Simple Imports** - Single import works everywhere  
+ **Future-Proof** - Your code won't break if you switch runtimes later
 
 ### Example: Same Code, Any Runtime!
 
