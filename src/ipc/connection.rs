@@ -252,7 +252,12 @@ impl IpcConnection {
         #[cfg(windows)]
         {
             let (reader, writer) = Self::connect_to_discord_windows_with_config(config)?;
-            Ok(Self { reader, writer })
+            Ok(Self {
+                reader,
+                writer,
+                read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            })
         }
     }
 
