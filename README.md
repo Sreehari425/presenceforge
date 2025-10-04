@@ -10,6 +10,15 @@ A Rust library for Discord Rich Presence that actually works without the headach
 >
 > ⚠️ FINAL WARNING: PresenceForge is a learning/hobby project. If you need production-ready Discord Rich Presence, use a mature library like pypresence, discord-rpc, or CraftPresence.
 
+## Features
+
+✨ **Unified Async API** - Write once, run on any async runtime (Tokio, async-std, or smol)  
+🚀 **Simple & Ergonomic** - Intuitive builder pattern for creating activities  
+🔄 **Runtime Agnostic** - Switch async runtimes with just a feature flag  
+🎯 **Cross-Platform** - Works on Linux, macOS, and Windows  
+📦 **Zero Config** - Automatic Discord detection (including Flatpak)  
+🛡️ **Type Safe** - Compile-time guarantees with Rust's type system
+
 ## Documentation
 
 - [Getting Started Guide](docs/GETTING_STARTED.md) - Installation and first steps
@@ -31,7 +40,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Basic Rich Presence activities
 - [x] Activity builder pattern
 - [x] Images, buttons, and timestamps
-- [x] Async support with runtime-agnostic design
+- [x] **Unified async API with runtime-agnostic design**
 - [x] Support for tokio, async-std, and smol
 - [x] Flexible pipe/socket selection
 - [ ] Error handling could be better
@@ -50,6 +59,7 @@ For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
+# Choose ONE of these based on your async runtime:
 presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
 # OR
 presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
@@ -86,21 +96,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Async Usage with Tokio
+### Unified Async API
+
+The library provides a single `AsyncDiscordIpcClient` that works with any async runtime!  
+**Same code, any runtime** - just change the feature flag. ✨
+
+#### With Tokio
 
 ```rust
-use presenceforge::{ActivityBuilder, Result};
-use presenceforge::async_io::tokio::client::new_discord_ipc_client;
+use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 
 #[tokio::main]
 async fn main() -> Result {
-    let client_id = "your_client_id";
-    let mut client = new_discord_ipc_client(client_id).await?;
-
-    // Perform handshake
+    let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
 
-    // Create activity using the builder pattern
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .details("In the menu")
@@ -109,36 +119,26 @@ async fn main() -> Result {
         .large_text("My Awesome Game")
         .build();
 
-    // Set the activity
     client.set_activity(&activity).await?;
-
-    // Keep activity for some time
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-
-    // Clear the activity
     client.clear_activity().await?;
 
     Ok(())
 }
 ```
 
-### Async Usage with async-std
+#### With async-std
 
 ```rust
-use presenceforge::{ActivityBuilder, Result};
-use presenceforge::async_io::async_std::client::new_discord_ipc_client;
+use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 use async_std::task;
 use std::time::Duration;
 
 #[async_std::main]
 async fn main() -> Result {
-    let client_id = "your_client_id";
-    let mut client = new_discord_ipc_client(client_id).await?;
-
-    // Perform handshake
+    let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
 
-    // Create activity using the builder pattern
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .details("In the menu")
@@ -147,35 +147,25 @@ async fn main() -> Result {
         .large_text("My Awesome Game")
         .build();
 
-    // Set the activity
     client.set_activity(&activity).await?;
-
-    // Keep activity for some time
     task::sleep(Duration::from_secs(10)).await;
-
-    // Clear the activity
     client.clear_activity().await?;
 
     Ok(())
 }
 ```
 
-### Async Usage with smol
+#### With smol
 
 ```rust
-use presenceforge::{ActivityBuilder, Result};
-use presenceforge::async_io::smol::client::new_discord_ipc_client;
+use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 use std::time::Duration;
 
 fn main() -> Result {
     smol::block_on(async {
-        let client_id = "your_client_id";
-        let mut client = new_discord_ipc_client(client_id).await?;
-
-        // Perform handshake
+        let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
         client.connect().await?;
 
-        // Create activity using the builder pattern
         let activity = ActivityBuilder::new()
             .state("Playing a game")
             .details("In the menu")
@@ -184,19 +174,16 @@ fn main() -> Result {
             .large_text("My Awesome Game")
             .build();
 
-        // Set the activity
         client.set_activity(&activity).await?;
-
-        // Keep activity for some time
         smol::Timer::after(Duration::from_secs(10)).await;
-
-        // Clear the activity
         client.clear_activity().await?;
 
         Ok(())
     })
 }
 ```
+
+> 💡 **Pro Tip**: The same async code works across all three runtimes! Just enable the appropriate feature flag in `Cargo.toml`.
 
 ## Examples
 
@@ -250,14 +237,59 @@ let activity = ActivityBuilder::new()
 | macOS    | Unix Domain Sockets | [x]    |
 | Windows  | Named Pipes         | [x]    |
 
+## Why PresenceForge?
+
+### 🎯 Unified Async API
+
+Unlike other libraries that require different imports for each async runtime, PresenceForge provides a single unified API:
+
+```rust
+// ✅ PresenceForge - Same import for all runtimes
+use presenceforge::AsyncDiscordIpcClient;
+
+// ❌ Other libraries - Different imports per runtime
+use other_lib::tokio::TokioClient;
+use other_lib::async_std::AsyncStdClient;
+```
+
+**Benefits:**
+- **Write Once, Run Anywhere**: Switch runtimes with just a feature flag
+- **No Code Changes**: Your application code stays the same
+- **Future-Proof**: Easy to migrate between runtimes as your needs change
+- **DRY Principle**: Eliminates repetitive runtime-specific code
+
+### 🚀 Simple & Ergonomic
+
+Builder pattern makes creating activities intuitive:
+
+```rust
+let activity = ActivityBuilder::new()
+    .state("Playing")
+    .details("In a match")
+    .start_timestamp_now()
+    .large_image("logo")
+    .build();
+```
+
+No complex structs or manual JSON serialization required!
+
 ## API Reference
 
-### Client
+### Synchronous Client
 
 - `DiscordIpcClient::new(client_id)` - Create a new client
 - `client.connect()` - Connect to Discord
 - `client.set_activity(activity)` - Set Rich Presence activity
 - `client.clear_activity()` - Clear current activity
+
+### Async Client
+
+- `AsyncDiscordIpcClient::new(client_id).await` - Create a new async client
+- `client.connect().await` - Connect to Discord (async)
+- `client.set_activity(activity).await` - Set Rich Presence activity (async)
+- `client.clear_activity().await` - Clear current activity (async)
+
+> **Note**: `AsyncDiscordIpcClient` automatically adapts to your chosen runtime (Tokio, async-std, or smol) based on the feature flag you enable.
 
 ### Activity Builder
 
@@ -333,6 +365,7 @@ match client.connect() {
 - [x] Better error messages
 - [ ] Party/lobby functionality (partial implementation)
 - [x] Async support (tokio, async-std, and smol)
+- [x] **Unified async API with runtime-agnostic design**
 - [x] More comprehensive examples
 - [ ] Publish to crates.io
 - [ ] CI/CD pipeline
