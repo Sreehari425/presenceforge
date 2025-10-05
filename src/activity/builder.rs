@@ -1,6 +1,8 @@
 use crate::activity::types::{
-    Activity, ActivityAssets, ActivityButton, ActivityParty, ActivitySecrets, ActivityTimestamps,
+    Activity, ActivityAssets, ActivityButton, ActivityParty, ActivityTimestamps,
 };
+#[cfg(feature = "secrets")]
+use crate::activity::types::ActivitySecrets;
 use crate::error::{DiscordIpcError, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -97,16 +99,19 @@ impl ActivityBuilder {
         self
     }
 
+    #[cfg(feature = "secrets")]
     pub fn join_secret<S: Into<String>>(mut self, secret: S) -> Self {
         self.get_secrets().join = Some(secret.into());
         self
     }
 
+    #[cfg(feature = "secrets")]
     pub fn spectate_secret<S: Into<String>>(mut self, secret: S) -> Self {
         self.get_secrets().spectate = Some(secret.into());
         self
     }
 
+    #[cfg(feature = "secrets")]
     pub fn match_secret<S: Into<String>>(mut self, secret: S) -> Self {
         self.get_secrets().match_secret = Some(secret.into());
         self
@@ -123,6 +128,7 @@ impl ActivityBuilder {
         self.activity
     }
 
+    #[cfg(feature = "secrets")]
     fn get_secrets(&mut self) -> &mut ActivitySecrets {
         self.activity
             .secrets

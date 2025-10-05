@@ -38,6 +38,8 @@ libc = "0.2"
 
 [features]
 default = []
+# Rich Presence features
+secrets = []
 # Async runtimes
 tokio-runtime = ["tokio", "futures"]
 async-std-runtime = ["async-std", "blocking", "futures"]

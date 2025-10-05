@@ -18,6 +18,7 @@ pub struct Activity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub party: Option<ActivityParty>,
 
+    #[cfg(feature = "secrets")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secrets: Option<ActivitySecrets>,
 
@@ -150,6 +151,7 @@ pub struct ActivityParty {
 }
 
 /// Activity secrets for join/spectate
+#[cfg(feature = "secrets")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ActivitySecrets {
     #[serde(skip_serializing_if = "Option::is_none")]

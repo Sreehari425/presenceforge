@@ -99,14 +99,15 @@ fn main() -> Result {
         // ═══════════════════════════════════════════════════════════
         // SECRETS (For "Ask to Join" and spectate features)
         // ═══════════════════════════════════════════════════════════
-        // Join Secret: Used for "Ask to Join" button
-        // Your game uses this to let players join via Discord
-        .join_secret("join_secret_12345")
-        // Spectate Secret: Used for "Spectate" button
-        // Allows others to spectate your game
-        .spectate_secret("spectate_secret_67890")
-        // Match Secret: Unique identifier for the current match/game
-        .match_secret("match_secret_abcde")
+        // NOTE: Secret methods require the 'secrets' feature flag
+        // Uncomment and enable the feature to use these:
+        //
+        // #[cfg(feature = "secrets")]
+        // .join_secret("join_secret_12345")
+        // #[cfg(feature = "secrets")]
+        // .spectate_secret("spectate_secret_67890")
+        // #[cfg(feature = "secrets")]
+        // .match_secret("match_secret_abcde")
         // ═══════════════════════════════════════════════════════════
         // INSTANCE (Boolean flag)
         // ═══════════════════════════════════════════════════════════
@@ -164,7 +165,7 @@ fn main() -> Result {
     println!("   • Maximum 2 buttons allowed");
     println!("   • Timestamps are Unix timestamps (seconds since epoch)");
     println!("   • Party size shows as 'X of Y' in Discord");
-    println!("   • Secrets enable 'Ask to Join' and 'Spectate' features");
+    println!("   • Secrets (join/spectate/match) require the 'secrets' feature flag");
     println!("   • Hover tooltips work on large_text and small_text");
 
     Ok(())

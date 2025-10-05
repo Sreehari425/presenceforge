@@ -61,6 +61,7 @@ fn main() -> Result {
             small_text: Some("Online".to_string()),
         }),
         party: None,
+        #[cfg(feature = "secrets")]
         secrets: None,
         buttons: Some(vec![
             ActivityButton {

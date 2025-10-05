@@ -182,9 +182,10 @@ pub mod utils;
 
 // Re-export the main public API
 pub use activity::{
-    Activity, ActivityAssets, ActivityBuilder, ActivityButton, ActivityParty, ActivitySecrets,
-    ActivityTimestamps,
+    Activity, ActivityAssets, ActivityBuilder, ActivityButton, ActivityParty, ActivityTimestamps,
 };
+#[cfg(feature = "secrets")]
+pub use activity::ActivitySecrets;
 pub use error::{DiscordIpcError, ProtocolContext, Result};
 pub use ipc::protocol::IpcConfig;
 pub use ipc::{Command, DiscoveredPipe, IpcConnection, Opcode, PipeConfig};
