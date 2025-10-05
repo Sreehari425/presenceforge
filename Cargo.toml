@@ -68,3 +68,7 @@ required-features = ["async-std-runtime"]
 [[example]]
 name = "async_smol"
 required-features = ["smol-runtime"]
+
+[[example]]
+name = "async_tokio_reconnect"
+required-features = ["tokio-runtime"]
