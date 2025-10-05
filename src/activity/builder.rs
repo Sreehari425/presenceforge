@@ -1,8 +1,8 @@
+#[cfg(feature = "secrets")]
+use crate::activity::types::ActivitySecrets;
 use crate::activity::types::{
     Activity, ActivityAssets, ActivityButton, ActivityParty, ActivityTimestamps,
 };
-#[cfg(feature = "secrets")]
-use crate::activity::types::ActivitySecrets;
 use crate::error::{DiscordIpcError, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 
