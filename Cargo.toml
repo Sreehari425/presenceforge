@@ -36,6 +36,10 @@ dotenvy = "0.15"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
+
 [features]
 default = []
 # Rich Presence features
