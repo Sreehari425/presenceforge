@@ -308,11 +308,14 @@ pub mod client {
         ///
         /// ```no_run
         /// use presenceforge::async_io::tokio::client::TokioDiscordIpcClient;
+        /// use presenceforge::ActivityBuilder;
         ///
         /// # #[tokio::main]
         /// # async fn main() -> Result<(), presenceforge::DiscordIpcError> {
         /// let mut client = TokioDiscordIpcClient::new("client_id").await?;
         /// client.connect().await?;
+        ///
+        /// let activity = ActivityBuilder::new().state("Testing").build();
         ///
         /// // Later, if connection is lost
         /// if let Err(e) = client.set_activity(&activity).await {

@@ -25,7 +25,7 @@
 //! let activity = ActivityBuilder::new()
 //!     .state("Playing a game")
 //!     .details("In the menu")
-//!     .start_timestamp_now()
+//!     .start_timestamp_now()?
 //!     .large_image("game_logo")
 //!     .large_text("My Awesome Game")
 //!     .build();
@@ -57,9 +57,10 @@
 //! ```
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "tokio-runtime")]
+//! # {
 //! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
-//! #[tokio::main]
 //! async fn main() -> Result {
 //!     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
 //!     client.connect().await?;
@@ -67,16 +68,17 @@
 //!     let activity = ActivityBuilder::new()
 //!         .state("Playing a game")
 //!         .details("In the menu")
-//!         .start_timestamp_now()
+//!         .start_timestamp_now()?
 //!         .large_image("game_logo")
 //!         .large_text("My Awesome Game")
 //!         .build();
 //!
 //!     client.set_activity(&activity).await?;
-//!     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-//!     client.clear_activity().await?;
+//! #   tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+//! #   client.clear_activity().await?;
 //!     Ok(())
 //! }
+//! # }
 //! ```
 //!
 //! ### With async-std
@@ -90,9 +92,10 @@
 //! ```
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "async-std-runtime")]
+//! # {
 //! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
-//! #[async_std::main]
 //! async fn main() -> Result {
 //!     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
 //!     client.connect().await?;
@@ -100,16 +103,17 @@
 //!     let activity = ActivityBuilder::new()
 //!         .state("Playing a game")
 //!         .details("In the menu")
-//!         .start_timestamp_now()
+//!         .start_timestamp_now()?
 //!         .large_image("game_logo")
 //!         .large_text("My Awesome Game")
 //!         .build();
 //!
 //!     client.set_activity(&activity).await?;
-//!     async_std::task::sleep(std::time::Duration::from_secs(10)).await;
-//!     client.clear_activity().await?;
+//! #   async_std::task::sleep(std::time::Duration::from_secs(10)).await;
+//! #   client.clear_activity().await?;
 //!     Ok(())
 //! }
+//! # }
 //! ```
 //!
 //! ### With smol
@@ -123,6 +127,8 @@
 //! ```
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "smol-runtime")]
+//! # {
 //! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
 //! fn main() -> Result {
@@ -133,7 +139,7 @@
 //!         let activity = ActivityBuilder::new()
 //!             .state("Playing a game")
 //!             .details("In the menu")
-//!             .start_timestamp_now()
+//!             .start_timestamp_now()?
 //!             .large_image("game_logo")
 //!             .large_text("My Awesome Game")
 //!             .build();
@@ -144,6 +150,7 @@
 //!         Ok(())
 //!     })
 //! }
+//! # }
 //! ```
 //!
 //! ## Runtime-Specific APIs (Advanced)
@@ -152,12 +159,15 @@
 //!
 //! ```rust,no_run
 //! // Tokio-specific client
+//! # #[cfg(feature = "tokio-runtime")]
 //! use presenceforge::async_io::tokio::TokioDiscordIpcClient;
 //!
-//! // async-std-specific client  
+//! // async-std-specific client
+//! # #[cfg(feature = "async-std-runtime")]
 //! use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
 //!
 //! // smol-specific client
+//! # #[cfg(feature = "smol-runtime")]
 //! use presenceforge::async_io::smol::SmolDiscordIpcClient;
 //! ```
 

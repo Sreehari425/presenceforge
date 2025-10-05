@@ -337,9 +337,12 @@ impl DiscordIpcClient {
     ///
     /// ```no_run
     /// use presenceforge::DiscordIpcClient;
+    /// use presenceforge::ActivityBuilder;
     ///
     /// let mut client = DiscordIpcClient::new("client_id")?;
     /// client.connect()?;
+    ///
+    /// let activity = ActivityBuilder::new().state("Testing").build();
     ///
     /// // Later, if connection is lost
     /// if let Err(e) = client.set_activity(&activity) {

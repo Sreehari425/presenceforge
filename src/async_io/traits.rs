@@ -112,6 +112,7 @@ pub mod ipc_utils {
     }
 
     /// Write a little-endian u32 value
+    #[allow(dead_code)]
     pub async fn write_u32_le<T: AsyncWrite + Unpin>(writer: &mut T, value: u32) -> io::Result<()> {
         super::write_all(writer, &value.to_le_bytes()).await
     }

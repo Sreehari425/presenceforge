@@ -126,7 +126,7 @@ where
 /// # Example
 ///
 /// ```no_run
-/// use presenceforge::async_io::tokio::client::new_discord_ipc_client;
+/// use presenceforge::async_io::tokio::TokioDiscordIpcClient;
 /// use presenceforge::retry::{with_retry_async, RetryConfig};
 ///
 /// # #[tokio::main]
@@ -134,7 +134,7 @@ where
 /// let config = RetryConfig::with_max_attempts(5);
 ///
 /// let mut client = with_retry_async(&config, || {
-///     Box::pin(new_discord_ipc_client("your-client-id"))
+///     Box::pin(async { TokioDiscordIpcClient::new("your-client-id").await })
 /// }).await?;
 /// # Ok(())
 /// # }

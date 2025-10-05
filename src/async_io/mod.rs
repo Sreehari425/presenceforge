@@ -15,6 +15,8 @@
 //! ### Example
 //!
 //! ```rust,no_run
+//! # #[cfg(any(feature = "tokio-runtime", feature = "async-std-runtime", feature = "smol-runtime"))]
+//! # {
 //! // Same code works with any runtime!
 //! use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 //!
@@ -30,6 +32,7 @@
 //!     client.set_activity(&activity).await?;
 //!     Ok(())
 //! }
+//! # }
 //! ```
 //!
 //! ## Runtime-Specific APIs (Advanced)
@@ -40,18 +43,21 @@
 //! ### With Tokio
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "tokio-runtime")]
 //! use presenceforge::async_io::tokio::TokioDiscordIpcClient;
 //! ```
 //!
 //! ### With async-std
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "async-std-runtime")]
 //! use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
 //! ```
 //!
 //! ### With smol
 //!
 //! ```rust,no_run
+//! # #[cfg(feature = "smol-runtime")]
 //! use presenceforge::async_io::smol::SmolDiscordIpcClient;
 //! ```
 
