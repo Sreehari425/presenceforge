@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
+use std::collections::VecDeque;
 use std::process;
+use std::time::{Duration, Instant};
 
 use crate::activity::Activity;
 use crate::debug_println;
@@ -13,6 +15,7 @@ use crate::utils::generate_nonce;
 pub struct DiscordIpcClient {
     client_id: String,
     connection: IpcConnection,
+    pending_messages: VecDeque<PendingMessage>,
 }
 
 impl DiscordIpcClient {
@@ -53,6 +56,7 @@ impl DiscordIpcClient {
         Ok(Self {
             client_id,
             connection,
+            pending_messages: VecDeque::new(),
         })
     }
 
@@ -109,6 +113,7 @@ impl DiscordIpcClient {
         Ok(Self {
             client_id,
             connection,
+            pending_messages: VecDeque::new(),
         })
     }
 
@@ -122,6 +127,8 @@ impl DiscordIpcClient {
     ///
     /// Returns a `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub fn connect(&mut self) -> Result<Value> {
+        self.pending_messages.clear();
+
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
             client_id: self.client_id.clone(),
@@ -192,7 +199,7 @@ impl DiscordIpcClient {
         self.connection.send(Opcode::Frame, &payload)?;
 
         // Receive the response to check for errors
-        let (opcode, response) = self.connection.recv()?;
+        let (opcode, response) = self.recv_for_nonce(&nonce)?;
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
@@ -255,7 +262,7 @@ impl DiscordIpcClient {
         let payload = serde_json::to_value(message)?;
         self.connection.send(Opcode::Frame, &payload)?;
 
-        let (opcode, response) = self.connection.recv()?;
+        let (opcode, response) = self.recv_for_nonce(&nonce)?;
         debug_println!("Clear Activity response: {}", response);
 
         // Check if we got the correct response type
@@ -301,17 +308,103 @@ impl DiscordIpcClient {
 
     /// Receive a raw IPC message
     pub fn recv_message(&mut self) -> Result<(Opcode, Value)> {
-        self.connection.recv()
+        self.next_message()
+    }
+
+    /// Remove pending responses older than the provided `max_age` and return how many were dropped.
+    pub fn cleanup_pending(&mut self, max_age: Duration) -> usize {
+        if max_age.is_zero() {
+            let dropped = self.pending_messages.len();
+            self.pending_messages.clear();
+            return dropped;
+        }
+
+        let now = Instant::now();
+        let original_len = self.pending_messages.len();
+        self.pending_messages
+            .retain(|message| now.saturating_duration_since(message.received_at) <= max_age);
+        original_len - self.pending_messages.len()
     }
 
     /// Close the connection
     pub fn close(&mut self) {
         self.connection.close();
+        self.pending_messages.clear();
     }
 }
 
 impl Drop for DiscordIpcClient {
     fn drop(&mut self) {
         self.close();
+    }
+}
+
+impl DiscordIpcClient {
+    fn next_message(&mut self) -> Result<(Opcode, Value)> {
+        if let Some(message) = self.pending_messages.pop_front() {
+            let PendingMessage {
+                opcode, payload, ..
+            } = message;
+            return Ok((opcode, payload));
+        }
+
+        self.connection.recv()
+    }
+
+    fn recv_for_nonce(&mut self, expected_nonce: &str) -> Result<(Opcode, Value)> {
+        if let Some(message) = self.take_pending_by_nonce(expected_nonce) {
+            return Ok(message);
+        }
+
+        loop {
+            let (opcode, response) = self.connection.recv()?;
+            if Self::value_has_nonce(&response, expected_nonce) {
+                return Ok((opcode, response));
+            }
+
+            self.pending_messages
+                .push_back(PendingMessage::new(opcode, response));
+        }
+    }
+
+    fn take_pending_by_nonce(&mut self, expected_nonce: &str) -> Option<(Opcode, Value)> {
+        let position = self
+            .pending_messages
+            .iter()
+            .position(|message| Self::value_has_nonce(&message.payload, expected_nonce));
+
+        position.and_then(|index| {
+            self.pending_messages.remove(index).map(|message| {
+                let PendingMessage {
+                    opcode, payload, ..
+                } = message;
+                (opcode, payload)
+            })
+        })
+    }
+
+    fn value_has_nonce(value: &Value, expected_nonce: &str) -> bool {
+        value
+            .get("nonce")
+            .and_then(|n| n.as_str())
+            .map(|actual| actual == expected_nonce)
+            .unwrap_or(false)
+    }
+}
+
+#[derive(Debug)]
+struct PendingMessage {
+    opcode: Opcode,
+    payload: Value,
+    received_at: Instant,
+}
+
+impl PendingMessage {
+    fn new(opcode: Opcode, payload: Value) -> Self {
+        Self {
+            opcode,
+            payload,
+            received_at: Instant::now(),
+        }
     }
 }

@@ -2,7 +2,9 @@
 
 use bytes::{BufMut, BytesMut};
 use serde_json::{json, Value};
+use std::collections::VecDeque;
 use std::process;
+use std::time::{Duration, Instant};
 
 use super::traits::ipc_utils::read_u32_le;
 use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
@@ -21,6 +23,7 @@ where
     client_id: String,
     read_buf: BytesMut,
     write_buf: BytesMut,
+    pending_messages: VecDeque<PendingMessage>,
 }
 
 impl<T> AsyncDiscordIpcClient<T>
@@ -40,6 +43,7 @@ where
             client_id: client_id.into(),
             read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
             write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+            pending_messages: VecDeque::new(),
         }
     }
 
@@ -53,6 +57,8 @@ where
     ///
     /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub async fn connect(&mut self) -> Result<Value> {
+        self.pending_messages.clear();
+
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
             client_id: self.client_id.clone(),
@@ -63,7 +69,7 @@ where
 
         self.send_message(Opcode::Handshake, &payload).await?;
 
-        let (opcode, response) = self.recv_message().await?;
+        let (opcode, response) = self.recv_from_connection().await?;
         debug_println!("Handshake response: {}", response);
 
         // Check for error in the response
@@ -123,7 +129,7 @@ where
         self.send_message(Opcode::Frame, &payload).await?;
 
         // Receive the response to check for errors
-        let (opcode, response) = self.recv_message().await?;
+        let (opcode, response) = self.recv_for_nonce(&nonce).await?;
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
@@ -186,7 +192,7 @@ where
         let payload = serde_json::to_value(message)?;
         self.send_message(Opcode::Frame, &payload).await?;
 
-        let (opcode, response) = self.recv_message().await?;
+        let (opcode, response) = self.recv_for_nonce(&nonce).await?;
         debug_println!("Clear Activity response: {}", response);
 
         // Check if we got the correct response type
@@ -263,6 +269,52 @@ where
     ///
     /// Returns a `DiscordIpcError` if deserialization or communication fails
     pub async fn recv_message(&mut self) -> Result<(Opcode, Value)> {
+        self.next_message().await
+    }
+
+    /// Remove pending responses older than the provided `max_age` and return how many were dropped.
+    pub fn cleanup_pending(&mut self, max_age: Duration) -> usize {
+        if max_age.is_zero() {
+            let dropped = self.pending_messages.len();
+            self.pending_messages.clear();
+            return dropped;
+        }
+
+        let now = Instant::now();
+        let original_len = self.pending_messages.len();
+        self.pending_messages
+            .retain(|message| now.saturating_duration_since(message.received_at) <= max_age);
+        original_len - self.pending_messages.len()
+    }
+
+    async fn next_message(&mut self) -> Result<(Opcode, Value)> {
+        if let Some(message) = self.pending_messages.pop_front() {
+            let PendingMessage {
+                opcode, payload, ..
+            } = message;
+            return Ok((opcode, payload));
+        }
+
+        self.recv_from_connection().await
+    }
+
+    async fn recv_for_nonce(&mut self, expected_nonce: &str) -> Result<(Opcode, Value)> {
+        if let Some(message) = self.take_pending_by_nonce(expected_nonce) {
+            return Ok(message);
+        }
+
+        loop {
+            let (opcode, response) = self.recv_from_connection().await?;
+            if Self::value_has_nonce(&response, expected_nonce) {
+                return Ok((opcode, response));
+            }
+
+            self.pending_messages
+                .push_back(PendingMessage::new(opcode, response));
+        }
+    }
+
+    async fn recv_from_connection(&mut self) -> Result<(Opcode, Value)> {
         // Read header using utility function
         let opcode_raw = read_u32_le(&mut self.connection).await?;
         let length = read_u32_le(&mut self.connection).await?;
@@ -289,5 +341,46 @@ where
         let value: Value = serde_json::from_slice(&self.read_buf)?;
 
         Ok((opcode, value))
+    }
+
+    fn take_pending_by_nonce(&mut self, expected_nonce: &str) -> Option<(Opcode, Value)> {
+        let position = self
+            .pending_messages
+            .iter()
+            .position(|message| Self::value_has_nonce(&message.payload, expected_nonce));
+
+        position.and_then(|index| {
+            self.pending_messages.remove(index).map(|message| {
+                let PendingMessage {
+                    opcode, payload, ..
+                } = message;
+                (opcode, payload)
+            })
+        })
+    }
+
+    fn value_has_nonce(value: &Value, expected_nonce: &str) -> bool {
+        value
+            .get("nonce")
+            .and_then(|n| n.as_str())
+            .map(|actual| actual == expected_nonce)
+            .unwrap_or(false)
+    }
+}
+
+#[derive(Debug)]
+struct PendingMessage {
+    opcode: Opcode,
+    payload: Value,
+    received_at: Instant,
+}
+
+impl PendingMessage {
+    fn new(opcode: Opcode, payload: Value) -> Self {
+        Self {
+            opcode,
+            payload,
+            received_at: Instant::now(),
+        }
     }
 }
