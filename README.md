@@ -212,6 +212,37 @@ let activity = ActivityBuilder::new()
 3. Copy the **Application ID** from the General Information page
 4. (Optional) Upload images in the Rich Presence Art Assets section
 
+### Configuration Methods
+
+All examples support three ways to provide your Discord Client ID:
+
+#### 1. Command-line Argument (Recommended for testing)
+
+```bash
+cargo run --example basic -- --client-id YOUR_CLIENT_ID
+```
+
+#### 2. Environment Variable
+
+```bash
+DISCORD_CLIENT_ID=YOUR_CLIENT_ID cargo run --example basic
+```
+
+#### 3. .env File (Recommended for development)
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your client ID
+# DISCORD_CLIENT_ID=your_client_id_here
+
+# Then run any example
+cargo run --example basic
+```
+
+**Priority Order**: Command-line argument → Environment variable → .env file
+
 ## Platform Support
 
 | Platform | IPC Method          | Status |
@@ -251,6 +282,8 @@ ActivityBuilder::new()
 
 ## Running Examples
 
+For detailed information about all available examples and configuration options, see the [Examples README](examples/README.md).
+
 Clone the repository and run the included examples:
 
 ```bash
@@ -258,29 +291,50 @@ git clone https://github.com/Sreehari425/presenceforge.git
 cd presenceforge
 
 # Basic example (synchronous)
-cargo run --example basic
+cargo run --example basic -- --client-id YOUR_CLIENT_ID
 
 # Game demo with dynamic status
-cargo run --example game_demo
+cargo run --example game_demo -- --client-id YOUR_CLIENT_ID
 
 # Developer coding status
-cargo run --example coding_status
+cargo run --example coding_status -- --client-id YOUR_CLIENT_ID
 
 # Custom activity without builder
-cargo run --example custom_activity
+cargo run --example custom_activity -- --client-id YOUR_CLIENT_ID
 
 # Async example with Tokio
-cargo run --example async_tokio --features tokio-runtime
+cargo run --example async_tokio --features tokio-runtime -- --client-id YOUR_CLIENT_ID
 
 # Async example with async-std
-cargo run --example async_std --features async-std-runtime
+cargo run --example async_std --features async-std-runtime -- --client-id YOUR_CLIENT_ID
 
 # Async example with smol
-cargo run --example async_smol --features smol-runtime
+cargo run --example async_smol --features smol-runtime -- --client-id YOUR_CLIENT_ID
+
+# Complete builder reference - Shows ALL ActivityBuilder options
+cargo run --example builder_all -- --client-id YOUR_CLIENT_ID
+
+# Connection retry and error handling
+cargo run --example connection_retry -- --client-id YOUR_CLIENT_ID
+
+# Pipe selection and discovery
+cargo run --example pipe_selection -- --client-id YOUR_CLIENT_ID
 ```
 
-Remember to replace `"YOUR-CLIENT-ID"` with your actual Discord application ID.
-.
+Or use the .env file method (recommended for development):
+
+```bash
+# Set up .env file once
+cp .env.example .env
+# Edit .env and add: DISCORD_CLIENT_ID=your_client_id_here
+
+# Then run examples without specifying client ID
+cargo run --example basic
+cargo run --example game_demo
+cargo run --example async_tokio --features tokio-runtime
+```
+
+**Note**: Replace `YOUR_CLIENT_ID` with your actual Discord application ID, or use the .env file method for convenience.
 
 ## Error Handling
 
