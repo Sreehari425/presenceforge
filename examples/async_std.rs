@@ -37,9 +37,9 @@ async fn main() -> Result {
 
     // Create activity using the builder pattern
     let activity = ActivityBuilder::new()
-        .state("Playing a game")
+        .state("Playing a game (async-std)")
         .details("In the menu")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("car")
         .large_text("This is a large image")
         .button(" View Car", "https://google.com")

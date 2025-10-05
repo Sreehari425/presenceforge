@@ -56,7 +56,7 @@ fn main() -> Result {
         let activity = ActivityBuilder::new()
             .state(*state)
             .details(*details)
-            .start_timestamp_now()
+            .start_timestamp_now()?
             .large_image(*image_key) // You'd need to upload these to Discord
             .large_text(*image_text)
             .small_image("player_avatar")

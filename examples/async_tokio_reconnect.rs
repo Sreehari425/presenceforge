@@ -65,7 +65,7 @@ async fn example_manual_reconnect(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 1: Manual Reconnect")
         .details("Testing async reconnection")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     println!("Setting activity...");
@@ -119,7 +119,7 @@ async fn example_auto_retry(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 2: Auto Retry")
         .details("With exponential backoff")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     client.set_activity(&activity).await?;
@@ -147,7 +147,7 @@ async fn example_resilient_loop(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 3: Resilient Loop")
         .details("Auto-reconnecting")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     println!("Maintaining presence (will update 3 times)...");

@@ -186,6 +186,10 @@ pub enum DiscordIpcError {
 
     #[error("Invalid activity: {0}")]
     InvalidActivity(String),
+
+    /// System time error (e.g., time before UNIX epoch)
+    #[error("System time error: {0}")]
+    SystemTimeError(String),
 }
 
 impl DiscordIpcError {
@@ -208,7 +212,7 @@ impl DiscordIpcError {
 
             Self::DiscordError { .. } => ErrorCategory::Application,
 
-            Self::InvalidActivity(_) => ErrorCategory::Other,
+            Self::InvalidActivity(_) | Self::SystemTimeError(_) => ErrorCategory::Other,
         }
     }
 

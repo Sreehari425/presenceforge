@@ -41,7 +41,7 @@ fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Writing Rust code")
         .details("Building Discord RPC library")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("rust_logo") // Upload Rust logo to Discord
         .large_text("Rust Programming")
         .small_image("vscode") // Upload VS Code icon to Discord
@@ -65,7 +65,7 @@ fn main() -> Result {
     let debugging_activity = ActivityBuilder::new()
         .state("Debugging")
         .details("Fixing async issues")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("rust_logo")
         .large_text("Rust Programming")
         .small_image("debug_icon")

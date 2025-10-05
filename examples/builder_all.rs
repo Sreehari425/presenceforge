@@ -61,7 +61,7 @@ fn main() -> Result {
         // ═══════════════════════════════════════════════════════════
         // Start timestamp: Shows "elapsed" time (e.g., "00:15 elapsed")
         // Use .start_timestamp_now() for current time
-        .start_timestamp_now()
+        .start_timestamp_now()?
         // End timestamp: Shows "remaining" time (e.g., "02:30 left")
         // Note: If you set both start and end, Discord shows remaining time
         // Uncomment to try:

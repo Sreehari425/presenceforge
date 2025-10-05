@@ -1,6 +1,7 @@
 use crate::activity::types::{
     Activity, ActivityAssets, ActivityButton, ActivityParty, ActivitySecrets, ActivityTimestamps,
 };
+use crate::error::{DiscordIpcError, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Builder for creating Discord Rich Presence activities
@@ -28,13 +29,18 @@ impl ActivityBuilder {
     }
 
     /// Set the start timestamp to now
-    pub fn start_timestamp_now(mut self) -> Self {
-        let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
-            return self;
-        };
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the system time is before the UNIX epoch (Jan 1, 1970).
+    /// This should never happen on properly configured systems.
+    pub fn start_timestamp_now(mut self) -> Result<Self> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e| {
+            DiscordIpcError::SystemTimeError(format!("System time is before UNIX epoch: {}", e))
+        })?;
 
         self.get_timestamps().start = Some(now.as_secs());
-        self
+        Ok(self)
     }
 
     /// Set the start timestamp

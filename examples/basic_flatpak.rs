@@ -97,7 +97,7 @@ fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Running on Flatpak")
         .details("Using custom pipe configuration")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("car")
         .large_text("This is a large image")
         .button("View Car", "https://google.com")

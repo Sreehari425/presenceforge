@@ -82,7 +82,7 @@ fn example_basic_retry(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 1: Auto Retry")
         .details("Testing connection retry")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     client.set_activity(&activity)?;
@@ -105,7 +105,7 @@ fn example_manual_reconnect(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 2: Manual Reconnect")
         .details("Testing reconnection")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     println!("Setting activity...");
@@ -172,7 +172,7 @@ fn example_custom_retry(client_id: &str) -> Result {
     let activity = ActivityBuilder::new()
         .state("Example 3: Custom Retry")
         .details("With exponential backoff")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .build();
 
     client.set_activity(&activity)?;
