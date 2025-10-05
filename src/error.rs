@@ -373,3 +373,75 @@ pub mod utils {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::utils::{AppError, ResultExt};
+
+    #[test]
+    fn protocol_context_helpers_populate_fields() {
+        let empty = ProtocolContext::new();
+        assert!(empty.expected_opcode.is_none());
+        assert!(empty.received_opcode.is_none());
+
+        let with_opcodes = ProtocolContext::with_opcodes(1, 2);
+        assert_eq!(with_opcodes.expected_opcode, Some(1));
+        assert_eq!(with_opcodes.received_opcode, Some(2));
+
+        let with_payload = ProtocolContext::with_payload(3, 42);
+        assert_eq!(with_payload.received_opcode, Some(3));
+        assert_eq!(with_payload.payload_size, Some(42));
+    }
+
+    #[test]
+    fn error_category_and_recoverable_detection() {
+        let conn_err = DiscordIpcError::SocketClosed;
+        assert_eq!(conn_err.category(), ErrorCategory::Connection);
+        assert!(conn_err.is_connection_error());
+        assert!(conn_err.is_recoverable());
+
+        let proto_err = DiscordIpcError::InvalidResponse("oops".into());
+        assert_eq!(proto_err.category(), ErrorCategory::Protocol);
+        assert!(proto_err.is_recoverable());
+
+        let app_err = DiscordIpcError::discord_error(4000, "bad");
+        assert_eq!(app_err.category(), ErrorCategory::Application);
+        assert!(!app_err.is_recoverable());
+    }
+
+    #[test]
+    fn app_error_preserves_context() {
+        let err = DiscordIpcError::SocketClosed;
+        let wrapped = AppError::new(err, "while sending message");
+
+    assert!(matches!(wrapped.discord_error(), DiscordIpcError::SocketClosed));
+        assert_eq!(wrapped.context(), Some("while sending message"));
+        assert!(format!("{}", wrapped).contains("while sending message"));
+    }
+
+    #[test]
+    fn result_ext_retry_if_retries_on_recoverable() {
+        use std::cell::Cell;
+
+        let attempts = Cell::new(0);
+    let initial: Result<()> = Err(DiscordIpcError::SocketClosed);
+
+        let outcome = initial.retry_if(DiscordIpcError::is_recoverable, || {
+            attempts.set(attempts.get() + 1);
+            Ok(())
+        });
+
+        assert!(outcome.is_ok());
+        assert_eq!(attempts.get(), 1);
+    }
+
+    #[test]
+    fn result_ext_with_context_maps_error() {
+    let result: Result<()> = Err(DiscordIpcError::SocketClosed);
+        let app_result = result.with_context("connecting");
+
+        let err = app_result.unwrap_err();
+        assert_eq!(err.context(), Some("connecting"));
+    }
+}

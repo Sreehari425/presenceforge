@@ -147,3 +147,90 @@ impl ActivityBuilder {
             .get_or_insert_with(ActivityAssets::default)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builder_sets_basic_fields() {
+        let activity = ActivityBuilder::new()
+            .state("Playing")
+            .details("Level 1")
+            .large_image("cover")
+            .large_text("Cover Art")
+            .small_image("icon")
+            .small_text("Icon Art")
+            .instance(true)
+            .button("Join", "https://example.com/join")
+            .build();
+
+        let state = activity.state.as_deref();
+        let details = activity.details.as_deref();
+        let assets = activity.assets.unwrap();
+        let buttons = activity.buttons.unwrap();
+
+        assert_eq!(state, Some("Playing"));
+        assert_eq!(details, Some("Level 1"));
+        assert_eq!(assets.large_image.as_deref(), Some("cover"));
+        assert_eq!(assets.small_text.as_deref(), Some("Icon Art"));
+        assert!(activity.instance.unwrap());
+        assert_eq!(buttons.len(), 1);
+        assert_eq!(buttons[0].label, "Join");
+    }
+
+    #[test]
+    fn builder_sets_party_information() {
+        let activity = ActivityBuilder::new().party("group", 2, 5).build();
+        let party = activity.party.unwrap();
+        assert_eq!(party.id.as_deref(), Some("group"));
+        assert_eq!(party.size, Some([2, 5]));
+    }
+
+    #[test]
+    fn start_timestamp_now_sets_current_time() {
+        let before = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let activity = ActivityBuilder::new()
+            .start_timestamp_now()
+            .expect("timestamp should succeed")
+            .build();
+
+        let timestamp = activity
+            .timestamps
+            .and_then(|t| t.start)
+            .expect("start timestamp set");
+
+        assert!(timestamp >= before);
+        assert!(timestamp - before <= 2);
+    }
+
+    #[test]
+    fn start_and_end_timestamps_are_applied() {
+        let activity = ActivityBuilder::new()
+            .start_timestamp(100)
+            .end_timestamp(200)
+            .build();
+
+        let timestamps = activity.timestamps.unwrap();
+        assert_eq!(timestamps.start, Some(100));
+        assert_eq!(timestamps.end, Some(200));
+    }
+
+    #[cfg(feature = "secrets")]
+    #[test]
+    fn secrets_are_applied_when_feature_enabled() {
+        let activity = ActivityBuilder::new()
+            .join_secret("join")
+            .match_secret("match")
+            .spectate_secret("spectate")
+            .build();
+
+        let secrets = activity.secrets.expect("secrets should exist");
+        assert_eq!(secrets.join.as_deref(), Some("join"));
+        assert_eq!(secrets.match_secret.as_deref(), Some("match"));
+        assert_eq!(secrets.spectate.as_deref(), Some("spectate"));
+    }
+}

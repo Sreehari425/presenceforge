@@ -170,3 +170,93 @@ pub struct ActivityButton {
     pub label: String,
     pub url: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn activity_with_button(label: &str, url: &str) -> Activity {
+        Activity {
+            buttons: Some(vec![ActivityButton {
+                label: label.to_string(),
+                url: url.to_string(),
+            }]),
+            ..Activity::default()
+        }
+    }
+
+    #[test]
+    fn valid_activity_passes_validation() {
+        let mut activity = Activity::default();
+        activity.state = Some("Exploring".to_string());
+        activity.details = Some("Testing".to_string());
+        activity.assets = Some(ActivityAssets {
+            large_image: Some("logo".to_string()),
+            large_text: Some("Logo".to_string()),
+            small_image: Some("icon".to_string()),
+            small_text: Some("Icon".to_string()),
+        });
+        activity.party = Some(ActivityParty {
+            id: Some("party".to_string()),
+            size: Some([1, 4]),
+        });
+        activity.buttons = Some(vec![
+            ActivityButton {
+                label: "Join".to_string(),
+                url: "https://example.com/join".to_string(),
+            },
+            ActivityButton {
+                label: "Watch".to_string(),
+                url: "https://example.com/watch".to_string(),
+            },
+        ]);
+
+        assert!(activity.validate().is_ok());
+    }
+
+    #[test]
+    fn state_over_character_limit_fails() {
+        let mut activity = Activity::default();
+        activity.state = Some("a".repeat(129));
+        let error = activity.validate().unwrap_err();
+        assert!(error.contains("128"));
+    }
+
+    #[test]
+    fn button_label_too_long_fails() {
+        let activity = activity_with_button(&"x".repeat(33), "https://example.com");
+        let error = activity.validate().unwrap_err();
+        assert!(error.contains("Button label"));
+    }
+
+    #[test]
+    fn button_url_without_scheme_fails() {
+        let activity = activity_with_button("Join", "example.com");
+        let error = activity.validate().unwrap_err();
+        assert!(error.contains("http://"));
+    }
+
+    #[test]
+    fn asset_key_too_long_fails() {
+        let mut activity = Activity::default();
+        activity.assets = Some(ActivityAssets {
+            large_image: Some("y".repeat(257)),
+            ..ActivityAssets::default()
+        });
+
+        let error = activity.validate().unwrap_err();
+        assert!(error.contains("Large image key"));
+    }
+
+    #[test]
+    fn party_size_greater_than_max_fails() {
+        let mut activity = Activity::default();
+        activity.party = Some(ActivityParty {
+            id: Some("party".to_string()),
+            size: Some([5, 4]),
+        });
+
+        let error = activity.validate().unwrap_err();
+        assert!(error.contains("Current party size"));
+    }
+}

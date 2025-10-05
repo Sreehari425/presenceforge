@@ -408,3 +408,32 @@ impl PendingMessage {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn value_has_nonce_detects_match() {
+        let payload = serde_json::json!({
+            "nonce": "abc",
+            "data": {}
+        });
+
+        assert!(DiscordIpcClient::value_has_nonce(&payload, "abc"));
+        assert!(!DiscordIpcClient::value_has_nonce(&payload, "def"));
+    }
+
+    #[test]
+    fn value_has_nonce_handles_missing_field() {
+        let payload = serde_json::json!({ "data": 1 });
+        assert!(!DiscordIpcClient::value_has_nonce(&payload, "anything"));
+    }
+
+    #[test]
+    fn pending_message_records_creation_time() {
+        let message = PendingMessage::new(Opcode::Frame, serde_json::json!({"nonce": "1"}));
+        let elapsed = Instant::now().saturating_duration_since(message.received_at);
+        assert!(elapsed.as_secs() < 1);
+    }
+}

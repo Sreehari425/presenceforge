@@ -250,3 +250,52 @@ impl IpcConfig {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opcode_try_from_valid_and_invalid_values() {
+        assert_eq!(Opcode::try_from(0).unwrap(), Opcode::Handshake);
+        assert_eq!(Opcode::try_from(4).unwrap(), Opcode::Pong);
+
+        let err = Opcode::try_from(42).unwrap_err();
+        assert!(matches!(err, DiscordIpcError::ProtocolViolation { .. }));
+    }
+
+    #[test]
+    fn opcode_response_checks_match_protocol() {
+        assert!(Opcode::Frame.is_handshake_response());
+        assert!(Opcode::Frame.is_frame_response());
+        assert!(!Opcode::Handshake.is_frame_response());
+    }
+
+    #[test]
+    fn ipc_config_validate_bounds() {
+        let valid = IpcConfig::default();
+        assert!(valid.validate().is_ok());
+
+        let too_many = IpcConfig::default().with_max_sockets(0);
+        assert!(too_many.validate().is_err());
+
+        let huge_payload = IpcConfig::default().with_max_payload_size(200 * 1024 * 1024);
+        assert!(huge_payload.validate().is_err());
+    }
+
+    #[test]
+    fn ipc_message_roundtrips_through_json() {
+        let message = IpcMessage {
+            cmd: Command::SetActivity,
+            args: serde_json::json!({"foo": "bar"}),
+            nonce: "1234".to_string(),
+        };
+
+        let json = serde_json::to_string(&message).expect("serialize message");
+        let deserialized: IpcMessage = serde_json::from_str(&json).expect("deserialize message");
+
+        assert_eq!(deserialized.nonce, "1234");
+    assert!(matches!(deserialized.cmd, Command::SetActivity));
+        assert_eq!(deserialized.args.get("foo").and_then(Value::as_str), Some("bar"));
+    }
+}
