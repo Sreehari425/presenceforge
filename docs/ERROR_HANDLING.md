@@ -679,26 +679,7 @@ let mut client = with_retry(&config, || {
 })?;
 ```
 
-**See the full example:** `examples/connection_retry.rs`
-eprintln!("⚠️ Connection failed (attempt {}/{}): {}",
-retries, max_retries, e);
-thread::sleep(Duration::from_secs(2 _ retries as u64));
-}
-Err(e) => return Err(e.into()),
-}
-}
-Err(e) if e.is_recoverable() && retries < max_retries => {
-retries += 1;
-eprintln!("⚠️ Failed to create client (attempt {}/{}): {}",
-retries, max_retries, e);
-thread::sleep(Duration::from_secs(2 _ retries as u64));
-}
-Err(e) => return Err(e.into()),
-}
-}
-}
 
-````
 
 ---
 
