@@ -1,5 +1,5 @@
-use presenceforge::{DiscordIpcError, Opcode, ProtocolContext};
 use presenceforge::error::ErrorCategory;
+use presenceforge::{DiscordIpcError, Opcode, ProtocolContext};
 
 #[test]
 fn error_category_matches_constructor() {
@@ -22,7 +22,9 @@ fn protocol_violation_context_is_preserved() {
     let error = DiscordIpcError::protocol_violation("unexpected opcode", context.clone());
 
     match error {
-        DiscordIpcError::ProtocolViolation { context: received, .. } => {
+        DiscordIpcError::ProtocolViolation {
+            context: received, ..
+        } => {
             assert_eq!(received.expected_opcode, context.expected_opcode);
             assert_eq!(received.received_opcode, context.received_opcode);
         }

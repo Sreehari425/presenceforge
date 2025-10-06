@@ -415,7 +415,10 @@ mod tests {
         let err = DiscordIpcError::SocketClosed;
         let wrapped = AppError::new(err, "while sending message");
 
-    assert!(matches!(wrapped.discord_error(), DiscordIpcError::SocketClosed));
+        assert!(matches!(
+            wrapped.discord_error(),
+            DiscordIpcError::SocketClosed
+        ));
         assert_eq!(wrapped.context(), Some("while sending message"));
         assert!(format!("{}", wrapped).contains("while sending message"));
     }
@@ -425,7 +428,7 @@ mod tests {
         use std::cell::Cell;
 
         let attempts = Cell::new(0);
-    let initial: Result<()> = Err(DiscordIpcError::SocketClosed);
+        let initial: Result<()> = Err(DiscordIpcError::SocketClosed);
 
         let outcome = initial.retry_if(DiscordIpcError::is_recoverable, || {
             attempts.set(attempts.get() + 1);
@@ -438,7 +441,7 @@ mod tests {
 
     #[test]
     fn result_ext_with_context_maps_error() {
-    let result: Result<()> = Err(DiscordIpcError::SocketClosed);
+        let result: Result<()> = Err(DiscordIpcError::SocketClosed);
         let app_result = result.with_context("connecting");
 
         let err = app_result.unwrap_err();

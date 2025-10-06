@@ -295,7 +295,10 @@ mod tests {
         let deserialized: IpcMessage = serde_json::from_str(&json).expect("deserialize message");
 
         assert_eq!(deserialized.nonce, "1234");
-    assert!(matches!(deserialized.cmd, Command::SetActivity));
-        assert_eq!(deserialized.args.get("foo").and_then(Value::as_str), Some("bar"));
+        assert!(matches!(deserialized.cmd, Command::SetActivity));
+        assert_eq!(
+            deserialized.args.get("foo").and_then(Value::as_str),
+            Some("bar")
+        );
     }
 }

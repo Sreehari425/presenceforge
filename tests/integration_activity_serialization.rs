@@ -1,4 +1,4 @@
-use presenceforge::{ActivityBuilder, Activity, ActivityAssets, ActivityParty};
+use presenceforge::{Activity, ActivityAssets, ActivityBuilder, ActivityParty};
 use serde_json::Value;
 
 fn activity_to_value(activity: &Activity) -> Value {

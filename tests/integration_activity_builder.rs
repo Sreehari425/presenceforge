@@ -20,20 +20,18 @@ fn set_state_and_details() {
 #[test]
 fn state_length_exceeds_limit() {
     let long_state = "a".repeat(129);
-    let activity = ActivityBuilder::new()
-        .state(long_state)
-        .build();
+    let activity = ActivityBuilder::new().state(long_state).build();
     assert!(activity.validate().is_err());
 }
 
 #[test]
 fn button_limit_exceeded() {
     let activity = ActivityBuilder::new()
-         .button("label1", "http://example.com/1")
-         .button("label2", "http://example.com/2")
-         .button("label3", "http://example.com/3")
-         .build();
-     assert!(activity.validate().is_err());
+        .button("label1", "http://example.com/1")
+        .button("label2", "http://example.com/2")
+        .button("label3", "http://example.com/3")
+        .build();
+    assert!(activity.validate().is_err());
 }
 
 #[test]
@@ -46,9 +44,7 @@ fn invalid_button_url_scheme() {
 
 #[test]
 fn large_image_key_too_long() {
-    let activity = ActivityBuilder::new()
-        .large_image("x".repeat(257))
-        .build();
+    let activity = ActivityBuilder::new().large_image("x".repeat(257)).build();
     assert!(activity.validate().is_err());
 }
 
@@ -66,8 +62,6 @@ fn valid_party_and_buttons_pass_validation() {
 
 #[test]
 fn party_size_invalid() {
-    let activity = ActivityBuilder::new()
-        .party("id", 5, 4)
-        .build();
+    let activity = ActivityBuilder::new().party("id", 5, 4).build();
     assert!(activity.validate().is_err());
 }

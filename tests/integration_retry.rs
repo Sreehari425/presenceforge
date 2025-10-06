@@ -1,5 +1,5 @@
-use presenceforge::{retry::RetryConfig, DiscordIpcError};
 use presenceforge::retry::with_retry;
+use presenceforge::{retry::RetryConfig, DiscordIpcError};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
