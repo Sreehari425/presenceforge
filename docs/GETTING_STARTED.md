@@ -97,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Hello, Discord!")
         .details("Using PresenceForge")
-        .start_timestamp_now()
+        .start_timestamp_now().expect("timestamp")
         .build();
 
     // Set the activity
@@ -166,8 +166,8 @@ let activity = ActivityBuilder::new()
 let activity = ActivityBuilder::new()
     .state("Streaming")
     .details("Making cool stuff")
-    .add_button("Watch Stream", "https://twitch.tv/username")
-    .add_button("GitHub", "https://github.com/username")
+    .button("Watch Stream", "https://twitch.tv/username")
+    .button("GitHub", "https://github.com/username")
     .build();
 ```
 
@@ -215,7 +215,7 @@ thread::sleep(Duration::from_secs(5));
 client.set_activity(&ActivityBuilder::new()
     .state("In Match")
     .details("Competitive Mode")
-    .start_timestamp_now()
+    .start_timestamp_now().expect("timestamp")
     .build())?;
 ```
 

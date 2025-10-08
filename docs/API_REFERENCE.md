@@ -72,39 +72,28 @@ let client = DiscordIpcClient::new_with_config(
 
 ### Connection Methods
 
-#### `connect(&mut self) -> Result<()>`
+#### `connect(&mut self) -> Result<serde_json::Value>`
 
 Establishes connection and performs handshake with Discord.
 
 ```rust
 let mut client = DiscordIpcClient::new("client_id")?;
-client.connect()?;
+let _handshake = client.connect()?; // JSON handshake payload
 ```
 
 **Must be called before** setting or clearing activities.
 
-**Returns:** `Result<(), DiscordIpcError>`
+**Returns:** `Result<serde_json::Value, DiscordIpcError>`
 
 **Errors:**
 
-- `DiscordIpcError::ConnectionFailed` - Handshake failed
-- `DiscordIpcError::ProtocolError` - Invalid response from Discord
+- `DiscordIpcError::ConnectionFailed` - Could not connect to IPC
+- `DiscordIpcError::HandshakeFailed` - Invalid response/opcode or error from Discord
 
 ---
 
-#### `reconnect(&mut self) -> Result<()>`
-
-Reconnects to Discord (useful if connection is lost).
-
-```rust
-// If connection is lost
-if let Err(_) = client.set_activity(&activity) {
-    client.reconnect()?;
-    client.set_activity(&activity)?;
-}
-```
-
-**Returns:** `Result<(), DiscordIpcError>`
+// (No sync reconnect method)
+// If the connection is lost, recreate the client and call connect() again.
 
 ---
 
@@ -135,15 +124,15 @@ client.set_activity(&activity)?;
 
 ---
 
-#### `clear_activity(&mut self) -> Result<()>`
+#### `clear_activity(&mut self) -> Result<serde_json::Value>`
 
 Clears the current Rich Presence activity.
 
 ```rust
-client.clear_activity()?;
+let _resp = client.clear_activity()?;
 ```
 
-**Returns:** `Result<(), DiscordIpcError>`
+**Returns:** `Result<serde_json::Value, DiscordIpcError>`
 
 **Note:** This removes the Rich Presence from your profile entirely.
 
@@ -241,7 +230,7 @@ Sets the hover text for the small image.
 
 ### Timestamp Methods
 
-#### `start_timestamp(self, timestamp: i64) -> Self`
+#### `start_timestamp(self, timestamp: u64) -> Self`
 
 Sets the start timestamp (shows elapsed time).
 
@@ -251,7 +240,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 let now = SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .unwrap()
-    .as_secs() as i64;
+    .as_secs();
 
 .start_timestamp(now)
 ```
@@ -262,18 +251,18 @@ let now = SystemTime::now()
 
 ---
 
-#### `start_timestamp_now(self) -> Self`
+#### `start_timestamp_now(self) -> Result<Self>`
 
 Sets the start timestamp to the current time.
 
 ```rust
-.start_timestamp_now()
+.start_timestamp_now()?  // returns Result<Self>
 ```
 
 **Equivalent to:**
 
 ```rust
-.start_timestamp(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64)
+.start_timestamp(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs())
 ```
 
 ---
@@ -301,13 +290,13 @@ let in_10_min = SystemTime::now()
 
 ### Button Methods
 
-#### `add_button(self, label: impl Into<String>, url: impl Into<String>) -> Self`
+#### `button(self, label: impl Into<String>, url: impl Into<String>) -> Self`
 
 Adds a button to the Rich Presence (max 2 buttons).
 
 ```rust
-.add_button("Watch Stream", "https://twitch.tv/username")
-.add_button("GitHub", "https://github.com/username")
+.button("Watch Stream", "https://twitch.tv/username")
+.button("GitHub", "https://github.com/username")
 ```
 
 **Parameters:**

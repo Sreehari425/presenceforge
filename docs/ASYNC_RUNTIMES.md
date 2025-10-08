@@ -89,7 +89,7 @@ async fn setup_presence() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing async")
         .details("Runtime-agnostic!")
-        .start_timestamp_now()
+        .start_timestamp_now().expect("timestamp")
         .build();
 
     // Set activity
@@ -162,7 +162,7 @@ async fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing async")
         .details("Using Tokio")
-        .start_timestamp_now()
+        .start_timestamp_now().expect("timestamp")
         .build();
 
     // Set activity
@@ -208,10 +208,10 @@ async fn main() -> Result {
             interval.tick().await;
             counter += 1;
 
-            let activity = ActivityBuilder::new()
+                let activity = ActivityBuilder::new()
                 .state(format!("Update #{}", counter))
                 .details("Tokio Background Task")
-                .start_timestamp_now()
+                .start_timestamp_now().expect("timestamp")
                 .build();
 
             let mut client = presence_client.lock().await;
@@ -376,10 +376,10 @@ async fn main() -> Result {
         client.connect().await?;
 
         while let Ok(state) = receiver.recv().await {
-            let activity = ActivityBuilder::new()
-                .state(state)
-                .details("async-std Task")
-                .build();
+                        let activity = ActivityBuilder::new()
+                        .state(state)
+                        .details("async-std Task")
+                        .build();
 
             if let Err(e) = client.set_activity(&activity).await {
                 eprintln!("Error setting activity: {}", e);
@@ -441,7 +441,7 @@ fn main() -> Result {
         let activity = ActivityBuilder::new()
             .state("Playing async")
             .details("Using smol")
-            .start_timestamp_now()
+            .start_timestamp_now().expect("timestamp")
             .build();
 
         client.set_activity(&activity).await?;

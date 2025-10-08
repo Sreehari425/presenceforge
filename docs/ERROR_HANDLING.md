@@ -39,195 +39,107 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Error Types
 
-### `DiscordIpcError::ConnectionFailed(String)`
+Below are the most common variants in `DiscordIpcError` and when they occur. See the crate docs for the full enum.
 
-**When it happens:**
+### `ConnectionFailed(std::io::Error)`
 
+When the library fails to open/connect the IPC socket/pipe.
+
+Common causes:
 - Discord is not running
 - No available IPC pipes/sockets
 - Permission denied accessing pipe/socket
-- Flatpak Discord not properly configured
-
-**Example:**
 
 ```rust
 use presenceforge::{DiscordIpcClient, DiscordIpcError};
 
 match DiscordIpcClient::new("client_id") {
-    Ok(client) => {
-        println!("Connected successfully!");
-        // use client
+    Ok(mut client) => {
+        let _ = client.connect()?; // ignore handshake payload
+        println!("Connected!");
     }
-    Err(DiscordIpcError::ConnectionFailed(msg)) => {
-        eprintln!(" Connection failed: {}", msg);
-        eprintln!("🔍 Troubleshooting:");
-        eprintln!("   - Is Discord running?");
-        eprintln!("   - Try restarting Discord");
-        eprintln!("   - Check Discord is not blocked by firewall");
+    Err(DiscordIpcError::ConnectionFailed(e)) => {
+        eprintln!("Connection failed: {}", e);
     }
-    Err(e) => {
-        eprintln!(" Other error: {}", e);
-    }
+    Err(e) => eprintln!("Other error: {}", e),
 }
 ```
 
 ---
 
-### `DiscordIpcError::ProtocolError(String)`
+### `SocketDiscoveryFailed { source, attempted_paths }`
 
-**When it happens:**
+Auto-discovery tried multiple standard locations but none were usable. `attempted_paths` helps troubleshooting.
 
-- Invalid response from Discord
-- Discord version incompatibility
-- Corrupted IPC message
-- Handshake failure
+---
 
-**Example:**
+### `ConnectionTimeout { timeout_ms, last_error }`
+
+Timed out while retrying connections for the configured duration.
+
+---
+
+### `NoValidSocket`
+
+No Discord IPC sockets were found.
+
+---
+
+### `HandshakeFailed(String)`
+
+Discord responded with an error or an unexpected opcode during the handshake.
 
 ```rust
 match client.connect() {
     Ok(_) => println!("Handshake successful"),
-    Err(DiscordIpcError::ProtocolError(msg)) => {
-        eprintln!(" Protocol error: {}", msg);
-        eprintln!("🔍 Troubleshooting:");
-        eprintln!("   - Update Discord to the latest version");
-        eprintln!("   - Try reconnecting");
-        eprintln!("   - Check Discord logs for issues");
+    Err(DiscordIpcError::HandshakeFailed(msg)) => {
+        eprintln!("Handshake failed: {}", msg);
     }
-    Err(e) => eprintln!(" Other error: {}", e),
+    Err(e) => eprintln!("Other error: {}", e),
 }
 ```
 
 ---
 
-### `DiscordIpcError::SerializationError(String)`
+### `ProtocolViolation { message, context }` and `InvalidOpcode(u32)`
 
-**When it happens:**
+Indicates malformed data or unexpected protocol values. The `context` includes opcode and payload size when available.
 
-- Invalid activity structure
-- JSON serialization/deserialization failed
-- Invalid data types in activity
+---
 
-**Example:**
+### `SerializationFailed(serde_json::Error)` and `DeserializationFailed(serde_json::Error)`
+
+JSON encoding/decoding problems. Often caused by invalid activities or malformed responses.
 
 ```rust
-match client.set_activity(&activity) {
-    Ok(_) => println!("Activity set successfully"),
-    Err(DiscordIpcError::SerializationError(msg)) => {
-        eprintln!(" Serialization error: {}", msg);
-        eprintln!("🔍 This usually indicates a bug in the activity builder");
-        eprintln!("   - Check your activity fields are valid");
-        eprintln!("   - Report this as a bug if using ActivityBuilder");
-    }
-    Err(e) => eprintln!(" Other error: {}", e),
+if let Err(DiscordIpcError::SerializationFailed(e)) = client.set_activity(&activity) {
+    eprintln!("Serialization error: {}", e);
 }
 ```
 
 ---
 
-### `DiscordIpcError::InvalidClientId`
+### `InvalidResponse(String)`
 
-**When it happens:**
-
-- Client ID is not a valid Discord Application ID
-- Client ID is empty or malformed
-
-**Example:**
-
-```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
-
-let client_id = std::env::var("DISCORD_CLIENT_ID")
-    .unwrap_or_else(|_| {
-        eprintln!(" DISCORD_CLIENT_ID environment variable not set");
-        std::process::exit(1);
-    });
-
-match DiscordIpcClient::new(&client_id) {
-    Err(DiscordIpcError::InvalidClientId) => {
-        eprintln!(" Invalid client ID: {}", client_id);
-        eprintln!("🔍 Get your Application ID from:");
-        eprintln!("   https://discord.com/developers/applications");
-        std::process::exit(1);
-    }
-    Ok(client) => {
-        // use client
-    }
-    Err(e) => {
-        eprintln!(" Error: {}", e);
-        std::process::exit(1);
-    }
-}
-```
+Response shape was valid JSON but not what the library expected (e.g., nonce mismatch).
 
 ---
 
-### `DiscordIpcError::NotConnected`
+### `DiscordError { code, message }`
 
-**When it happens:**
-
-- Trying to send commands before calling `connect()`
-- Connection was lost and needs to be re-established
-
-**Example:**
-
-```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
-
-let mut client = DiscordIpcClient::new("client_id")?;
-
-// Forgot to call connect()!
-match client.set_activity(&activity) {
-    Err(DiscordIpcError::NotConnected) => {
-        eprintln!(" Not connected! Connecting now...");
-        client.connect()?;
-        client.set_activity(&activity)?;
-        println!(" Activity set after connecting");
-    }
-    Ok(_) => println!(" Activity set"),
-    Err(e) => return Err(e.into()),
-}
-```
+Discord reported an application-level error (includes error code and message from Discord).
 
 ---
 
-### `DiscordIpcError::IoError(std::io::Error)`
+### `SocketClosed`
 
-**When it happens:**
+The underlying connection closed while reading/writing.
 
-- File system or network I/O errors
-- Permission denied
-- Broken pipe
-- Connection reset
+---
 
-**Example:**
+### `InvalidActivity(String)` and `SystemTimeError(String)`
 
-```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
-use std::io::ErrorKind;
-
-match client.set_activity(&activity) {
-    Err(DiscordIpcError::IoError(io_err)) => {
-        match io_err.kind() {
-            ErrorKind::BrokenPipe => {
-                eprintln!(" Connection lost (broken pipe)");
-                eprintln!("🔄 Attempting to reconnect...");
-                client.reconnect()?;
-                client.set_activity(&activity)?;
-            }
-            ErrorKind::PermissionDenied => {
-                eprintln!(" Permission denied accessing Discord IPC");
-                eprintln!("🔍 Check file permissions on the IPC socket");
-            }
-            _ => {
-                eprintln!(" I/O error: {}", io_err);
-            }
-        }
-    }
-    Ok(_) => println!(" Activity set"),
-    Err(e) => eprintln!(" Error: {}", e),
-}
-```
+Activity validation failed, or system time issues occurred while computing timestamps.
 
 ---
 
@@ -323,7 +235,7 @@ use std::time::Duration;
 fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Running")
-        .start_timestamp_now()
+        .start_timestamp_now().expect("timestamp")
         .build();
 
     loop {
@@ -332,18 +244,11 @@ fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::er
                 println!(" Activity updated");
             }
             Err(e) if e.is_connection_error() => {
-                eprintln!("⚠️ Connection lost, attempting to reconnect...");
-                match client.reconnect() {
-                    Ok(_) => {
-                        println!(" Reconnected successfully");
-                        client.set_activity(&activity)?;
-                    }
-                    Err(reconnect_err) => {
-                        eprintln!(" Reconnection failed: {}", reconnect_err);
-                        eprintln!("💡 Discord may have been closed");
-                        return Err(reconnect_err.into());
-                    }
-                }
+                eprintln!("⚠️ Connection lost. Recreating client and reconnecting...");
+                // Recreate the client (sync API has no reconnect method)
+                client = DiscordIpcClient::new("your_client_id")?;
+                let _ = client.connect()?;
+                client.set_activity(&activity)?;
             }
             Err(e) => {
                 eprintln!(" Unexpected error: {}", e);

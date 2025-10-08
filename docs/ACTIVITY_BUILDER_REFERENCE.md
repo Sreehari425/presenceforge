@@ -95,9 +95,9 @@ S = Small Image (overlays large image in bottom-right corner)
 #### Start Timestamp (Elapsed Time)
 
 ```rust
-.start_timestamp_now()  // Start counting from now
+.start_timestamp_now().expect("timestamp")  // Start counting from now
 // or
-.start_timestamp(1234567890)  // Unix timestamp
+.start_timestamp(1234567890)  // Unix timestamp (u64)
 ```
 
 - **Appears as:** "XX:XX elapsed"
@@ -252,7 +252,7 @@ let activity = ActivityBuilder::new()
     .small_text("Level 42 Warrior")
 
     // Time
-    .start_timestamp_now()
+    .start_timestamp_now().expect("timestamp")
 
     // Party
     .party("party-12345", 3, 4)
