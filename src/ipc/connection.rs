@@ -84,6 +84,12 @@ impl IpcConnection {
         }
     }
 
+    // Returns the current users UID on unix based systems
+    #[cfg(unix)]
+    fn current_uid() -> u32 {
+        unsafe { libc::getuid() }
+    }
+
     #[cfg(unix)]
     fn discover_pipes_unix() -> Vec<DiscoveredPipe> {
         let mut pipes = Vec::new();
@@ -105,7 +111,7 @@ impl IpcConnection {
 
         // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
+            let uid = Self::current_uid();
             directories.push(format!("/run/user/{}", uid));
             // Also try Flatpak path as fallback
             directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
