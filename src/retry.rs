@@ -139,8 +139,10 @@ where
 /// # Ok(())
 /// # }
 /// ```
+/// Retry an async operation with exponential backoff (unified API)
+
 #[cfg(feature = "tokio-runtime")]
-pub async fn with_retry_async<T, F, Fut>(config: &RetryConfig, mut operation: F) -> Result<T>
+pub async fn with_retry_async_tokio<T, F, Fut>(config: &RetryConfig, mut operation: F) -> Result<T>
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = Result<T>>,
@@ -228,8 +230,17 @@ where
             std::io::ErrorKind::Other,
             "Retry attempts exhausted",
         ))
-    }))
+    }));
 }
+
+#[cfg(feature = "tokio-runtime")]
+pub use with_retry_async_tokio as with_retry_async;
+
+#[cfg(feature = "async-std-runtime")]
+pub use with_retry_async_std as with_retry_async;
+
+#[cfg(feature = "smol-runtime")]
+pub use with_retry_async_smol as with_retry_async;
 
 #[cfg(test)]
 #[test]
