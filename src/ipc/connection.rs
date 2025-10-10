@@ -298,34 +298,11 @@ impl IpcConnection {
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
     fn connect_to_discord_unix_auto() -> Result<UnixStream> {
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir.clone());
-
-                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if env_key == &"XDG_RUNTIME_DIR" {
-                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                }
-            }
-        }
-
-        // Fallback to /run/user/{uid} if no env vars found
-        if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
-            directories.push(format!("/run/user/{}", uid));
-            // Also try Flatpak path as fallback
-            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
-        }
-
         // Try each directory with each socket number
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
-        for dir in &directories {
+        for dir in Self::candidate_ipc_dir() {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
                 attempted_paths.push(socket_path.clone());
