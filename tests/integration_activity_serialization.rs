@@ -54,17 +54,19 @@ fn builder_produces_serializable_activity() {
 
 #[test]
 fn manual_activity_validation_matches_serialization() {
-    let mut activity = Activity::default();
-    activity.state = Some("Multiplayer".to_string());
-    activity.party = Some(ActivityParty {
-        id: Some("group".into()),
-        size: Some([1, 4]),
-    });
-    activity.assets = Some(ActivityAssets {
-        large_image: Some("hero".into()),
-        large_text: Some("Hero".into()),
-        ..ActivityAssets::default()
-    });
+    let activity = Activity {
+        state: Some("Multiplayer".to_string()),
+        party: Some(ActivityParty {
+            id: Some("group".into()),
+            size: Some([1, 4]),
+        }),
+        assets: Some(ActivityAssets {
+            large_image: Some("hero".into()),
+            large_text: Some("Hero".into()),
+            ..ActivityAssets::default()
+        }),
+        ..Default::default()
+    };
 
     activity.validate().expect("activity should be valid");
 

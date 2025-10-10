@@ -187,37 +187,41 @@ mod tests {
 
     #[test]
     fn valid_activity_passes_validation() {
-        let mut activity = Activity::default();
-        activity.state = Some("Exploring".to_string());
-        activity.details = Some("Testing".to_string());
-        activity.assets = Some(ActivityAssets {
-            large_image: Some("logo".to_string()),
-            large_text: Some("Logo".to_string()),
-            small_image: Some("icon".to_string()),
-            small_text: Some("Icon".to_string()),
-        });
-        activity.party = Some(ActivityParty {
-            id: Some("party".to_string()),
-            size: Some([1, 4]),
-        });
-        activity.buttons = Some(vec![
-            ActivityButton {
-                label: "Join".to_string(),
-                url: "https://example.com/join".to_string(),
-            },
-            ActivityButton {
-                label: "Watch".to_string(),
-                url: "https://example.com/watch".to_string(),
-            },
-        ]);
+        let activity = Activity {
+            state: Some("Exploring".to_string()),
+            details: Some("Testing".to_string()),
+            assets: Some(ActivityAssets {
+                large_image: Some("logo".to_string()),
+                large_text: Some("Logo".to_string()),
+                small_image: Some("icon".to_string()),
+                small_text: Some("Icon".to_string()),
+            }),
+            party: Some(ActivityParty {
+                id: Some("party".to_string()),
+                size: Some([1, 4]),
+            }),
+            buttons: Some(vec![
+                ActivityButton {
+                    label: "Join".to_string(),
+                    url: "https://example.com/join".to_string(),
+                },
+                ActivityButton {
+                    label: "Watch".to_string(),
+                    url: "https://example.com/watch".to_string(),
+                },
+            ]),
+            ..Default::default()
+        };
 
         assert!(activity.validate().is_ok());
     }
 
     #[test]
     fn state_over_character_limit_fails() {
-        let mut activity = Activity::default();
-        activity.state = Some("a".repeat(129));
+        let activity = Activity {
+            state: Some("a".repeat(129)),
+            ..Default::default()
+        };
         let error = activity.validate().unwrap_err();
         assert!(error.contains("128"));
     }
@@ -238,11 +242,13 @@ mod tests {
 
     #[test]
     fn asset_key_too_long_fails() {
-        let mut activity = Activity::default();
-        activity.assets = Some(ActivityAssets {
-            large_image: Some("y".repeat(257)),
-            ..ActivityAssets::default()
-        });
+        let activity = Activity {
+            assets: Some(ActivityAssets {
+                large_image: Some("y".repeat(257)),
+                ..ActivityAssets::default()
+            }),
+            ..Default::default()
+        };
 
         let error = activity.validate().unwrap_err();
         assert!(error.contains("Large image key"));
@@ -250,11 +256,13 @@ mod tests {
 
     #[test]
     fn party_size_greater_than_max_fails() {
-        let mut activity = Activity::default();
-        activity.party = Some(ActivityParty {
-            id: Some("party".to_string()),
-            size: Some([5, 4]),
-        });
+        let activity = Activity {
+            party: Some(ActivityParty {
+                id: Some("party".to_string()),
+                size: Some([5, 4]),
+            }),
+            ..Default::default()
+        };
 
         let error = activity.validate().unwrap_err();
         assert!(error.contains("Current party size"));

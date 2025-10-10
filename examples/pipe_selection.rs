@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Set an activity
         let activity = ActivityBuilder::new()
             .state("Using pipe selection")
-            .details(&format!("Connected to pipe {}", pipe_num))
+            .details(format!("Connected to pipe {}", pipe_num))
             .build();
 
         client2.set_activity(&activity)?;

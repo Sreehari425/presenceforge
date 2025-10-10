@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Rust fmt + clippy (default features)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Toolchain (stable with rustfmt, clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy (default features)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo check (default features)
+        run: cargo check --workspace --all-targets --verbose
+
+  linux-build:
+    name: Linux ${{ matrix.build }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: x86_64-linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            cross: false
+            host_run: true
+          - build: aarch64-linux
+            os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            cross: false
+            host_run: true
+          - build: armv7-linux
+            os: ubuntu-22.04
+            target: armv7-unknown-linux-gnueabihf
+            cross: true
+            host_run: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross (for armv7)
+        if: matrix.cross
+        run: cargo install cross --locked
+        shell: bash
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (default features)
+        if: ${{ !matrix.cross }}
+        run: cargo check --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo build (default features)
+        if: ${{ !matrix.cross }}
+        run: cargo build --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo test (run on host)
+        if: matrix.host_run
+        run: cargo test --workspace --all-targets --verbose
+
+      - name: cross check (compile-only tests for cross)
+        if: matrix.cross
+        run: cross test --workspace --all-targets --target ${{ matrix.target }} --no-run --verbose
+        shell: bash
+
+  macos-build:
+    name: macOS ${{ matrix.build }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: x86_64-macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+            host_run: false
+          - build: aarch64-macos
+            os: macos-latest
+            target: aarch64-apple-darwin
+            host_run: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (default features)
+        run: cargo check --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo build (default features)
+        run: cargo build --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo test (run on host)
+        if: matrix.host_run
+        run: cargo test --workspace --all-targets --verbose
+
+  windows-build:
+    name: Windows ${{ matrix.build }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: x86_64-windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            host_run: true
+          - build: aarch64-windows
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            host_run: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (default features)
+        run: cargo check --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo build (default features)
+        run: cargo build --workspace --all-targets --target ${{ matrix.target }} --verbose
+
+      - name: cargo test (run on host)
+        if: matrix.host_run
+        run: cargo test --workspace --all-targets --verbose
