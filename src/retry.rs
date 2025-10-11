@@ -114,9 +114,9 @@ where
     }))
 }
 
-/// Retry an async operation with exponential backoff
+/// Retry an async operation with exponential backoff (Tokio runtime)
 ///
-/// This is the async version of `with_retry`.
+/// This function uses `tokio::time::sleep` for delays between retry attempts.
 ///
 /// # Arguments
 ///
@@ -127,20 +127,23 @@ where
 ///
 /// ```no_run
 /// use presenceforge::async_io::tokio::TokioDiscordIpcClient;
-/// use presenceforge::retry::{with_retry_async, RetryConfig};
+/// use presenceforge::retry::{with_retry_async_tokio, RetryConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), presenceforge::DiscordIpcError> {
 /// let config = RetryConfig::with_max_attempts(5);
 ///
-/// let mut client = with_retry_async(&config, || {
+/// let mut client = with_retry_async_tokio(&config, || {
 ///     Box::pin(async { TokioDiscordIpcClient::new("your-client-id").await })
 /// }).await?;
 /// # Ok(())
 /// # }
 /// ```
-/// Retry an async operation with exponential backoff (unified API)
-
+///
+/// # Note
+///
+/// When the `tokio-runtime` feature is enabled, this function is also exported as
+/// [`with_retry_async`] for convenience (with priority over other runtimes).
 #[cfg(feature = "tokio-runtime")]
 pub async fn with_retry_async_tokio<T, F, Fut>(config: &RetryConfig, mut operation: F) -> Result<T>
 where
@@ -171,7 +174,35 @@ where
     }))
 }
 
-/// Retry an async operation with exponential backoff (async-std version)
+/// Retry an async operation with exponential backoff (async-std runtime)
+///
+/// This function uses `async_std::task::sleep` for delays between retry attempts.
+///
+/// # Arguments
+///
+/// * `config` - Retry configuration
+/// * `operation` - The async operation to retry
+///
+/// # Example
+///
+/// ```no_run
+/// use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
+/// use presenceforge::retry::{with_retry_async_std, RetryConfig};
+///
+/// # async_std::task::block_on(async {
+/// let config = RetryConfig::with_max_attempts(5);
+///
+/// let mut client = with_retry_async_std(&config, || {
+///     Box::pin(async { AsyncStdDiscordIpcClient::new("your-client-id").await })
+/// }).await?;
+/// # Ok::<(), presenceforge::DiscordIpcError>(())
+/// # });
+/// ```
+///
+/// # Note
+///
+/// When the `async-std-runtime` feature is enabled (and `tokio-runtime` is not),
+/// this function is also exported as [`with_retry_async`] for convenience.
 #[cfg(feature = "async-std-runtime")]
 pub async fn with_retry_async_std<T, F, Fut>(config: &RetryConfig, mut operation: F) -> Result<T>
 where
@@ -202,7 +233,36 @@ where
     }))
 }
 
-/// Retry an async operation with exponential backoff (smol version)
+/// Retry an async operation with exponential backoff (smol runtime)
+///
+/// This function uses `smol::Timer::after` for delays between retry attempts.
+///
+/// # Arguments
+///
+/// * `config` - Retry configuration
+/// * `operation` - The async operation to retry
+///
+/// # Example
+///
+/// ```no_run
+/// use presenceforge::async_io::smol::SmolDiscordIpcClient;
+/// use presenceforge::retry::{with_retry_async_smol, RetryConfig};
+///
+/// # smol::block_on(async {
+/// let config = RetryConfig::with_max_attempts(5);
+///
+/// let mut client = with_retry_async_smol(&config, || {
+///     Box::pin(async { SmolDiscordIpcClient::new("your-client-id").await })
+/// }).await?;
+/// # Ok::<(), presenceforge::DiscordIpcError>(())
+/// # });
+/// ```
+///
+/// # Note
+///
+/// When the `smol-runtime` feature is enabled (and neither `tokio-runtime` nor
+/// `async-std-runtime` is enabled), this function is also exported as
+/// [`with_retry_async`] for convenience.
 #[cfg(feature = "smol-runtime")]
 pub async fn with_retry_async_smol<T, F, Fut>(config: &RetryConfig, mut operation: F) -> Result<T>
 where
@@ -230,16 +290,87 @@ where
             std::io::ErrorKind::Other,
             "Retry attempts exhausted",
         ))
-    }));
+    }))
 }
 
-#[cfg(feature = "tokio-runtime")]
+// Unified async retry API
+//
+// The `with_retry_async` function is an alias to the appropriate runtime-specific
+// retry function based on which feature is enabled:
+// - tokio-runtime -> with_retry_async_tokio
+// - async-std-runtime -> with_retry_async_std (if tokio not enabled)
+// - smol-runtime -> with_retry_async_smol (if others not enabled)
+
+/// Retry an async operation with exponential backoff (unified API)
+///
+/// This is a convenience alias that automatically uses the correct retry implementation
+/// based on your enabled async runtime feature. It provides a unified API regardless of
+/// which runtime you're using.
+///
+/// # Runtime Selection
+///
+/// - **tokio-runtime**: Uses [`with_retry_async_tokio`] (priority if multiple features enabled)
+/// - **async-std-runtime**: Uses [`with_retry_async_std`] (if tokio not enabled)
+/// - **smol-runtime**: Uses [`with_retry_async_smol`] (if others not enabled)
+///
+/// # Arguments
+///
+/// * `config` - Retry configuration
+/// * `operation` - The async operation to retry
+///
+/// # Examples
+///
+/// With Tokio:
+/// ```no_run
+/// use presenceforge::async_io::tokio::TokioDiscordIpcClient;
+/// use presenceforge::retry::{with_retry_async, RetryConfig};
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), presenceforge::DiscordIpcError> {
+/// let config = RetryConfig::with_max_attempts(5);
+/// let client = with_retry_async(&config, || {
+///     Box::pin(async { TokioDiscordIpcClient::new("your-client-id").await })
+/// }).await?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// With async-std:
+/// ```no_run
+/// use presenceforge::async_io::async_std::AsyncStdDiscordIpcClient;
+/// use presenceforge::retry::{with_retry_async, RetryConfig};
+///
+/// # async_std::task::block_on(async {
+/// let config = RetryConfig::with_max_attempts(5);
+/// let client = with_retry_async(&config, || {
+///     Box::pin(async { AsyncStdDiscordIpcClient::new("your-client-id").await })
+/// }).await?;
+/// # Ok::<(), presenceforge::DiscordIpcError>(())
+/// # });
+/// ```
+#[cfg(all(
+    feature = "tokio-runtime",
+    not(all(feature = "async-std-runtime", not(feature = "tokio-runtime"))),
+    not(all(feature = "smol-runtime", not(feature = "tokio-runtime")))
+))]
 pub use with_retry_async_tokio as with_retry_async;
 
-#[cfg(feature = "async-std-runtime")]
+/// Retry an async operation with exponential backoff (unified API)
+///
+/// This is a convenience alias to [`with_retry_async_std`] when using the async-std runtime.
+/// See the [`with_retry_async`](with_retry_async_tokio) documentation for more details.
+#[cfg(all(feature = "async-std-runtime", not(feature = "tokio-runtime")))]
 pub use with_retry_async_std as with_retry_async;
 
-#[cfg(feature = "smol-runtime")]
+/// Retry an async operation with exponential backoff (unified API)
+///
+/// This is a convenience alias to [`with_retry_async_smol`] when using the smol runtime.
+/// See the [`with_retry_async`](with_retry_async_tokio) documentation for more details.
+#[cfg(all(
+    feature = "smol-runtime",
+    not(feature = "tokio-runtime"),
+    not(feature = "async-std-runtime")
+))]
 pub use with_retry_async_smol as with_retry_async;
 
 #[cfg(test)]
