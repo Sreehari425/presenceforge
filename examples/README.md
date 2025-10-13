@@ -72,6 +72,9 @@ cargo run --example connection_retry -- --client-id YOUR_CLIENT_ID
 # Async Tokio reconnect - Connection retry with Tokio async runtime
 cargo run --example async_tokio_reconnect --features tokio-runtime -- --client-id YOUR_CLIENT_ID
 
+# Update activity with Tokio - Update state/details without resetting the timer
+cargo run --example update_activity_tokio --features tokio-runtime -- --client-id YOUR_CLIENT_ID
+
 # Flatpak Discord - Connect to Flatpak Discord using custom path configuration
 cargo run --example flatpak_discord -- --client-id YOUR_CLIENT_ID
 ```
@@ -198,6 +201,18 @@ Async error handling with Tokio showing:
 - Automatic retry with `with_retry_async()`
 - Resilient connection loop with exponential backoff
 - Async error recovery patterns
+
+### `update_activity_tokio.rs`
+
+Activity state updates without timer reset (Tokio async) showing:
+
+- **Updating activity state/details while keeping the same timer**
+- Using a consistent `start_timestamp` across all updates
+- Demonstrating multiple state changes (main menu → in game → multiplayer → loading → back to menu)
+- Perfect for games or apps that need to update status without resetting elapsed time
+- Shows how to maintain session continuity across state changes
+
+**Key Feature:** The elapsed time on Discord continues uninterrupted when you update the activity while maintaining the original timestamp!
 
 ### `flatpak_discord.rs`
 
