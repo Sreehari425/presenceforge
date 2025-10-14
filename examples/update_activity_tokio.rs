@@ -170,3 +170,8 @@ async fn main() -> Result {
     // Connection is automatically closed when client is dropped
     Ok(())
 }
+#[cfg(not(feature = "tokio-runtime"))]
+fn main() {
+    eprintln!("This example requires the `tokio-runtime` feature.");
+    eprintln!("Run with: cargo run --example async_tokio_reconnect --features tokio-runtime");
+}
