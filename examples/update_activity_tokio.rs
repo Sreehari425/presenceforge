@@ -173,5 +173,4 @@ async fn main() -> Result {
 #[cfg(not(feature = "tokio-runtime"))]
 fn main() {
     eprintln!("This example requires the `tokio-runtime` feature.");
-    eprintln!("Run with: cargo run --example async_tokio_reconnect --features tokio-runtime");
 }
