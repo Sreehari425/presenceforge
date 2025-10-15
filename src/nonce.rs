@@ -17,7 +17,7 @@ use uuid::Uuid;
 /// # Examples
 ///
 /// ```
-/// # use presenceforge::utils::generate_nonce;
+/// # use presenceforge::nonce::generate_nonce;
 /// let nonce = generate_nonce("set-activity");
 /// assert!(nonce.starts_with("set-activity-"));
 /// ```

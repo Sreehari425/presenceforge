@@ -15,7 +15,7 @@
 //!
 //! ## Synchronous Example
 //!
-//! ```rust
+//! ```rust no_run
 //! use presenceforge::{DiscordIpcClient, ActivityBuilder};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -173,13 +173,14 @@
 
 pub mod activity;
 pub mod async_io;
-pub mod client;
+// pub mod client;
+pub mod core;
 pub mod error;
 pub mod ipc;
 pub mod macros;
 pub mod nonce;
 pub mod retry;
-
+pub use core as client;
 // Re-export the main public API
 #[cfg(feature = "secrets")]
 pub use activity::ActivitySecrets;
