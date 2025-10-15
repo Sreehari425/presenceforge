@@ -23,7 +23,8 @@ PresenceForge uses the `DiscordIpcError` enum for all error cases. All fallible 
 ### Basic Error Handling
 
 ```rust
-use presenceforge::{DiscordIpcClient, Result};
+use presenceforge::Result;
+use presenceforge::sync::DiscordIpcClient;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
@@ -51,7 +52,8 @@ Common causes:
 - Permission denied accessing pipe/socket
 
 ```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
+use presenceforge::DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 
 match DiscordIpcClient::new("client_id") {
     Ok(mut client) => {
@@ -202,7 +204,8 @@ if error.is_recoverable() {
 **Problem:** Connection fails because Discord isn't running.
 
 ```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
+use presenceforge:: DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 
 fn connect_to_discord(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
     match DiscordIpcClient::new(client_id) {
@@ -228,7 +231,8 @@ fn connect_to_discord(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::
 **Problem:** Connection is lost while the application is running.
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder, DiscordIpcError};
+use presenceforge::ActivityBuilder, DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 use std::thread;
 use std::time::Duration;
 
@@ -272,7 +276,8 @@ PresenceForge provides built-in support for connection retry and reconnection to
 The `reconnect()` method closes the existing connection and establishes a new one:
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -306,7 +311,7 @@ For initial connection, use the `with_retry` function with automatic exponential
 
 ```rust
 use presenceforge::retry::{with_retry, RetryConfig};
-use presenceforge::DiscordIpcClient;
+use presenceforge::sync::DiscordIpcClient;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Default: 3 attempts, 1s initial delay, exponential backoff
@@ -432,7 +437,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 **Problem:** Environment or configuration issues prevent connection.
 
 ```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
+use presenceforge::DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 use std::env;
 
 fn setup_client() -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
@@ -551,7 +557,8 @@ PresenceForge includes built-in retry utilities with exponential backoff:
 
 ```rust
 use presenceforge::retry::{with_retry, RetryConfig};
-use presenceforge::DiscordIpcClient;
+
+use presenceforge::sync::DiscordIpcClient;
 
 fn connect_with_retry(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
     // Use default retry config (3 attempts, 1s initial delay, exponential backoff)
@@ -591,7 +598,8 @@ let mut client = with_retry(&config, || {
 ### 5. Clean Up on Errors
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 
 fn run_presence() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("client_id")?;

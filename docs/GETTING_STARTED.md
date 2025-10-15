@@ -79,7 +79,8 @@ presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
 Edit `src/main.rs`:
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::DiscordIpcClient;
+use presenceforge::sync::DiscordIpcClient;
 use std::thread;
 use std::time::Duration;
 

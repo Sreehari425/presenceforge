@@ -639,7 +639,8 @@ async fn main() -> Result {
 ### Sync Code
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("client_id")?;

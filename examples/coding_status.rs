@@ -1,5 +1,6 @@
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Coding Status Example

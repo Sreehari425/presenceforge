@@ -49,7 +49,8 @@ let client = DiscordIpcClient::new("your_client_id")?;
 Creates a new Discord IPC client with custom pipe configuration.
 
 ```rust
-use presenceforge::{DiscordIpcClient, PipeConfig};
+use presenceforge::PipeConfig;
+use presenceforge::sync::DiscordIpcClient;
 
 // Auto-discovery (equivalent to ::new())
 let client = DiscordIpcClient::new_with_config("client_id", None)?;

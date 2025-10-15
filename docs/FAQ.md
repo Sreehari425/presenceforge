@@ -160,7 +160,8 @@ Error: ProtocolError("Handshake failed")
 4. **Try a different pipe:**
 
    ```rust
-   use presenceforge::{IpcConnection, PipeConfig, DiscordIpcClient};
+   use presenceforge::{IpcConnection, PipeConfig};
+   use presenceforge:: DiscordIpcClient;
 
    let pipes = IpcConnection::discover_pipes();
    for pipe in pipes {

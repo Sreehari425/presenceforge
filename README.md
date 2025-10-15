@@ -62,8 +62,8 @@ presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features
 ### Basic Usage (Synchronous)
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
-
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
@@ -173,8 +173,8 @@ fn main() -> Result {
 ### Game Integration
 
 ```rust
-use presenceforge::{ActivityBuilder, DiscordIpcClient};
-
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 let activity = ActivityBuilder::new()
     .state("Forest Level")
     .details("Fighting goblins")
@@ -341,8 +341,8 @@ cargo run --example async_tokio --features tokio-runtime
 PresenceForge uses the `Result` type for error handling:
 
 ```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
-
+use presenceforge::DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 match client.connect() {
     Ok(_) => println!("Connected successfully!"),
     Err(DiscordIpcError::ConnectionFailed) => {

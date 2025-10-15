@@ -16,8 +16,8 @@
 //! ## Synchronous Example
 //!
 //! ```rust no_run
-//! use presenceforge::{DiscordIpcClient, ActivityBuilder};
-//!
+//! use presenceforge::ActivityBuilder;
+//! use presenceforge::sync::DiscordIpcClient;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut client = DiscordIpcClient::new("your_client_id")?;
 //! client.connect()?;

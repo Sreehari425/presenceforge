@@ -79,8 +79,8 @@ impl RetryConfig {
 /// # Example
 ///
 /// ```no_run
-/// use presenceforge::{DiscordIpcClient, retry::{with_retry, RetryConfig}};
-///
+/// use presenceforge::retry::{with_retry, RetryConfig};
+/// use presenceforge::sync::DiscordIpcClient;
 /// let config = RetryConfig::with_max_attempts(5);
 ///
 /// let client = with_retry(&config, || {

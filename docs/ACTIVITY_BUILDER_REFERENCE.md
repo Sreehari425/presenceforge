@@ -238,7 +238,8 @@ let end_time = now + 300;
 Here's an activity using all fields:
 
 ```rust
-use presenceforge::{ActivityBuilder, DiscordIpcClient};
+use presenceforge::DiscordIpcClient;
+use presenceforge::sync::DiscordIpcClient;
 
 let activity = ActivityBuilder::new()
     // Text

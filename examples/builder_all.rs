@@ -4,7 +4,8 @@
 // of what each field does and how it appears in Discord.
 
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Complete Builder Example

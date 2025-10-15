@@ -36,8 +36,8 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::{DiscordIpcClient, PipeConfig};
-    ///
+    /// use presenceforge::PipeConfig;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// // Auto-discovery (default)
     /// let client = DiscordIpcClient::new_with_config("client_id", None)?;
     ///
@@ -97,8 +97,8 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::{DiscordIpcClient, PipeConfig};
-    ///
+    /// use presenceforge::PipeConfig;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// // Auto-discovery with timeout
     /// let client = DiscordIpcClient::new_with_config_and_timeout("client_id", None, 5000)?;
     ///
@@ -360,7 +360,7 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::DiscordIpcClient;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// use presenceforge::ActivityBuilder;
     ///
     /// let mut client = DiscordIpcClient::new("client_id")?;
