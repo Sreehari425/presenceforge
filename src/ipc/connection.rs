@@ -11,6 +11,7 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::io::{BufReader, BufWriter};
 
+use crate::debug_println;
 use crate::error::{DiscordIpcError, ProtocolContext, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
@@ -410,8 +411,8 @@ impl IpcConnection {
     /// Send data with opcode
     pub fn send(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
         let raw = serde_json::to_vec(payload)?;
-
         // Clear and prepare write buffer
+        // debug_println!("[RAW] : {raw:?}");
         self.write_buf.clear();
         self.write_buf.reserve(8 + raw.len());
 

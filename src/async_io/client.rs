@@ -12,7 +12,7 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{constants, Command, HandshakePayload, IpcMessage, Opcode};
-use crate::utils::generate_nonce;
+use crate::nonce::generate_nonce;
 
 /// Async implementation of Discord IPC client
 pub struct AsyncDiscordIpcClient<T>

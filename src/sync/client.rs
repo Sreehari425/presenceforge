@@ -9,7 +9,7 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
     constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
 };
-use crate::utils::generate_nonce;
+use crate::nonce::generate_nonce;
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -206,6 +206,7 @@ impl DiscordIpcClient {
         };
 
         let payload = serde_json::to_value(message)?;
+        debug_println!("[PAYLOAD]: {:?} ", payload);
         self.connection.send(Opcode::Frame, &payload)?;
 
         // Receive the response to check for errors

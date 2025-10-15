@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use std::collections::VecDeque;
+use std::io::Write;
 use std::process;
 use std::time::{Duration, Instant};
 
@@ -9,7 +10,7 @@ use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
     constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
 };
-use crate::utils::generate_nonce;
+use crate::nonce::generate_nonce;
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -194,8 +195,9 @@ impl DiscordIpcClient {
             }),
             nonce: nonce.clone(),
         };
-
         let payload = serde_json::to_value(message)?;
+        // debug_println!("[IPC_MESSAGE] : {:?} ", payload);
+        // std::io::stdout().flush().unwrap();
         self.connection.send(Opcode::Frame, &payload)?;
 
         // Receive the response to check for errors

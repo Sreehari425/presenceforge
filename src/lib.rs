@@ -177,8 +177,8 @@ pub mod client;
 pub mod error;
 pub mod ipc;
 pub mod macros;
+pub mod nonce;
 pub mod retry;
-pub mod utils;
 
 // Re-export the main public API
 #[cfg(feature = "secrets")]

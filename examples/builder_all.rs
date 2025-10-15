@@ -86,7 +86,7 @@ fn main() -> Result {
         // Party: Shows "X of Y" (e.g., "2 of 4" for a party)
         // Useful for multiplayer games showing current players
         // Parameters: party_id, current_size, max_size
-        .party("party-12345", 2, 4)
+        // .party("party-12345", 2, 4)
         // ═══════════════════════════════════════════════════════════
         // BUTTONS (Clickable buttons - max 2)
         // ═══════════════════════════════════════════════════════════
@@ -118,6 +118,7 @@ fn main() -> Result {
         .build();
 
     // Set the activity
+    // println!("{activity:?}");
     client.set_activity(&activity)?;
     println!("✓ Activity set successfully!");
     println!("\n📱 Check your Discord profile to see the activity!");
