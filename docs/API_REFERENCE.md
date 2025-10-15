@@ -27,7 +27,7 @@ The synchronous Discord IPC client for managing Rich Presence.
 Creates a new Discord IPC client with automatic pipe discovery.
 
 ```rust
-use presenceforge::DiscordIpcClient;
+use presenceforge::sync::DiscordIpcClient;
 
 let client = DiscordIpcClient::new("your_client_id")?;
 ```
