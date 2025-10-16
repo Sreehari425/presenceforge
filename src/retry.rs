@@ -167,10 +167,7 @@ where
     }
 
     Err(last_error.unwrap_or_else(|| {
-        DiscordIpcError::ConnectionFailed(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Retry attempts exhausted",
-        ))
+        DiscordIpcError::ConnectionFailed(std::io::Error::other("Retry attempts exhausted"))
     }))
 }
 
@@ -226,10 +223,7 @@ where
     }
 
     Err(last_error.unwrap_or_else(|| {
-        DiscordIpcError::ConnectionFailed(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Retry attempts exhausted",
-        ))
+        DiscordIpcError::ConnectionFailed(std::io::Error::other("Retry attempts exhausted"))
     }))
 }
 
@@ -286,10 +280,7 @@ where
     }
 
     Err(last_error.unwrap_or_else(|| {
-        DiscordIpcError::ConnectionFailed(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Retry attempts exhausted",
-        ))
+        DiscordIpcError::ConnectionFailed(std::io::Error::other("Retry attempts exhausted"))
     }))
 }
 

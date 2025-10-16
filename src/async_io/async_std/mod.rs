@@ -487,18 +487,13 @@ pub mod client {
     }
 
     impl AsyncStdClientExt for AsyncDiscordIpcClient<AsyncStdConnection> {
-        fn connect_with_timeout(
-            &mut self,
-            timeout_duration: Duration,
-        ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            async move {
-                match async_std::future::timeout(timeout_duration, self.connect()).await {
-                    Ok(result) => result,
-                    Err(_) => Err(DiscordIpcError::connection_timeout(
-                        timeout_duration.as_millis() as u64,
-                        None,
-                    )),
-                }
+        async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
+            match async_std::future::timeout(timeout_duration, self.connect()).await {
+                Ok(result) => result,
+                Err(_) => Err(DiscordIpcError::connection_timeout(
+                    timeout_duration.as_millis() as u64,
+                    None,
+                )),
             }
         }
     }

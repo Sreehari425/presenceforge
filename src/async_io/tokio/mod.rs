@@ -423,18 +423,13 @@ pub mod client {
     }
 
     impl TokioClientExt for AsyncDiscordIpcClient<TokioConnection> {
-        fn connect_with_timeout(
-            &mut self,
-            timeout_duration: Duration,
-        ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            async move {
-                match timeout(timeout_duration, self.connect()).await {
-                    Ok(result) => result,
-                    Err(_) => Err(DiscordIpcError::connection_timeout(
-                        timeout_duration.as_millis() as u64,
-                        None,
-                    )),
-                }
+        async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
+            match timeout(timeout_duration, self.connect()).await {
+                Ok(result) => result,
+                Err(_) => Err(DiscordIpcError::connection_timeout(
+                    timeout_duration.as_millis() as u64,
+                    None,
+                )),
             }
         }
     }

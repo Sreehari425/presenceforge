@@ -11,7 +11,6 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::io::{BufReader, BufWriter};
 
-use crate::debug_println;
 use crate::error::{DiscordIpcError, ProtocolContext, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
