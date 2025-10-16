@@ -25,8 +25,7 @@ use uuid::Uuid;
 /// # Security
 ///
 /// UUID v4 provides 122 bits of randomness, making collisions extremely unlikely
-/// (probability of collision is approximately 1 in 2^61 after generating 1 billion UUIDs).
-/// This is far superior to timestamp-based nonces which can collide during rapid operations.
+/// probability of collision is approximately 1 in 2^61 after generating 1 billion UUID :)
 pub fn generate_nonce(prefix: &str) -> String {
     format!("{}-{}", prefix, Uuid::new_v4())
 }
