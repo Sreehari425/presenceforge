@@ -47,6 +47,7 @@ Below are the most common variants in `DiscordIpcError` and when they occur. See
 When the library fails to open/connect the IPC socket/pipe.
 
 Common causes:
+
 - Discord is not running
 - No available IPC pipes/sockets
 - Permission denied accessing pipe/socket
@@ -239,7 +240,7 @@ use std::time::Duration;
 fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Running")
-        .start_timestamp_now().expect("timestamp")
+        .start_timestamp_now()?
         .build();
 
     loop {
@@ -591,8 +592,6 @@ let mut client = with_retry(&config, || {
 })?;
 ```
 
-
-
 ---
 
 ### 5. Clean Up on Errors
@@ -621,7 +620,7 @@ fn run_presence() -> Result<(), Box<dyn std::error::Error>> {
 
     result
 }
-````
+```
 
 ---
 

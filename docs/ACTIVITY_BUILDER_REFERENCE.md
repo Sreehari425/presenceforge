@@ -95,7 +95,7 @@ S = Small Image (overlays large image in bottom-right corner)
 #### Start Timestamp (Elapsed Time)
 
 ```rust
-.start_timestamp_now().expect("timestamp")  // Start counting from now
+.start_timestamp_now()?  // Start counting from now (returns Result)
 // or
 .start_timestamp(1234567890)  // Unix timestamp (u64)
 ```
@@ -134,15 +134,15 @@ let end_time = now + 300;
 
 ### 6. **Party** (`party()`)
 
-#### Note: Partialy tested feature
+#### Note: Partially tested feature
 
 ```rust
-.party("unique-party-id", 2, 4)  // party_id, current_size, max_size
+.party("unique-party-id", 2, 4)  // id, current_size, max_size
 ```
 
 - **Appears as:** "2 of 4" below the state text
 - **Parameters:**
-  - `party_id`: Unique identifier for the party (string)
+  - `id`: Unique identifier for the party (string)
   - `current_size`: Current number of players (u32)
   - `max_size`: Maximum number of players (u32)
 - **Use for:** Multiplayer games, voice channels, collaborative work
@@ -238,8 +238,8 @@ let end_time = now + 300;
 Here's an activity using all fields:
 
 ```rust
-use presenceforge::DiscordIpcClient;
 use presenceforge::sync::DiscordIpcClient;
+use presenceforge::ActivityBuilder;
 
 let activity = ActivityBuilder::new()
     // Text
@@ -253,7 +253,7 @@ let activity = ActivityBuilder::new()
     .small_text("Level 42 Warrior")
 
     // Time
-    .start_timestamp_now().expect("timestamp")
+    .start_timestamp_now()?
 
     // Party
     .party("party-12345", 3, 4)

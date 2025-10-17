@@ -462,8 +462,7 @@ Yes! Use party methods:
 ```rust
 let activity = ActivityBuilder::new()
     .state("In a Party")
-    .party_size(2, 4)      // 2 of 4 players
-    .party_id("party123")  // Unique party ID
+    .party("party123", 2, 4)  // party_id, current (2 of 4 players), max
     .build();
 ```
 

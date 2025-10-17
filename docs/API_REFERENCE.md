@@ -311,28 +311,19 @@ Adds a button to the Rich Presence (max 2 buttons).
 
 ### Party Methods
 
-#### `party_id(self, id: impl Into<String>) -> Self`
+#### `party(self, id: impl Into<String>, current_size: u32, max_size: u32) -> Self`
 
-Sets the party ID (for grouping players).
-
-```rust
-.party_id("party_12345")
-```
-
----
-
-#### `party_size(self, current: i32, max: i32) -> Self`
-
-Sets the party size display.
+Sets the party information (ID and size) in a single method.
 
 ```rust
-.party_size(2, 4)  // Shows "2 of 4"
+.party("party_12345", 2, 4)  // Shows "2 of 4"
 ```
 
 **Parameters:**
 
-- `current` - Current number of players
-- `max` - Maximum number of players
+- `id` - Unique party identifier for grouping players
+- `current_size` - Current number of players
+- `max_size` - Maximum number of players
 
 ---
 

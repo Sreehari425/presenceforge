@@ -79,7 +79,7 @@ presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
 Edit `src/main.rs`:
 
 ```rust
-use presenceforge::DiscordIpcClient;
+use presenceforge::ActivityBuilder;
 use presenceforge::sync::DiscordIpcClient;
 use std::thread;
 use std::time::Duration;
@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Hello, Discord!")
         .details("Using PresenceForge")
-        .start_timestamp_now().expect("timestamp")
+        .start_timestamp_now()?
         .build();
 
     // Set the activity
@@ -216,7 +216,7 @@ thread::sleep(Duration::from_secs(5));
 client.set_activity(&ActivityBuilder::new()
     .state("In Match")
     .details("Competitive Mode")
-    .start_timestamp_now().expect("timestamp")
+    .start_timestamp_now()?
     .build())?;
 ```
 
@@ -247,7 +247,7 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = DiscordIpcClient::new("your_client_id")?;
+    let mut client = presenceforge::sync::DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
 
     let activity = ActivityBuilder::new()
