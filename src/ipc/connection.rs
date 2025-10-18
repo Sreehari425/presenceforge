@@ -96,9 +96,9 @@ impl IpcConnection {
     /// - `TMP`
     /// - `TEMP`
     /// - `tmp`
-    /// - `XDG_RUNTIME_DIR/app/com.discordapp.Discord` -> flatpak specific
-    /// - if XDG_RUNTIME_DIR is not set the function will grab the uid of the current user
-    /// - `/run/user/{UID}`
+    /// - `XDG_RUNTIME_DIR/app/com.discordapp.Discord` (Flatpak specific)
+    /// - `/run/user/{UID}` (if `XDG_RUNTIME_DIR` is not set)
+    /// - `/run/user/{UID}/app/com.discordapp.Discord` (Flatpak fallback)
     #[cfg(unix)]
     fn candidate_ipc_dir() -> Vec<String> {
         let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP", "tmp"];
