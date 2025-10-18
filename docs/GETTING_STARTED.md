@@ -36,10 +36,8 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
-
-> **Note**: PresenceForge is not yet published to crates.io. Use the git dependency for now.
 
 ### With Async Support
 
@@ -48,13 +46,13 @@ If you need async support, add one of the runtime features:
 ```toml
 [dependencies]
 # For Tokio users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 
 # For async-std users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 
 # For smol users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 ```
 
 ## Your First Rich Presence
@@ -72,7 +70,7 @@ cd my-discord-presence
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
 
 ### Step 3: Write your first presence

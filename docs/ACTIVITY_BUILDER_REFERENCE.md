@@ -174,7 +174,7 @@ let end_time = now + 300;
 ### 8. **Secrets** (For "Ask to Join" and Spectate features)
 
 > **⚠️ Feature Flag Required:** These methods require the `secrets` feature flag to be enabled.
-> Add to your `Cargo.toml`: `presenceforge = { git = "...", features = ["secrets"] }`
+> Add to your `Cargo.toml`: `presenceforge = { version = "0.1.0-dev", features = ["secrets"] }`
 
 #### Note: untested feature
 
