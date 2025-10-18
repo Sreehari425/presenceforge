@@ -231,7 +231,7 @@ fn connect_to_discord(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::
 **Problem:** Connection is lost while the application is running.
 
 ```rust
-use presenceforge::ActivityBuilder, DiscordIpcError;
+use presenceforge::{ActivityBuilder, DiscordIpcError};
 use presenceforge::sync::DiscordIpcClient;
 use std::thread;
 use std::time::Duration;
