@@ -41,7 +41,7 @@ pub async fn read_exact<T: AsyncRead + Unpin + ?Sized>(
                 return Err(io::Error::new(
                     io::ErrorKind::UnexpectedEof,
                     "failed to fill buffer",
-                ))
+                ));
             }
             Ok(n) => buf = &mut buf[n..],
             Err(e) => return Err(e),
@@ -91,7 +91,7 @@ pub async fn write_all<T: AsyncWrite + Unpin + ?Sized>(
                 return Err(io::Error::new(
                     io::ErrorKind::WriteZero,
                     "failed to write whole buffer",
-                ))
+                ));
             }
             Ok(n) => buf = &buf[n..],
             Err(e) => return Err(e),

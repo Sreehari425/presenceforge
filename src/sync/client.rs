@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::VecDeque;
 use std::process;
 use std::time::{Duration, Instant};
@@ -7,9 +7,9 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
-    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+    Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig, constants,
 };
-use crate::utils::generate_nonce;
+use crate::nonce::generate_nonce;
 
 /// Discord IPC Client
 pub struct DiscordIpcClient {
@@ -36,8 +36,8 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::{DiscordIpcClient, PipeConfig};
-    ///
+    /// use presenceforge::PipeConfig;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// // Auto-discovery (default)
     /// let client = DiscordIpcClient::new_with_config("client_id", None)?;
     ///
@@ -97,8 +97,8 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::{DiscordIpcClient, PipeConfig};
-    ///
+    /// use presenceforge::PipeConfig;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// // Auto-discovery with timeout
     /// let client = DiscordIpcClient::new_with_config_and_timeout("client_id", None, 5000)?;
     ///
@@ -206,6 +206,9 @@ impl DiscordIpcClient {
         };
 
         let payload = serde_json::to_value(message)?;
+        #[cfg(debug_assertions)]
+        // Intentional: Print payload for debugging in debug builds only.
+        debug_println!("[PAYLOAD]: {:?} ", payload);
         self.connection.send(Opcode::Frame, &payload)?;
 
         // Receive the response to check for errors
@@ -235,13 +238,13 @@ impl DiscordIpcClient {
         }
 
         // Verify nonce matches to ensure we got the right response
-        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
-            if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
-            }
+        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str())
+            && resp_nonce != nonce
+        {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Nonce mismatch: expected {}, got {}",
+                nonce, resp_nonce
+            )));
         }
 
         Ok(())
@@ -299,13 +302,13 @@ impl DiscordIpcClient {
         }
 
         // Verify nonce matches to ensure we got the right response
-        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
-            if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
-            }
+        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str())
+            && resp_nonce != nonce
+        {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Nonce mismatch: expected {}, got {}",
+                nonce, resp_nonce
+            )));
         }
 
         Ok(response)
@@ -359,7 +362,7 @@ impl DiscordIpcClient {
     /// # Examples
     ///
     /// ```no_run
-    /// use presenceforge::DiscordIpcClient;
+    /// use presenceforge::sync::DiscordIpcClient;
     /// use presenceforge::ActivityBuilder;
     ///
     /// let mut client = DiscordIpcClient::new("client_id")?;

@@ -77,8 +77,8 @@ impl Display for ErrorCategory {
 ///
 /// Basic error handling:
 /// ```rust
-/// use presenceforge::{DiscordIpcClient, DiscordIpcError};
-///
+/// use presenceforge::DiscordIpcError;
+/// use presenceforge::sync::DiscordIpcClient;
 /// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     let mut client = match DiscordIpcClient::new("your-client-id") {
 ///         Ok(client) => client,
@@ -97,7 +97,8 @@ impl Display for ErrorCategory {
 ///
 /// Using utility functions for recoverable errors:
 /// ```rust
-/// use presenceforge::{DiscordIpcClient, DiscordIpcError, Activity};
+/// use presenceforge::{DiscordIpcError, Activity};
+/// use presenceforge::sync::DiscordIpcClient;
 /// use std::time::Duration;
 ///
 /// fn connect_with_retry(client_id: &str, max_attempts: u32) -> Result<DiscordIpcClient, DiscordIpcError> {

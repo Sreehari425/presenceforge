@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::{PipeConfig, constants};
 
 /// A Discord IPC connection using smol
 pub(crate) enum SmolConnection {
@@ -149,7 +149,7 @@ impl SmolConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
+                    "Permission denied when connecting to Discord IPC socket. Check file permissions.",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -232,7 +232,7 @@ impl SmolConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
+                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -447,8 +447,8 @@ pub mod client {
 
         /// Performs handshake with Discord with a timeout
         pub async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
-            use smol::future::or;
             use smol::Timer;
+            use smol::future::or;
 
             match or(
                 async move {
@@ -509,8 +509,8 @@ pub mod client {
             &mut self,
             timeout_duration: Duration,
         ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            use smol::future::or;
             use smol::Timer;
+            use smol::future::or;
 
             async move {
                 match or(

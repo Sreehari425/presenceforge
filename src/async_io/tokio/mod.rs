@@ -14,7 +14,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::{PipeConfig, constants};
 
 /// A Discord IPC connection using Tokio
 pub(crate) enum TokioConnection {
@@ -46,7 +46,7 @@ impl TokioConnection {
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
-        use tokio::time::{timeout, Duration};
+        use tokio::time::{Duration, timeout};
 
         let timeout_duration = Duration::from_millis(timeout_ms);
 
@@ -122,7 +122,7 @@ impl TokioConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
+                    "Permission denied when connecting to Discord IPC socket. Check file permissions.",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -174,7 +174,7 @@ impl TokioConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
+                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -423,18 +423,13 @@ pub mod client {
     }
 
     impl TokioClientExt for AsyncDiscordIpcClient<TokioConnection> {
-        fn connect_with_timeout(
-            &mut self,
-            timeout_duration: Duration,
-        ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            async move {
-                match timeout(timeout_duration, self.connect()).await {
-                    Ok(result) => result,
-                    Err(_) => Err(DiscordIpcError::connection_timeout(
-                        timeout_duration.as_millis() as u64,
-                        None,
-                    )),
-                }
+        async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
+            match timeout(timeout_duration, self.connect()).await {
+                Ok(result) => result,
+                Err(_) => Err(DiscordIpcError::connection_timeout(
+                    timeout_duration.as_millis() as u64,
+                    None,
+                )),
             }
         }
     }

@@ -15,9 +15,9 @@
 //!
 //! ## Synchronous Example
 //!
-//! ```rust
-//! use presenceforge::{DiscordIpcClient, ActivityBuilder};
-//!
+//! ```rust no_run
+//! use presenceforge::ActivityBuilder;
+//! use presenceforge::sync::DiscordIpcClient;
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut client = DiscordIpcClient::new("your_client_id")?;
 //! client.connect()?;
@@ -52,7 +52,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.0.0", features = ["tokio-runtime"] }
+//! presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 //! tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 //! ```
 //!
@@ -87,7 +87,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.0.0", features = ["async-std-runtime"] }
+//! presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 //! async-std = { version = "1", features = ["attributes"] }
 //! ```
 //!
@@ -122,7 +122,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.0.0", features = ["smol-runtime"] }
+//! presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 //! smol = "2"
 //! ```
 //!
@@ -173,13 +173,11 @@
 
 pub mod activity;
 pub mod async_io;
-pub mod client;
 pub mod error;
 pub mod ipc;
 pub mod macros;
+pub mod nonce;
 pub mod retry;
-pub mod utils;
-
 // Re-export the main public API
 #[cfg(feature = "secrets")]
 pub use activity::ActivitySecrets;

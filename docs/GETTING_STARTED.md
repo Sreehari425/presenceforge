@@ -2,7 +2,8 @@
 
 Welcome to PresenceForge! This guide will help you get started with integrating Discord Rich Presence into your Rust application.
 
-> ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
+> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> It’s functional, but features may change or be incomplete.
 
 ## What is Discord Rich Presence?
 
@@ -35,10 +36,8 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
-
-> **Note**: PresenceForge is not yet published to crates.io. Use the git dependency for now.
 
 ### With Async Support
 
@@ -47,13 +46,13 @@ If you need async support, add one of the runtime features:
 ```toml
 [dependencies]
 # For Tokio users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 
 # For async-std users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 
 # For smol users
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 ```
 
 ## Your First Rich Presence
@@ -71,7 +70,7 @@ cd my-discord-presence
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
 
 ### Step 3: Write your first presence
@@ -79,7 +78,8 @@ presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
 Edit `src/main.rs`:
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 use std::thread;
 use std::time::Duration;
 
@@ -97,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Hello, Discord!")
         .details("Using PresenceForge")
-        .start_timestamp_now().expect("timestamp")
+        .start_timestamp_now()?
         .build();
 
     // Set the activity
@@ -215,7 +215,7 @@ thread::sleep(Duration::from_secs(5));
 client.set_activity(&ActivityBuilder::new()
     .state("In Match")
     .details("Competitive Mode")
-    .start_timestamp_now().expect("timestamp")
+    .start_timestamp_now()?
     .build())?;
 ```
 
@@ -246,7 +246,7 @@ fn main() {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = DiscordIpcClient::new("your_client_id")?;
+    let mut client = presenceforge::sync::DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
 
     let activity = ActivityBuilder::new()

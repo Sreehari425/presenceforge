@@ -12,7 +12,7 @@ use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter};
 
 use crate::error::{DiscordIpcError, ProtocolContext, Result};
-use crate::ipc::protocol::{constants, Opcode};
+use crate::ipc::protocol::{Opcode, constants};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
 #[derive(Debug, Clone, Default)]
@@ -84,35 +84,53 @@ impl IpcConnection {
         }
     }
 
+    // Returns the current users UID on unix based systems
     #[cfg(unix)]
-    fn discover_pipes_unix() -> Vec<DiscoveredPipe> {
-        let mut pipes = Vec::new();
-
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
+    /// Returns the current user's UID on Unix-based systems.
+    ///
+    /// Safety: Calling `libc::getuid()` is always safe per POSIX.
+    fn current_uid() -> u32 {
+        unsafe { libc::getuid() }
+    }
+    /// Discovers potential base directories where IPC sockets may exist
+    /// Check environment variables
+    /// - `XDG_RUNTIME_DIR`
+    /// - `TMPDIR`
+    /// - `TMP`
+    /// - `TEMP`
+    /// - `tmp`
+    /// - `XDG_RUNTIME_DIR/app/com.discordapp.Discord` (Flatpak specific)
+    /// - `/run/user/{UID}` (if `XDG_RUNTIME_DIR` is not set)
+    /// - `/run/user/{UID}/app/com.discordapp.Discord` (Flatpak fallback)
+    #[cfg(unix)]
+    fn candidate_ipc_dir() -> Vec<String> {
+        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP", "tmp"];
         let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
+        for key in &env_keys {
+            if let Ok(dir) = std::env::var(key) {
                 directories.push(dir.clone());
 
                 // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if env_key == &"XDG_RUNTIME_DIR" {
+                if key == &"XDG_RUNTIME_DIR" {
                     directories.push(format!("{}/app/com.discordapp.Discord", dir));
                 }
             }
         }
-
-        // Fallback to /run/user/{uid} if no env vars found
         if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
+            let uid = Self::current_uid();
             directories.push(format!("/run/user/{}", uid));
             // Also try Flatpak path as fallback
             directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
         }
 
+        directories
+    }
+    #[cfg(unix)]
+    fn discover_pipes_unix() -> Vec<DiscoveredPipe> {
+        let mut pipes = Vec::new();
+
         // Try each directory with each socket number
-        for dir in &directories {
+        for dir in Self::candidate_ipc_dir() {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
 
@@ -284,34 +302,11 @@ impl IpcConnection {
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
     fn connect_to_discord_unix_auto() -> Result<UnixStream> {
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir.clone());
-
-                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if env_key == &"XDG_RUNTIME_DIR" {
-                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                }
-            }
-        }
-
-        // Fallback to /run/user/{uid} if no env vars found
-        if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
-            directories.push(format!("/run/user/{}", uid));
-            // Also try Flatpak path as fallback
-            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
-        }
-
         // Try each directory with each socket number
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
-        for dir in &directories {
+        for dir in Self::candidate_ipc_dir() {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
                 attempted_paths.push(socket_path.clone());
@@ -373,8 +368,8 @@ impl IpcConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows using auto-discovery
-    fn connect_to_discord_windows_auto(
-    ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
+    fn connect_to_discord_windows_auto()
+    -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
@@ -419,7 +414,6 @@ impl IpcConnection {
     /// Send data with opcode
     pub fn send(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
         let raw = serde_json::to_vec(payload)?;
-
         // Clear and prepare write buffer
         self.write_buf.clear();
         self.write_buf.reserve(8 + raw.len());
