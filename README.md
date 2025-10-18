@@ -62,7 +62,7 @@ presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features
 
 ```rust
 use presenceforge::ActivityBuilder;
-use presenceforge::sync::DiscordIpcClient
+use presenceforge::sync::DiscordIpcClient;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
