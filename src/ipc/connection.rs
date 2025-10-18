@@ -372,8 +372,7 @@ impl IpcConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows using auto-discovery
-    fn connect_to_discord_windows_auto()
-    -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
+    fn connect_to_discord_windows_auto() -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
