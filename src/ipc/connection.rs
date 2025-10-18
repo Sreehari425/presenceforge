@@ -411,7 +411,6 @@ impl IpcConnection {
     pub fn send(&mut self, opcode: Opcode, payload: &Value) -> Result<()> {
         let raw = serde_json::to_vec(payload)?;
         // Clear and prepare write buffer
-        // debug_println!("[RAW] : {raw:?}");
         self.write_buf.clear();
         self.write_buf.reserve(8 + raw.len());
 
