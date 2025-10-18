@@ -100,7 +100,7 @@ impl IpcConnection {
     /// - `/run/user/{UID}`
     #[cfg(unix)]
     fn candidate_ipc_dir() -> Vec<String> {
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
+        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP", "tmp"];
         let mut directories = Vec::new();
         for key in &env_keys {
             if let Ok(dir) = std::env::var(key) {
