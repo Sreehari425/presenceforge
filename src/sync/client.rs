@@ -7,7 +7,7 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
-    Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig, constants,
+    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
 };
 use crate::nonce::generate_nonce;
 
