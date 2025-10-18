@@ -206,6 +206,7 @@ impl DiscordIpcClient {
         };
 
         let payload = serde_json::to_value(message)?;
+        #[cfg(debug_assertions)]
         debug_println!("[PAYLOAD]: {:?} ", payload);
         self.connection.send(Opcode::Frame, &payload)?;
 
