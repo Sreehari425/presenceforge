@@ -90,7 +90,7 @@ impl IpcConnection {
         unsafe { libc::getuid() }
     }
     /// Discovers potential base directories where IPC sockets may exist
-    /// Check enviroment variables
+    /// Check environment variables
     /// - `XDG_RUNTIME_DIR`
     /// - `TMPDIR`
     /// - `TMP`
