@@ -4,6 +4,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Sreehari425/presenceforge#license)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
+![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
 > **Note**: This is currently in development (v0.1.0-dev). Things might break
 > This is a learning/hobby project.
@@ -34,8 +35,6 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Async support with runtime-agnostic design
 - [x] Support for tokio, async-std, and smol
 - [x] Flexible pipe/socket selection
-- [ ] Error handling could be better
-- [ ] Party/lobby features (partial implementation only)
 
 ## Quick Start
 
@@ -358,7 +357,7 @@ match client.connect() {
 - [ ] Party/lobby functionality (partial implementation)
 - [x] Async support (tokio, async-std, and smol)
 - [x] More comprehensive examples
-- [ ] Publish to crates.io
+- [x] Publish to crates.io
 - [ ] CI/CD pipeline
 - [x] Proper documentation
 - [x] Connection retry logic with exponential backoff
