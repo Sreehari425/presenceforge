@@ -207,6 +207,7 @@ impl DiscordIpcClient {
 
         let payload = serde_json::to_value(message)?;
         #[cfg(debug_assertions)]
+        // Intentional: Print payload for debugging in debug builds only.
         debug_println!("[PAYLOAD]: {:?} ", payload);
         self.connection.send(Opcode::Frame, &payload)?;
 
