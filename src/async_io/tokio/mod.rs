@@ -14,7 +14,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::{PipeConfig, constants};
 
 /// A Discord IPC connection using Tokio
 pub(crate) enum TokioConnection {
@@ -46,7 +46,7 @@ impl TokioConnection {
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
-        use tokio::time::{timeout, Duration};
+        use tokio::time::{Duration, timeout};
 
         let timeout_duration = Duration::from_millis(timeout_ms);
 
@@ -122,7 +122,7 @@ impl TokioConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
+                    "Permission denied when connecting to Discord IPC socket. Check file permissions.",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -174,7 +174,7 @@ impl TokioConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
+                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))

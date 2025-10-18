@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::{PipeConfig, constants};
 
 /// A Discord IPC connection using async-std
 pub(crate) enum AsyncStdConnection {
@@ -142,7 +142,7 @@ impl AsyncStdConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
+                    "Permission denied when connecting to Discord IPC socket. Check file permissions.",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -224,7 +224,7 @@ impl AsyncStdConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
+                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))

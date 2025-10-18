@@ -12,7 +12,7 @@ use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter};
 
 use crate::error::{DiscordIpcError, ProtocolContext, Result};
-use crate::ipc::protocol::{constants, Opcode};
+use crate::ipc::protocol::{Opcode, constants};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
 #[derive(Debug, Clone, Default)]
@@ -364,8 +364,8 @@ impl IpcConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows using auto-discovery
-    fn connect_to_discord_windows_auto(
-    ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
+    fn connect_to_discord_windows_auto()
+    -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 

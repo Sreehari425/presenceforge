@@ -37,16 +37,16 @@ impl Activity {
     /// Ok(()) if valid, or Err(String) with the reason if invalid
     pub fn validate(&self) -> Result<(), String> {
         // Check text field lengths
-        if let Some(state) = &self.state {
-            if state.len() > 128 {
-                return Err("State must be 128 characters or less".to_string());
-            }
+        if let Some(state) = &self.state
+            && state.len() > 128
+        {
+            return Err("State must be 128 characters or less".to_string());
         }
 
-        if let Some(details) = &self.details {
-            if details.len() > 128 {
-                return Err("Details must be 128 characters or less".to_string());
-            }
+        if let Some(details) = &self.details
+            && details.len() > 128
+        {
+            return Err("Details must be 128 characters or less".to_string());
         }
 
         // Validate buttons
@@ -74,40 +74,37 @@ impl Activity {
 
         // Validate asset keys
         if let Some(assets) = &self.assets {
-            if let Some(large_image) = &assets.large_image {
-                if large_image.len() > 256 {
-                    return Err("Large image key must be 256 characters or less".to_string());
-                }
+            if let Some(large_image) = &assets.large_image
+                && large_image.len() > 256
+            {
+                return Err("Large image key must be 256 characters or less".to_string());
             }
 
-            if let Some(small_image) = &assets.small_image {
-                if small_image.len() > 256 {
-                    return Err("Small image key must be 256 characters or less".to_string());
-                }
+            if let Some(small_image) = &assets.small_image
+                && small_image.len() > 256
+            {
+                return Err("Small image key must be 256 characters or less".to_string());
             }
 
-            if let Some(large_text) = &assets.large_text {
-                if large_text.len() > 128 {
-                    return Err("Large text must be 128 characters or less".to_string());
-                }
+            if let Some(large_text) = &assets.large_text
+                && large_text.len() > 128
+            {
+                return Err("Large text must be 128 characters or less".to_string());
             }
 
-            if let Some(small_text) = &assets.small_text {
-                if small_text.len() > 128 {
-                    return Err("Small text must be 128 characters or less".to_string());
-                }
+            if let Some(small_text) = &assets.small_text
+                && small_text.len() > 128
+            {
+                return Err("Small text must be 128 characters or less".to_string());
             }
         }
 
         // Validate party size
-        if let Some(party) = &self.party {
-            if let Some(size) = &party.size {
-                if size[0] > size[1] {
-                    return Err(
-                        "Current party size cannot be greater than max party size".to_string()
-                    );
-                }
-            }
+        if let Some(party) = &self.party
+            && let Some(size) = &party.size
+            && size[0] > size[1]
+        {
+            return Err("Current party size cannot be greater than max party size".to_string());
         }
 
         Ok(())

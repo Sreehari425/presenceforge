@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::VecDeque;
 use std::process;
 use std::time::{Duration, Instant};
@@ -7,7 +7,7 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
-    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+    Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig, constants,
 };
 use crate::nonce::generate_nonce;
 
@@ -236,13 +236,13 @@ impl DiscordIpcClient {
         }
 
         // Verify nonce matches to ensure we got the right response
-        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
-            if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
-            }
+        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str())
+            && resp_nonce != nonce
+        {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Nonce mismatch: expected {}, got {}",
+                nonce, resp_nonce
+            )));
         }
 
         Ok(())
@@ -300,13 +300,13 @@ impl DiscordIpcClient {
         }
 
         // Verify nonce matches to ensure we got the right response
-        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
-            if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
-            }
+        if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str())
+            && resp_nonce != nonce
+        {
+            return Err(DiscordIpcError::InvalidResponse(format!(
+                "Nonce mismatch: expected {}, got {}",
+                nonce, resp_nonce
+            )));
         }
 
         Ok(response)
