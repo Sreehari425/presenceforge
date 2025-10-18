@@ -95,6 +95,7 @@ impl IpcConnection {
     /// - `TMPDIR`
     /// - `TMP`
     /// - `TEMP`
+    /// - `tmp`
     /// - `XDG_RUNTIME_DIR/app/com.discordapp.Discord` -> flatpak specific
     /// - if XDG_RUNTIME_DIR is not set the function will grab the uid of the current user
     /// - `/run/user/{UID}`
