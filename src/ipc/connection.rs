@@ -86,6 +86,13 @@ impl IpcConnection {
 
     // Returns the current users UID on unix based systems
     #[cfg(unix)]
+    /// Returns the current user's UID on Unix-based systems.
+    ///
+    /// # Safety
+    ///
+    /// This function calls `libc::getuid()` inside an `unsafe` block. According to the POSIX standard,
+    /// `getuid()` is always safe to call: it takes no arguments, does not dereference pointers, and
+    /// cannot cause undefined behavior. Therefore, this usage of `unsafe` is sound.
     fn current_uid() -> u32 {
         unsafe { libc::getuid() }
     }
