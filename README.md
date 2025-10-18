@@ -42,21 +42,20 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 # OR
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 # OR
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 ```
 
-> **Note**: Not published to crates.io yet. Use the git dependency for now.
 
 ### Basic Usage (Synchronous)
 
