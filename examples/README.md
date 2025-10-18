@@ -186,7 +186,7 @@ Advanced pipe discovery example showing:
 
 Error handling and recovery example (synchronous) showing:
 
-- Basic retry with `with_retry()` function
+- Basic retry with `with_retry()` functions
 - Manual reconnection using `reconnect()` method
 - Custom retry configuration (max attempts, delays, backoff)
 - Handling recoverable vs non-recoverable errors
