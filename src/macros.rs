@@ -7,7 +7,7 @@ static DEBUG_ENABLED: OnceLock<bool> = OnceLock::new();
 pub fn is_debug_enabled() -> bool {
     *DEBUG_ENABLED.get_or_init(|| {
         std::env::var("PRESENCEFORGE_DEBUG")
-            .map(|val| val == "1" || val.to_lowercase() == "true")
+            .map(|val| val == "1" || val.eq_ignore_ascii_case("true"))
             .unwrap_or(false)
     })
 }
