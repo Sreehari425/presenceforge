@@ -403,7 +403,7 @@ fn test_retry_exhausts_attempts() {
     let config = RetryConfig::with_max_attempts(3);
 
     let mut attempt_count = 0;
-    let result: std::result::Result<(), DiscordIpcError> = with_retry(&config, || {
+    let result = with_retry(&config, || {
         attempt_count += 1;
         // SocketClosed is recoverable
         Err(DiscordIpcError::SocketClosed)
