@@ -2,7 +2,8 @@
 
 Welcome to PresenceForge! This guide will help you get started with integrating Discord Rich Presence into your Rust application.
 
-> ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
+> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> It’s functional, but features may change or be incomplete.
 
 ## What is Discord Rich Presence?
 

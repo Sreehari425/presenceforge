@@ -2,7 +2,8 @@
 
 API reference for PresenceForge (work-in-progress; APIs may change).
 
-> ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
+> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> It’s functional, but features may change or be incomplete.
 
 ## Table of Contents
 

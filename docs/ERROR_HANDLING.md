@@ -2,7 +2,6 @@
 
 A comprehensive guide to handling errors and implementing retry logic in PresenceForge.
 
-> ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
 
 ## Table of Contents
 

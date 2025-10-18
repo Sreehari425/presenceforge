@@ -5,10 +5,10 @@ A Rust library for Discord Rich Presence that actually works without the headach
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Sreehari425/presenceforge#license)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 
-> **Note**: This is currently in early development (v0.0.0). Things might break
+> **Note**: This is currently in development (v0.1.0-dev). Things might break
 > This is a learning/hobby project.
->
-> ⚠️ FINAL WARNING: PresenceForge is a learning/hobby project. If you need production-ready Discord Rich Presence, use a mature library like pypresence, discord-rpc, or CraftPresence.
+> Features and APIs may change in future versions.
+
 
 ## Documentation
 
@@ -26,7 +26,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 ## What Works
 
 - [x] Linux and macOS (Unix domain sockets)
-- [x] Windows support (named pipes) - needs testing
+- [x] Windows support (named pipes) 
 - [x] Flatpak Discord support (automatic detection)
 - [x] Basic Rich Presence activities
 - [x] Activity builder pattern
@@ -276,7 +276,7 @@ ActivityBuilder::new()
     .small_image("image_key")        // Small image asset
     .small_text("Hover text")        // Small image hover text
     .button("Label", "https://url")  // Clickable button (max 2)
-    .party_size(1, 4)               // Party size (current, max)
+    .party("id",1, 4)               // Party size (current, max)
     .build()
 ```
 
