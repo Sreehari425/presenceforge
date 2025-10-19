@@ -2,8 +2,6 @@
 
 Frequently asked questions and solutions to common problems.
 
-> ⚠️ **WARNING:** PresenceForge is an experimental, hobby project (v0.0.0). Features are partially tested, may break, and should **not** be used in production.
-
 ## Table of Contents
 
 - [General Questions](#general-questions)
@@ -52,11 +50,13 @@ git ls-remote https://github.com/Sreehari425/presenceforge.git
 git ls-remote git@github.com:Sreehari425/presenceforge.git
 ```
 
-If SSH works, use this in `Cargo.toml`:
+If SSH works but you still have issues, please report them on GitHub Issues.
+
+For now, use version `0.1.0-dev` instead:
 
 ```toml
 [dependencies]
-presenceforge = { git = "ssh://git@github.com/Sreehari425/presenceforge.git" }
+presenceforge = "0.1.0-dev"
 ```
 
 ---
@@ -74,7 +74,7 @@ The feature is called `tokio-runtime`, not `tokio`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 ```
 
 Valid features: `tokio-runtime`, `async-std-runtime`, `smol-runtime`
@@ -94,7 +94,7 @@ Make sure you're using compatible versions:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["full"] }  # Use version 1.x
 ```
 
@@ -160,8 +160,8 @@ Error: ProtocolError("Handshake failed")
 4. **Try a different pipe:**
 
    ```rust
-   use presenceforge::{IpcConnection, PipeConfig, DiscordIpcClient};
-
+   use presenceforge::{IpcConnection, PipeConfig};
+   use presenceforge::DiscordIpcClient;
    let pipes = IpcConnection::discover_pipes();
    for pipe in pipes {
        println!("Trying pipe: {}", pipe.path);
@@ -461,8 +461,7 @@ Yes! Use party methods:
 ```rust
 let activity = ActivityBuilder::new()
     .state("In a Party")
-    .party_size(2, 4)      // 2 of 4 players
-    .party_id("party123")  // Unique party ID
+    .party("party123", 2, 4)  // party_id, current (2 of 4 players), max
     .build();
 ```
 

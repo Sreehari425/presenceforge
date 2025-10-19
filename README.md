@@ -4,11 +4,12 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Sreehari425/presenceforge#license)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
+![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
-> **Note**: This is currently in early development (v0.0.0). Things might break
+> **Note**: This is currently in development (v0.1.0-dev). Things might break
 > This is a learning/hobby project.
->
-> ⚠️ FINAL WARNING: PresenceForge is a learning/hobby project. If you need production-ready Discord Rich Presence, use a mature library like pypresence, discord-rpc, or CraftPresence.
+> Features and APIs may change in future versions.
+
 
 ## Documentation
 
@@ -26,7 +27,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 ## What Works
 
 - [x] Linux and macOS (Unix domain sockets)
-- [x] Windows support (named pipes) - needs testing
+- [x] Windows support (named pipes) 
 - [x] Flatpak Discord support (automatic detection)
 - [x] Basic Rich Presence activities
 - [x] Activity builder pattern
@@ -34,8 +35,6 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Async support with runtime-agnostic design
 - [x] Support for tokio, async-std, and smol
 - [x] Flexible pipe/socket selection
-- [ ] Error handling could be better
-- [ ] Party/lobby features (partial implementation only)
 
 ## Quick Start
 
@@ -43,27 +42,26 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge" }
+presenceforge = "0.1.0-dev"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 # OR
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 # OR
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 ```
 
-> **Note**: Not published to crates.io yet. Use the git dependency for now.
 
 ### Basic Usage (Synchronous)
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
-
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
@@ -173,8 +171,8 @@ fn main() -> Result {
 ### Game Integration
 
 ```rust
-use presenceforge::{ActivityBuilder, DiscordIpcClient};
-
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 let activity = ActivityBuilder::new()
     .state("Forest Level")
     .details("Fighting goblins")
@@ -276,7 +274,7 @@ ActivityBuilder::new()
     .small_image("image_key")        // Small image asset
     .small_text("Hover text")        // Small image hover text
     .button("Label", "https://url")  // Clickable button (max 2)
-    .party_size(1, 4)               // Party size (current, max)
+    .party("id",1, 4)               // Party size (current, max)
     .build()
 ```
 
@@ -341,8 +339,8 @@ cargo run --example async_tokio --features tokio-runtime
 PresenceForge uses the `Result` type for error handling:
 
 ```rust
-use presenceforge::{DiscordIpcClient, DiscordIpcError};
-
+use presenceforge::DiscordIpcError;
+use presenceforge::sync::DiscordIpcClient;
 match client.connect() {
     Ok(_) => println!("Connected successfully!"),
     Err(DiscordIpcError::ConnectionFailed) => {
@@ -358,7 +356,7 @@ match client.connect() {
 - [ ] Party/lobby functionality (partial implementation)
 - [x] Async support (tokio, async-std, and smol)
 - [x] More comprehensive examples
-- [ ] Publish to crates.io
+- [x] Publish to crates.io
 - [ ] CI/CD pipeline
 - [x] Proper documentation
 - [x] Connection retry logic with exponential backoff

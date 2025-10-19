@@ -300,8 +300,9 @@ let client = DiscordIpcClient::new_with_config(
 Connection errors are handled through the standard `DiscordIpcError` enum:
 
 ```rust
-use presenceforge::{DiscordIpcError, PipeConfig, DiscordIpcClient};
+use presenceforge::{DiscordIpcError, PipeConfig};
 
+use presenceforge::sync::DiscordIpcClient;
 match DiscordIpcClient::new_with_config(
     "client_id",
     Some(PipeConfig::CustomPath("/invalid/path".to_string()))

@@ -4,7 +4,8 @@
 // of what each field does and how it appears in Discord.
 
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Complete Builder Example
@@ -118,6 +119,7 @@ fn main() -> Result {
         .build();
 
     // Set the activity
+    // println!("{activity:?}");
     client.set_activity(&activity)?;
     println!("✓ Activity set successfully!");
     println!("\n📱 Check your Discord profile to see the activity!");

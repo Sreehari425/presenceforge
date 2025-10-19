@@ -1,8 +1,8 @@
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, Result};
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, Result};
 use std::thread;
 use std::time::Duration;
-
 /// Discord Rich Presence Game Demo Example
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

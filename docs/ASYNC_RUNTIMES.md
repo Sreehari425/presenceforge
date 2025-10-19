@@ -1,6 +1,7 @@
 # Async Runtimes Guide
 
-> ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
+> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> It’s functional, but features may change or be incomplete.
 
 ## Table of Contents
 
@@ -62,13 +63,13 @@ Add to your `Cargo.toml` with **one** of these feature flags:
 ```toml
 [dependencies]
 # For Tokio
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 
 # For async-std
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 
 # For smol
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 ```
 
 **This exact code works with all three runtimes:**
@@ -89,7 +90,7 @@ async fn setup_presence() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing async")
         .details("Runtime-agnostic!")
-        .start_timestamp_now().expect("timestamp")
+        .start_timestamp_now()?
         .build();
 
     // Set activity
@@ -139,7 +140,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
 
@@ -162,7 +163,7 @@ async fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing async")
         .details("Using Tokio")
-        .start_timestamp_now().expect("timestamp")
+        .start_timestamp_now()?
         .build();
 
     // Set activity
@@ -211,7 +212,7 @@ async fn main() -> Result {
                 let activity = ActivityBuilder::new()
                 .state(format!("Update #{}", counter))
                 .details("Tokio Background Task")
-                .start_timestamp_now().expect("timestamp")
+                .start_timestamp_now()?
                 .build();
 
             let mut client = presence_client.lock().await;
@@ -319,7 +320,7 @@ async-std provides an async API similar to the standard library.
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
 async-std = { version = "1", features = ["attributes"] }
 ```
 
@@ -418,7 +419,7 @@ smol is a small and fast async runtime.
 
 ```toml
 [dependencies]
-presenceforge = { git = "https://github.com/Sreehari425/presenceforge", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
 smol = "2"
 ```
 
@@ -441,7 +442,7 @@ fn main() -> Result {
         let activity = ActivityBuilder::new()
             .state("Playing async")
             .details("Using smol")
-            .start_timestamp_now().expect("timestamp")
+            .start_timestamp_now()?
             .build();
 
         client.set_activity(&activity).await?;
@@ -639,7 +640,8 @@ async fn main() -> Result {
 ### Sync Code
 
 ```rust
-use presenceforge::{DiscordIpcClient, ActivityBuilder};
+use presenceforge::ActivityBuilder;
+use presenceforge::sync::DiscordIpcClient;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("client_id")?;

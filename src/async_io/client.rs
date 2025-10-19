@@ -1,18 +1,20 @@
 //! Async Discord IPC Client implementation
 
+#![allow(clippy::collapsible_if)]
+
 use bytes::{BufMut, BytesMut};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::VecDeque;
 use std::process;
 use std::time::{Duration, Instant};
 
 use super::traits::ipc_utils::read_u32_le;
-use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
+use super::traits::{AsyncRead, AsyncWrite, read_exact, write_all};
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, Command, HandshakePayload, IpcMessage, Opcode};
-use crate::utils::generate_nonce;
+use crate::ipc::{Command, HandshakePayload, IpcMessage, Opcode, constants};
+use crate::nonce::generate_nonce;
 
 /// Async implementation of Discord IPC client
 pub struct AsyncDiscordIpcClient<T>

@@ -1,8 +1,8 @@
 // Example demonstrating pipe selection and discovery features
 
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, IpcConnection, PipeConfig};
-
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, IpcConnection, PipeConfig};
 /// Discord IPC Pipe Selection Example
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

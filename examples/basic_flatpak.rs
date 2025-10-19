@@ -5,7 +5,8 @@
 // If Flatpak Discord is not active, it will fallback to standard Discord.
 
 use clap::Parser;
-use presenceforge::{ActivityBuilder, DiscordIpcClient, IpcConnection, PipeConfig, Result};
+use presenceforge::sync::DiscordIpcClient;
+use presenceforge::{ActivityBuilder, IpcConnection, PipeConfig, Result};
 use std::time::Duration;
 
 /// Discord Rich Presence Flatpak Example

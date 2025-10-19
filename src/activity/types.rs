@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 use serde::{Deserialize, Serialize};
 
 /// Rich Presence Activity
@@ -100,13 +102,9 @@ impl Activity {
         }
 
         // Validate party size
-        if let Some(party) = &self.party {
-            if let Some(size) = &party.size {
-                if size[0] > size[1] {
-                    return Err(
-                        "Current party size cannot be greater than max party size".to_string()
-                    );
-                }
+        if let Some(size) = self.party.as_ref().and_then(|n| n.size) {
+            if size[0] > size[1] {
+                return Err("Current party size cannot be greater than max party size".to_string());
             }
         }
 

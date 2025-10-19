@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::{PipeConfig, constants};
 
 /// A Discord IPC connection using async-std
 pub(crate) enum AsyncStdConnection {
@@ -142,7 +142,7 @@ impl AsyncStdConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC socket. Check file permissions."
+                    "Permission denied when connecting to Discord IPC socket. Check file permissions.",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -224,7 +224,7 @@ impl AsyncStdConnection {
             if err.kind() == io::ErrorKind::PermissionDenied {
                 Err(DiscordIpcError::ConnectionFailed(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?"
+                    "Permission denied when connecting to Discord IPC pipe. Is Discord running with the right permissions?",
                 )))
             } else {
                 Err(DiscordIpcError::ConnectionFailed(err))
@@ -487,18 +487,13 @@ pub mod client {
     }
 
     impl AsyncStdClientExt for AsyncDiscordIpcClient<AsyncStdConnection> {
-        fn connect_with_timeout(
-            &mut self,
-            timeout_duration: Duration,
-        ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            async move {
-                match async_std::future::timeout(timeout_duration, self.connect()).await {
-                    Ok(result) => result,
-                    Err(_) => Err(DiscordIpcError::connection_timeout(
-                        timeout_duration.as_millis() as u64,
-                        None,
-                    )),
-                }
+        async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
+            match async_std::future::timeout(timeout_duration, self.connect()).await {
+                Ok(result) => result,
+                Err(_) => Err(DiscordIpcError::connection_timeout(
+                    timeout_duration.as_millis() as u64,
+                    None,
+                )),
             }
         }
     }
