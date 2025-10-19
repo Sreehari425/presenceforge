@@ -1,5 +1,7 @@
 //! Async Discord IPC Client implementation
 
+#![allow(clippy::collapsible_if)]
+
 use bytes::{BufMut, BytesMut};
 use serde_json::{Value, json};
 use std::collections::VecDeque;

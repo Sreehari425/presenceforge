@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 use serde_json::{Value, json};
 use std::collections::VecDeque;
 use std::process;
