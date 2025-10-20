@@ -4,4 +4,3 @@ find .. -type f -name '*.rs' \
     -not -path '../target/*' \
     -not -path '../scripts/*' \
     -not -path '../docs/*' \
-    -not -path '../.history/' 
