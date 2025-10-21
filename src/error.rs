@@ -76,7 +76,7 @@ impl Display for ErrorCategory {
 /// # Error Handling Examples
 ///
 /// Basic error handling:
-/// ```rust
+/// ```rust,no_run
 /// use presenceforge::DiscordIpcError;
 /// use presenceforge::sync::DiscordIpcClient;
 /// fn main() -> Result<(), Box<dyn std::error::Error>> {
