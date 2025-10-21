@@ -74,6 +74,24 @@ impl Activity {
             }
         }
 
+        // Buttons and secrets are mutually exclusive. If any secret field is set,
+        // the activity MUST NOT contain interactive buttons. We only consider
+        // secrets "present" when at least one of the inner secret fields is
+        // Some(...). An Option<ActivitySecrets> that exists but contains no
+        // secrets is considered empty and does not conflict with buttons.
+        #[cfg(feature = "secrets")]
+        {
+            if self.buttons.is_some()
+                && self
+                    .secrets
+                    .as_ref()
+                    .map(|s| s.join.is_some() || s.spectate.is_some() || s.match_secret.is_some())
+                    .unwrap_or(false)
+            {
+                return Err("Buttons and secrets cannot coexist in the same Activity".to_string());
+            }
+        }
+
         // Validate asset keys
         if let Some(assets) = &self.assets {
             if let Some(large_image) = &assets.large_image {
@@ -264,5 +282,26 @@ mod tests {
 
         let error = activity.validate().unwrap_err();
         assert!(error.contains("Current party size"));
+    }
+
+    #[test]
+    #[cfg(feature = "secrets")]
+    fn buttons_and_secrets_cannot_coexist() {
+        // Build an activity that contains both a button and a secret and
+        // ensure validate() rejects it.
+        let activity = Activity {
+            buttons: Some(vec![ActivityButton {
+                label: "Join".to_string(),
+                url: "https://example.com/join".to_string(),
+            }]),
+            secrets: Some(ActivitySecrets {
+                join: Some("secret".to_string()),
+                ..ActivitySecrets::default()
+            }),
+            ..Default::default()
+        };
+
+        let err = activity.validate().unwrap_err();
+        assert!(err.contains("Buttons and secrets cannot coexist"));
     }
 }
