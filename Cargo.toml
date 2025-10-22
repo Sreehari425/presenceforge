@@ -9,6 +9,7 @@ repository = "https://github.com/Sreehari425/presenceforge"
 license = "MIT OR Apache-2.0"
 keywords = ["discord", "rpc", "rich-presence", "ipc", "gaming"]
 categories = ["api-bindings", "games"]
+rust-version = "1.78.0"
 
 # Configuration for docs.rs to build documentation with all features
 [package.metadata.docs.rs]
