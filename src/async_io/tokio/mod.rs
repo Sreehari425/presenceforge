@@ -14,7 +14,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{PipeConfig, constants};
+use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using Tokio
 pub(crate) enum TokioConnection {
@@ -46,7 +46,7 @@ impl TokioConnection {
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
-        use tokio::time::{Duration, timeout};
+        use tokio::time::{timeout, Duration};
 
         let timeout_duration = Duration::from_millis(timeout_ms);
 

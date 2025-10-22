@@ -1,7 +1,7 @@
 use presenceforge::retry::with_retry;
-use presenceforge::{DiscordIpcError, retry::RetryConfig};
-use std::sync::Arc;
+use presenceforge::{retry::RetryConfig, DiscordIpcError};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 fn quick_retry_config(max_attempts: u32) -> RetryConfig {
     RetryConfig::new(max_attempts, 5, 20, 2.0)

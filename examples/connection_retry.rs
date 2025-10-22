@@ -1,5 +1,5 @@
 use clap::Parser;
-use presenceforge::retry::{RetryConfig, with_retry};
+use presenceforge::retry::{with_retry, RetryConfig};
 use presenceforge::sync::DiscordIpcClient;
 use presenceforge::{ActivityBuilder, Result};
 use std::time::Duration;

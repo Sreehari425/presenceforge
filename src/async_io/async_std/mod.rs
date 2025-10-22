@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{PipeConfig, constants};
+use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using async-std
 pub(crate) enum AsyncStdConnection {

@@ -1,9 +1,9 @@
 #[cfg(feature = "tokio-runtime")]
 mod tokio_example {
     use clap::Parser;
-    use presenceforge::retry::{RetryConfig, with_retry_async};
+    use presenceforge::retry::{with_retry_async, RetryConfig};
     use presenceforge::{ActivityBuilder, AsyncDiscordIpcClient, Result};
-    use tokio::time::{Duration, sleep};
+    use tokio::time::{sleep, Duration};
 
     /// Discord Rich Presence Async Tokio Reconnection Example
     #[derive(Parser, Debug)]
