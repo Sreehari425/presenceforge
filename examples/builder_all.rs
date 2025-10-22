@@ -37,7 +37,7 @@ fn main() -> Result {
 
     println!("=== Complete ActivityBuilder Reference Example ===\n");
 
-    let mut client = DiscordIpcClient::new(&client_id)?;
+    let mut client = DiscordIpcClient::new(client_id)?;
 
     // Perform handshake
     println!("Connecting to Discord...");

@@ -31,7 +31,7 @@ fn main() -> Result {
             std::process::exit(1);
         });
 
-    let mut client = DiscordIpcClient::new(&client_id)?;
+    let mut client = DiscordIpcClient::new(client_id)?;
 
     println!("🎮 Starting Discord Rich Presence for Game Demo...");
     client.connect()?;
