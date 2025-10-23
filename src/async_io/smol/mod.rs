@@ -306,7 +306,15 @@ impl AsyncWrite for SmolConnection {
 
                     // Use smol's unblock to handle synchronous I/O in async context
                     smol::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.write(&data)
                     })
                     .await
@@ -327,7 +335,15 @@ impl AsyncWrite for SmolConnection {
                     let pipe_clone = Arc::clone(pipe);
 
                     smol::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.flush()
                     })
                     .await
