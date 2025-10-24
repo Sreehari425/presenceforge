@@ -2,7 +2,7 @@
 
 This document explains every field available in the ActivityBuilder and how it appears in Discord.
 
-> ⚠️ **NOTE:** There are  feature which experimental/untested. Use at your own risk.
+> ⚠️ **NOTE:** There are features which are experimental/untested. Use at your own risk.
 
 ## Visual Layout
 
