@@ -164,42 +164,6 @@ fn main() -> Result {
 }
 ```
 
-## Examples
-
-### Game Integration
-
-```rust
-use presenceforge::ActivityBuilder;
-use presenceforge::sync::DiscordIpcClient;
-let activity = ActivityBuilder::new()
-    .state("Forest Level")
-    .details("Fighting goblins")
-    .start_timestamp_now()
-    .large_image("forest_map")
-    .large_text("Enchanted Forest")
-    .small_image("player_avatar")
-    .small_text("Level 25 Warrior")
-    .button("Play Now", "https://your-game.com")
-    .button("Leaderboard", "https://your-game.com/leaderboard")
-    .build();
-
-client.set_activity(&activity)?;
-```
-
-### Developer Tools
-
-```rust
-let activity = ActivityBuilder::new()
-    .state("Writing Rust code")
-    .details("Building Discord RPC library")
-    .start_timestamp_now()
-    .large_image("rust_logo")
-    .large_text("Rust Programming")
-    .small_image("vscode")
-    .small_text("VS Code")
-    .button("View on GitHub", "https://github.com/your-username/repo")
-    .build();
-```
 
 ## Getting Your Discord Application ID
 
