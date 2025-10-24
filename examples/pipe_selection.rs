@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let custom_path = pipes[0].path.clone();
             println!("4. Connecting using custom path: {}...", custom_path);
             let mut client3 = DiscordIpcClient::new_with_config(
-                "your_client_id",
+                &client_id,
                 Some(PipeConfig::CustomPath(custom_path.clone())),
             )?;
             client3.connect()?;
@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pipe_num, pipe_path
         );
         let mut client4 = DiscordIpcClient::new_with_config_and_timeout(
-            "your_client_id",
+            &client_id,
             Some(PipeConfig::CustomPath(pipe_path)),
             5000,
         )?;
