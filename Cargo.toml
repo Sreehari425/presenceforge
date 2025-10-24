@@ -1,6 +1,6 @@
 [package]
 name = "presenceforge"
-version = "0.1.0-dev"
+version = "0.1.0"
 edition = "2021"
 authors = ["Sreehari Anil <sreehari7102008@gmail.com>"]
 description = "A library for Discord Rich Presence (IPC) integration"
