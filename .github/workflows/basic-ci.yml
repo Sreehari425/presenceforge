@@ -27,7 +27,7 @@ jobs:
           submodules: true
 
       - name: Toolchain (stable with rustfmt, clippy)
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.78
         with:
           components: rustfmt, clippy
 

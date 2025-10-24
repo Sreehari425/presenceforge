@@ -30,7 +30,7 @@ fn main() -> Result {
             std::process::exit(1);
         });
 
-    let mut client = DiscordIpcClient::new(&client_id)?;
+    let mut client = DiscordIpcClient::new(client_id)?;
 
     // Perform handshake
     client.connect()?;

@@ -37,7 +37,7 @@ fn main() -> Result {
 
     println!("=== Complete ActivityBuilder Reference Example ===\n");
 
-    let mut client = DiscordIpcClient::new(&client_id)?;
+    let mut client = DiscordIpcClient::new(client_id)?;
 
     // Perform handshake
     println!("Connecting to Discord...");
@@ -47,7 +47,7 @@ fn main() -> Result {
     // Create an activity with ALL possible fields
     println!("Setting activity with all available options...\n");
 
-    let activity = ActivityBuilder::new()
+    let mut builder = ActivityBuilder::new()
         // ═══════════════════════════════════════════════════════════
         // BASIC TEXT FIELDS
         // ═══════════════════════════════════════════════════════════
@@ -62,7 +62,6 @@ fn main() -> Result {
         // ═══════════════════════════════════════════════════════════
         // Start timestamp: Shows "elapsed" time (e.g., "00:15 elapsed")
         // Use .start_timestamp_now() for current time
-        .start_timestamp_now()?
         // End timestamp: Shows "remaining" time (e.g., "02:30 left")
         // Note: If you set both start and end, Discord shows remaining time
         // Uncomment to try:
@@ -88,35 +87,44 @@ fn main() -> Result {
         // Useful for multiplayer games showing current players
         // Parameters: party_id, current_size, max_size
         .party("party-12345", 2, 4)
-        // ═══════════════════════════════════════════════════════════
-        // BUTTONS (Clickable buttons - max 2)
-        // ═══════════════════════════════════════════════════════════
-        // Button 1: First clickable button
-        // Parameters: label (button text), url (where it goes)
-        .button(" View Game", "https://example.com/game")
-        // Button 2: Second clickable button
-        // Note: Discord only allows up to 2 buttons
-        .button(" Documentation", "https://docs.rs/presenceforge")
+        // NOTE : BUTTONS and SECRETS are mutually exclusive. We add buttons
+        // only when the `secrets` feature is NOT enabled so the example
+        // remains valid in both configurations.
         // ═══════════════════════════════════════════════════════════
         // SECRETS (For "Ask to Join" and spectate features)
         // ═══════════════════════════════════════════════════════════
-        // NOTE: Secret methods require the 'secrets' feature flag
-        // Uncomment and enable the feature to use these:
-        //
-        // #[cfg(feature = "secrets")]
-        // .join_secret("join_secret_12345")
-        // #[cfg(feature = "secrets")]
-        // .spectate_secret("spectate_secret_67890")
-        // #[cfg(feature = "secrets")]
-        // .match_secret("match_secret_abcde")
+        // NOTE: Secret methods require the 'secrets' feature flag.
+        // To enable, run the example with `--features secrets`.
+        // The secret methods are only compiled when the feature is enabled,
+        // so we call them inside a cfg block below.
         // ═══════════════════════════════════════════════════════════
         // INSTANCE (Boolean flag)
         // ═══════════════════════════════════════════════════════════
         // Instance: Whether this is an instanced context (like a match)
         // Set to true for unique game instances, false for general activities
-        .instance(true)
-        // Build the activity
-        .build();
+        .instance(true);
+    // Apply the start timestamp (this can fail if system time is invalid)
+    builder = builder.start_timestamp_now()?;
+
+    // Conditionally add buttons when the secrets feature is NOT enabled
+    #[cfg(not(feature = "secrets"))]
+    {
+        builder = builder
+            .button("View Game", "https://example.com/game")
+            .button("Documentation", "https://docs.rs/presenceforge");
+    }
+
+    // Conditionally add secrets when feature is enabled
+    #[cfg(feature = "secrets")]
+    {
+        builder = builder
+            .join_secret("join_secret_12345")
+            .spectate_secret("spectate_secret_67890")
+            .match_secret("match_secret_abcde");
+    }
+
+    // Build the activity
+    let activity = builder.build();
 
     // Set the activity
     // println!("{activity:?}");
@@ -129,7 +137,10 @@ fn main() -> Result {
     println!("   • Large image with tooltip");
     println!("   • Small image (Rust logo) in corner");
     println!("   • Party info: '2 of 4'");
+    #[cfg(not(feature = "secrets"))]
     println!("   • Two clickable buttons");
+    #[cfg(feature = "secrets")]
+    println!("   • Join/spectate/match secrets enabled (ask-to-join)");
     println!("   • Elapsed time counter");
 
     // Keep activity visible for 30 seconds
@@ -158,7 +169,10 @@ fn main() -> Result {
     println!("│                   Party: 2 of 4         │");
     println!("│                   ⏱ 00:15 elapsed       │");
     println!("│                                         │");
+    #[cfg(not(feature = "secrets"))]
     println!("│  [Button 1]       [Button 2]            │");
+    #[cfg(feature = "secrets")]
+    println!("│  [Secrets]                             │");
     println!("└─────────────────────────────────────────┘");
     println!();
     println!("💡 Tips:");

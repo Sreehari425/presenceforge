@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{PipeConfig, constants};
+use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using async-std
 pub(crate) enum AsyncStdConnection {
@@ -298,7 +298,15 @@ impl AsyncWrite for AsyncStdConnection {
 
                     // Use blocking crate to handle synchronous I/O in async context
                     blocking::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.write(&data)
                     })
                     .await
@@ -319,7 +327,15 @@ impl AsyncWrite for AsyncStdConnection {
                     let pipe_clone = Arc::clone(pipe);
 
                     blocking::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.flush()
                     })
                     .await

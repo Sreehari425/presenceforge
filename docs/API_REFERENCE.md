@@ -2,7 +2,7 @@
 
 API reference for PresenceForge (work-in-progress; APIs may change).
 
-> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> **Note:** PresenceForge v0.1.0 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## Table of Contents

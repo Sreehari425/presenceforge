@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{PipeConfig, constants};
+use crate::ipc::{constants, PipeConfig};
 
 /// A Discord IPC connection using smol
 pub(crate) enum SmolConnection {
@@ -306,7 +306,15 @@ impl AsyncWrite for SmolConnection {
 
                     // Use smol's unblock to handle synchronous I/O in async context
                     smol::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.write(&data)
                     })
                     .await
@@ -327,7 +335,15 @@ impl AsyncWrite for SmolConnection {
                     let pipe_clone = Arc::clone(pipe);
 
                     smol::unblock(move || {
-                        let mut file = pipe_clone.lock().unwrap();
+                        let mut file = match pipe_clone.lock() {
+                            Ok(f) => f,
+                            Err(e) => {
+                                return Err(io::Error::new(
+                                    io::ErrorKind::Other,
+                                    format!("Mutex poisoned: {}", e),
+                                ));
+                            }
+                        };
                         file.flush()
                     })
                     .await
@@ -447,8 +463,8 @@ pub mod client {
 
         /// Performs handshake with Discord with a timeout
         pub async fn connect_with_timeout(&mut self, timeout_duration: Duration) -> Result<Value> {
-            use smol::Timer;
             use smol::future::or;
+            use smol::Timer;
 
             match or(
                 async move {
@@ -509,8 +525,8 @@ pub mod client {
             &mut self,
             timeout_duration: Duration,
         ) -> impl std::future::Future<Output = Result<Value>> + Send {
-            use smol::Timer;
             use smol::future::or;
+            use smol::Timer;
 
             async move {
                 match or(

@@ -2,7 +2,7 @@
 
 This document explains every field available in the ActivityBuilder and how it appears in Discord.
 
-> ⚠️ **NOTE:** This feature is experimental/untested. Use at your own risk.
+> ⚠️ **NOTE:** There are features which are experimental/untested. Use at your own risk.
 
 ## Visual Layout
 
@@ -174,7 +174,7 @@ let end_time = now + 300;
 ### 8. **Secrets** (For "Ask to Join" and Spectate features)
 
 > **⚠️ Feature Flag Required:** These methods require the `secrets` feature flag to be enabled.
-> Add to your `Cargo.toml`: `presenceforge = { version = "0.1.0-dev", features = ["secrets"] }`
+> Add to your `Cargo.toml`: `presenceforge = { version = "0.1.0", features = ["secrets"] }`
 
 #### Note: untested feature
 

@@ -1,6 +1,6 @@
 #![allow(clippy::collapsible_if)]
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::VecDeque;
 use std::process;
 use std::time::{Duration, Instant};
@@ -9,7 +9,7 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
-    Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig, constants,
+    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
 };
 use crate::nonce::generate_nonce;
 

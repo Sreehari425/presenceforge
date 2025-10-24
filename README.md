@@ -6,10 +6,9 @@ A Rust library for Discord Rich Presence that actually works without the headach
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 ![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
-> **Note**: This is currently in development (v0.1.0-dev). Things might break
+> **Note**: This is currently in development (v0.1.0). Things might break.
 > This is a learning/hobby project.
 > Features and APIs may change in future versions.
-
 
 ## Documentation
 
@@ -27,7 +26,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 ## What Works
 
 - [x] Linux and macOS (Unix domain sockets)
-- [x] Windows support (named pipes) 
+- [x] Windows support (named pipes)
 - [x] Flatpak Discord support (automatic detection)
 - [x] Basic Rich Presence activities
 - [x] Activity builder pattern
@@ -42,20 +41,19 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.1.0-dev"
+presenceforge = "0.1.0"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
 # OR
-presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
 # OR
-presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
 ```
-
 
 ### Basic Usage (Synchronous)
 
@@ -166,42 +164,6 @@ fn main() -> Result {
 }
 ```
 
-## Examples
-
-### Game Integration
-
-```rust
-use presenceforge::ActivityBuilder;
-use presenceforge::sync::DiscordIpcClient;
-let activity = ActivityBuilder::new()
-    .state("Forest Level")
-    .details("Fighting goblins")
-    .start_timestamp_now()
-    .large_image("forest_map")
-    .large_text("Enchanted Forest")
-    .small_image("player_avatar")
-    .small_text("Level 25 Warrior")
-    .button("Play Now", "https://your-game.com")
-    .button("Leaderboard", "https://your-game.com/leaderboard")
-    .build();
-
-client.set_activity(&activity)?;
-```
-
-### Developer Tools
-
-```rust
-let activity = ActivityBuilder::new()
-    .state("Writing Rust code")
-    .details("Building Discord RPC library")
-    .start_timestamp_now()
-    .large_image("rust_logo")
-    .large_text("Rust Programming")
-    .small_image("vscode")
-    .small_text("VS Code")
-    .button("View on GitHub", "https://github.com/your-username/repo")
-    .build();
-```
 
 ## Getting Your Discord Application ID
 

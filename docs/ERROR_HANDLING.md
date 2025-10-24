@@ -25,7 +25,7 @@ PresenceForge uses the `DiscordIpcError` enum for all error cases. All fallible 
 use presenceforge::Result;
 use presenceforge::sync::DiscordIpcClient;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
 
@@ -178,8 +178,8 @@ match category {
 
 ```rust
 if error.is_connection_error() {
-    eprintln!("💡 Tip: Make sure Discord is running!");
-    eprintln!("💡 Try: ps aux | grep -i discord");
+    eprintln!(" Tip: Make sure Discord is running!");
+    eprintln!(" Try: ps aux | grep -i discord");
 }
 ```
 
@@ -187,7 +187,7 @@ if error.is_connection_error() {
 
 ```rust
 if error.is_recoverable() {
-    println!("♻️ This error might be recoverable - trying again...");
+    println!(" This error might be recoverable - trying again...");
     retry_logic();
 } else {
     eprintln!(" Fatal error - cannot continue");
@@ -215,8 +215,8 @@ fn connect_to_discord(client_id: &str) -> Result<DiscordIpcClient, Box<dyn std::
         }
         Err(DiscordIpcError::ConnectionFailed(_)) => {
             eprintln!(" Cannot connect to Discord");
-            eprintln!("🔍 Make sure Discord is running");
-            eprintln!("💡 Start Discord and try again");
+            eprintln!(" Make sure Discord is running");
+            eprintln!(" Start Discord and try again");
             Err("Discord not running".into())
         }
         Err(e) => Err(e.into()),
@@ -248,7 +248,7 @@ fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::er
                 println!(" Activity updated");
             }
             Err(e) if e.is_connection_error() => {
-                eprintln!("⚠️ Connection lost. Recreating client and reconnecting...");
+                eprintln!(" Connection lost. Recreating client and reconnecting...");
                 // Recreate the client (sync API has no reconnect method)
                 client = DiscordIpcClient::new("your_client_id")?;
                 let _ = client.connect()?;
@@ -445,15 +445,15 @@ fn setup_client() -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
     // Get client ID from environment
     let client_id = env::var("DISCORD_CLIENT_ID").map_err(|_| {
         eprintln!(" DISCORD_CLIENT_ID environment variable not set");
-        eprintln!("💡 Set it with: export DISCORD_CLIENT_ID='your_app_id'");
-        eprintln!("💡 Get your App ID from: https://discord.com/developers/applications");
+        eprintln!(" Set it with: export DISCORD_CLIENT_ID='your_app_id'");
+        eprintln!(" Get your App ID from: https://discord.com/developers/applications");
         "Missing DISCORD_CLIENT_ID"
     })?;
 
     // Validate client ID format (should be numeric)
     if !client_id.chars().all(|c| c.is_numeric()) {
         eprintln!(" Invalid client ID format: {}", client_id);
-        eprintln!("💡 Client ID should be a numeric string");
+        eprintln!(" Client ID should be a numeric string");
         return Err("Invalid client ID format".into());
     }
 
@@ -462,7 +462,7 @@ fn setup_client() -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
         Ok(c) => c,
         Err(DiscordIpcError::InvalidClientId) => {
             eprintln!(" Discord rejected client ID: {}", client_id);
-            eprintln!("💡 Verify this is the correct Application ID");
+            eprintln!(" Verify this is the correct Application ID");
             return Err("Invalid client ID".into());
         }
         Err(e) => return Err(e.into()),
@@ -688,8 +688,8 @@ fn update_presence_best_effort(
     match client.set_activity(activity) {
         Ok(_) => println!(" Presence updated"),
         Err(e) => {
-            eprintln!("⚠️ Failed to update presence: {}", e);
-            eprintln!("💡 Continuing without Rich Presence");
+            eprintln!(" Failed to update presence: {}", e);
+            eprintln!(" Continuing without Rich Presence");
             // Application continues without Rich Presence
         }
     }
@@ -704,7 +704,7 @@ fn update_presence_best_effort(
 fn connect_with_user_feedback(
     client_id: &str
 ) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
-    println!("🔄 Connecting to Discord...");
+    println!(" Connecting to Discord...");
 
     match DiscordIpcClient::new(client_id) {
         Ok(mut client) => {
@@ -715,7 +715,7 @@ fn connect_with_user_feedback(
                 }
                 Err(e) => {
                     eprintln!(" Handshake failed: {}", e);
-                    eprintln!("💡 Try restarting Discord");
+                    eprintln!(" Try restarting Discord");
                     Err(e.into())
                 }
             }
@@ -723,7 +723,7 @@ fn connect_with_user_feedback(
         Err(e) => {
             eprintln!(" Connection failed: {}", e);
             eprintln!();
-            eprintln!("🔍 Troubleshooting checklist:");
+            eprintln!(" Troubleshooting checklist:");
             eprintln!("   [ ] Discord is installed");
             eprintln!("   [ ] Discord is running");
             eprintln!("   [ ] Discord is not blocked by firewall");

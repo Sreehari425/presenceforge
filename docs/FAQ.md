@@ -52,11 +52,11 @@ git ls-remote git@github.com:Sreehari425/presenceforge.git
 
 If SSH works but you still have issues, please report them on GitHub Issues.
 
-For now, use version `0.1.0-dev` instead:
+For now, use version `0.1.0` instead:
 
 ```toml
 [dependencies]
-presenceforge = "0.1.0-dev"
+presenceforge = "0.1.0"
 ```
 
 ---
@@ -74,7 +74,7 @@ The feature is called `tokio-runtime`, not `tokio`:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
 ```
 
 Valid features: `tokio-runtime`, `async-std-runtime`, `smol-runtime`
@@ -94,7 +94,7 @@ Make sure you're using compatible versions:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["full"] }  # Use version 1.x
 ```
 

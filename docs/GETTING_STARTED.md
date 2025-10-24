@@ -2,7 +2,7 @@
 
 Welcome to PresenceForge! This guide will help you get started with integrating Discord Rich Presence into your Rust application.
 
-> **Note:** PresenceForge v0.1.0-dev is an early development release.  
+> **Note:** PresenceForge v0.1.0 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## What is Discord Rich Presence?
@@ -36,7 +36,7 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.1.0-dev"
+presenceforge = "0.1.0"
 ```
 
 ### With Async Support
@@ -46,13 +46,13 @@ If you need async support, add one of the runtime features:
 ```toml
 [dependencies]
 # For Tokio users
-presenceforge = { version = "0.1.0-dev", features = ["tokio-runtime"] }
+presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
 
 # For async-std users
-presenceforge = { version = "0.1.0-dev", features = ["async-std-runtime"] }
+presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
 
 # For smol users
-presenceforge = { version = "0.1.0-dev", features = ["smol-runtime"] }
+presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
 ```
 
 ## Your First Rich Presence
@@ -70,7 +70,7 @@ cd my-discord-presence
 
 ```toml
 [dependencies]
-presenceforge = "0.1.0-dev"
+presenceforge = "0.1.0"
 ```
 
 ### Step 3: Write your first presence
