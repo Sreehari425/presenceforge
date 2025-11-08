@@ -83,6 +83,8 @@ async fn setup_presence() -> Result {
 
     // Connect to Discord
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -156,6 +158,7 @@ async fn main() -> Result {
 
     // Connect to Discord
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -336,6 +339,7 @@ async fn main() -> Result {
     // Create and connect client
     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -435,6 +439,7 @@ fn main() -> Result {
         // Create and connect client
         let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
         client.connect().await?;
+        debug_assert!(client.is_connected(), "Discord handshake failed");
 
         println!("Connected to Discord!");
 

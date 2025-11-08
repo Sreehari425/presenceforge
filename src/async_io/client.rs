@@ -26,6 +26,7 @@ where
     read_buf: BytesMut,
     write_buf: BytesMut,
     pending_messages: VecDeque<PendingMessage>,
+    connected: bool,
 }
 
 impl<T> AsyncDiscordIpcClient<T>
@@ -46,6 +47,7 @@ where
             read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
             write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
             pending_messages: VecDeque::new(),
+            connected: false,
         }
     }
 
@@ -60,6 +62,7 @@ where
     /// Returns `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub async fn connect(&mut self) -> Result<Value> {
         self.pending_messages.clear();
+        self.connected = false;
 
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
@@ -97,6 +100,7 @@ where
             )));
         }
 
+        self.connected = true;
         Ok(response)
     }
 
@@ -272,6 +276,11 @@ where
     /// Returns a `DiscordIpcError` if deserialization or communication fails
     pub async fn recv_message(&mut self) -> Result<(Opcode, Value)> {
         self.next_message().await
+    }
+
+    /// Returns `true` once a handshake has been successfully completed.
+    pub fn is_connected(&self) -> bool {
+        self.connected
     }
 
     /// Remove pending responses older than the provided `max_age` and return how many were dropped.

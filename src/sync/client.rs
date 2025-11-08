@@ -20,6 +20,7 @@ pub struct DiscordIpcClient {
     pipe_config: Option<PipeConfig>,
     timeout_ms: Option<u64>,
     pending_messages: VecDeque<PendingMessage>,
+    connected: bool,
 }
 
 impl DiscordIpcClient {
@@ -67,6 +68,7 @@ impl DiscordIpcClient {
             pipe_config: config,
             timeout_ms: None,
             pending_messages: VecDeque::new(),
+            connected: false,
         })
     }
 
@@ -126,6 +128,7 @@ impl DiscordIpcClient {
             pipe_config: config,
             timeout_ms: Some(timeout_ms),
             pending_messages: VecDeque::new(),
+            connected: false,
         })
     }
 
@@ -140,6 +143,7 @@ impl DiscordIpcClient {
     /// Returns a `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub fn connect(&mut self) -> Result<Value> {
         self.pending_messages.clear();
+        self.connected = false;
 
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
@@ -177,6 +181,7 @@ impl DiscordIpcClient {
             )));
         }
 
+        self.connected = true;
         Ok(response)
     }
 
@@ -326,6 +331,11 @@ impl DiscordIpcClient {
         self.next_message()
     }
 
+    /// Returns `true` once a handshake has been successfully completed.
+    pub fn is_connected(&self) -> bool {
+        self.connected
+    }
+
     /// Remove pending responses older than the provided `max_age` and return how many were dropped.
     pub fn cleanup_pending(&mut self, max_age: Duration) -> usize {
         if max_age.is_zero() {
@@ -345,6 +355,7 @@ impl DiscordIpcClient {
     pub fn close(&mut self) {
         self.connection.close();
         self.pending_messages.clear();
+        self.connected = false;
     }
 
     /// Reconnect to Discord IPC
@@ -393,6 +404,7 @@ impl DiscordIpcClient {
             IpcConnection::new_with_config(self.pipe_config.clone())?
         };
         self.pending_messages.clear();
+        self.connected = false;
 
         // Perform handshake
         self.connect()

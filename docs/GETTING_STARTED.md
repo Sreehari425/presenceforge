@@ -131,6 +131,9 @@ let mut client = DiscordIpcClient::new(client_id)?;
 
 // 2. Connect to Discord (this performs the handshake)
 client.connect()?;
+// Optional sanity check to catch missed connect paths in bigger apps
+debug_assert!(client.is_connected(), "Handshake did not complete");
+assert!(client.is_connected(), "Handshake did not complete");
 
 // 3. Build your activity with the builder pattern
 let activity = ActivityBuilder::new()

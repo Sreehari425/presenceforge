@@ -394,6 +394,11 @@ pub mod client {
             self.inner.connect().await
         }
 
+        /// Returns `true` once a handshake has been successfully completed.
+        pub fn is_connected(&self) -> bool {
+            self.inner.is_connected()
+        }
+
         /// Sets Discord Rich Presence activity
         pub async fn set_activity(&mut self, activity: &crate::activity::Activity) -> Result<()> {
             self.inner.set_activity(activity).await

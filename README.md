@@ -63,6 +63,8 @@ use presenceforge::sync::DiscordIpcClient;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = DiscordIpcClient::new("your_client_id")?;
     client.connect()?;
+    // Optional sanity check if your setup is more complex
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     let activity = ActivityBuilder::new()
         .state("Playing a game")
@@ -91,6 +93,7 @@ use presenceforge::{AsyncDiscordIpcClient, ActivityBuilder, Result};
 async fn main() -> Result {
     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     let activity = ActivityBuilder::new()
         .state("Playing a game")
@@ -119,6 +122,7 @@ use std::time::Duration;
 async fn main() -> Result {
     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     let activity = ActivityBuilder::new()
         .state("Playing a game")
@@ -146,6 +150,7 @@ fn main() -> Result {
     smol::block_on(async {
         let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
         client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
         let activity = ActivityBuilder::new()
             .state("Playing a game")
@@ -163,7 +168,6 @@ fn main() -> Result {
     })
 }
 ```
-
 
 ## Getting Your Discord Application ID
 
@@ -217,6 +221,7 @@ cargo run --example basic
 
 - `DiscordIpcClient::new(client_id)` - Create a new client
 - `client.connect()` - Connect to Discord
+- `client.is_connected()` - Check if the handshake succeeded
 - `client.set_activity(activity)` - Set Rich Presence activity
 - `client.clear_activity()` - Clear current activity
 

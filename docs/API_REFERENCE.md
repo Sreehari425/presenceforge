@@ -94,6 +94,24 @@ let _handshake = client.connect()?; // JSON handshake payload
 
 ---
 
+#### `is_connected(&self) -> bool`
+
+Returns `true` after a successful handshake and `false` otherwise.
+
+```rust
+if !client.is_connected() {
+    // Guard against logic bugs where `connect()` was skipped
+    anyhow::bail!("Discord client is not connected");
+}
+```
+
+**Notes:**
+
+- Automatically resets to `false` when the underlying connection closes or before the next handshake attempt.
+- Useful for sanity checks in larger applications where the connect step might be conditional.
+
+---
+
 // (No sync reconnect method)
 // If the connection is lost, recreate the client and call connect() again.
 
@@ -654,6 +672,8 @@ if error.is_recoverable() {
 ## Async Clients
 
 Async versions of the IPC client for different runtimes.
+
+All async variants expose the same surface as `AsyncDiscordIpcClient`, including `is_connected()` for sanity checks between awaits.
 
 ### Tokio
 
