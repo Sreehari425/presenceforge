@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 //! Runtime-agnostic async I/O traits
 //!
 //! These traits provide a common interface for async I/O operations
