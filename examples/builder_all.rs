@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 // Comprehensive example demonstrating ALL ActivityBuilder options
 //
 // This example shows every available builder method with explanations

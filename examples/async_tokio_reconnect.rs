@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 #[cfg(feature = "tokio-runtime")]
 mod tokio_example {
     use clap::Parser;

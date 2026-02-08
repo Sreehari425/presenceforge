@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 /// Global debug flag to control debug output
 /// Set to `true` to enable debug prints or use PRESENCEFORGE_DEBUG=1 environment variable
 use std::sync::OnceLock;

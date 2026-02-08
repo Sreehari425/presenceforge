@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 //! Async implementation of Discord Rich Presence client
 //!
 //! This module provides a runtime-agnostic async implementation of the Discord IPC client

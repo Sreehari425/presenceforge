@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 //! Tokio-specific implementations for async Discord IPC
 
 #[cfg(windows)]

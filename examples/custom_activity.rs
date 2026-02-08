@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0 
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 use clap::Parser;
 use presenceforge::{
     Activity, ActivityAssets, ActivityButton, ActivityTimestamps, DiscordIpcClient, Result,
