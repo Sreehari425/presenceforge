@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT OR Apache-2.0 
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
 // Basic example for connecting to Flatpak Discord using custom path configuration
