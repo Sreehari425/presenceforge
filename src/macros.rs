@@ -11,12 +11,13 @@ pub fn is_debug_enabled() -> bool {
             .unwrap_or(false)
     })
 }
-/// Macro for conditional debug printing
+
+/// Macro for conditional debug printing using the log crate
 #[macro_export]
 macro_rules! debug_println {
     ($($arg:tt)*) => {
         if $crate::macros::is_debug_enabled() {
-            println!($($arg)*);
+            log::debug!($($arg)*);
         }
     };
 }

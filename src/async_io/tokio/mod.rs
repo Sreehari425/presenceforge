@@ -74,44 +74,16 @@ impl TokioConnection {
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
     async fn connect_unix_auto() -> Result<Self> {
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir.clone());
-
-                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if env_key == &"XDG_RUNTIME_DIR" {
-                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                }
-            }
-        }
-
-        // Fallback to /run/user/{uid} if no env vars found
-        if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
-            directories.push(format!("/run/user/{}", uid));
-            // Also try Flatpak path as fallback
-            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
-        }
-
-        // Try each directory with each socket number
         let mut last_error = None;
 
-        for dir in &directories {
-            for i in 0..constants::MAX_IPC_SOCKETS {
-                let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
-
-                match UnixStream::connect(&socket_path).await {
-                    Ok(stream) => {
-                        return Ok(Self::Unix(stream));
-                    }
-                    Err(err) => {
-                        last_error = Some(err);
-                        continue;
-                    }
+        for socket_path in crate::ipc::discovery::get_socket_paths() {
+            match UnixStream::connect(&socket_path).await {
+                Ok(stream) => {
+                    return Ok(Self::Unix(stream));
+                }
+                Err(err) => {
+                    last_error = Some(err);
+                    continue;
                 }
             }
         }
@@ -149,9 +121,7 @@ impl TokioConnection {
     async fn connect_windows_auto() -> Result<Self> {
         let mut last_error = None;
 
-        for i in 0..constants::MAX_IPC_SOCKETS {
-            let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
-
+        for pipe_path in crate::ipc::discovery::get_pipe_paths() {
             // Try to open the named pipe
             debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
             match ClientOptions::new().open(pipe_path.clone()) {
@@ -303,6 +273,25 @@ pub mod client {
         /// Clears Discord Rich Presence activity
         pub async fn clear_activity(&mut self) -> Result<Value> {
             self.inner.clear_activity().await
+        }
+
+        /// Subscribe to a Discord IPC event.
+        pub async fn subscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result<()> {
+            self.inner.subscribe(event, args).await
+        }
+
+        /// Unsubscribe from a Discord IPC event.
+        pub async fn unsubscribe<S: Into<String>>(
+            &mut self,
+            event: S,
+            args: Value,
+        ) -> Result<()> {
+            self.inner.unsubscribe(event, args).await
+        }
+
+        /// Wait for the next IPC event.
+        pub async fn next_event(&mut self) -> Result<crate::ipc::EventData> {
+            self.inner.next_event().await
         }
 
         /// Reconnect to Discord IPC

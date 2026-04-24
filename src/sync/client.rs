@@ -199,7 +199,7 @@ impl DiscordIpcClient {
 
         match response.parse_event()? {
             Some(EventData::Ready(ready)) => Ok(Some(ready)),
-            Some(EventData::Unknown { .. }) | None => Ok(None),
+            _ => Ok(None),
         }
     }
 
@@ -226,6 +226,7 @@ impl DiscordIpcClient {
                 "activity": activity
             }),
             nonce: nonce.clone(),
+            evt: None,
         };
 
         let payload = serde_json::to_value(message)?;
@@ -293,6 +294,7 @@ impl DiscordIpcClient {
                 "activity": Value::Null
             }),
             nonce: nonce.clone(),
+            evt: None,
         };
 
         let payload = serde_json::to_value(message)?;
@@ -335,6 +337,96 @@ impl DiscordIpcClient {
         }
 
         Ok(response)
+    }
+
+    /// Subscribe to a Discord IPC event
+    pub fn subscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result {
+        let event = event.into();
+        let nonce = generate_nonce("subscribe");
+
+        let message = IpcMessage {
+            cmd: Command::Subscribe,
+            args,
+            nonce: nonce.clone(),
+            evt: Some(event),
+        };
+
+        let payload = serde_json::to_value(message)?;
+        self.connection.send(Opcode::Frame, &payload)?;
+
+        let (_, response) = self.recv_for_nonce(&nonce)?;
+
+        if let Some(err) = response.get("error") {
+            let code = err.get("code").and_then(|c| c.as_i64()).unwrap_or(0) as i32;
+            let message = err
+                .get("message")
+                .and_then(|m| m.as_str())
+                .unwrap_or("Unknown error");
+            return Err(DiscordIpcError::discord_error(code, message));
+        }
+
+        Ok(())
+    }
+
+    /// Unsubscribe from a Discord IPC event
+    pub fn unsubscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result {
+        let event = event.into();
+        let nonce = generate_nonce("unsubscribe");
+
+        let message = IpcMessage {
+            cmd: Command::Unsubscribe,
+            args,
+            nonce: nonce.clone(),
+            evt: Some(event),
+        };
+
+        let payload = serde_json::to_value(message)?;
+        self.connection.send(Opcode::Frame, &payload)?;
+
+        let (_, response) = self.recv_for_nonce(&nonce)?;
+
+        if let Some(err) = response.get("error") {
+            let code = err.get("code").and_then(|c| c.as_i64()).unwrap_or(0) as i32;
+            let message = err
+                .get("message")
+                .and_then(|m| m.as_str())
+                .unwrap_or("Unknown error");
+            return Err(DiscordIpcError::discord_error(code, message));
+        }
+
+        Ok(())
+    }
+
+    /// Blocks until the next event is received
+    pub fn next_event(&mut self) -> Result<EventData> {
+        if let Some(event) = self.take_pending_event()? {
+            return Ok(event);
+        }
+
+        loop {
+            let (opcode, payload) = self.connection.recv()?;
+
+            if !opcode.is_frame_response() {
+                self.pending_messages
+                    .push_back(PendingMessage::new(opcode, payload));
+                continue;
+            }
+
+            let response: IpcResponse = serde_json::from_value(payload.clone())
+                .map_err(DiscordIpcError::DeserializationFailed)?;
+
+            if let Some(event) = response.parse_event()? {
+                return Ok(event);
+            }
+
+            self.pending_messages
+                .push_back(PendingMessage::new(opcode, payload));
+        }
+    }
+
+    /// Checks for a queued event without blocking
+    pub fn poll_event(&mut self) -> Result<Option<EventData>> {
+        self.take_pending_event()
     }
 
     /// Send a raw IPC message
@@ -475,6 +567,30 @@ impl DiscordIpcClient {
             .and_then(|n| n.as_str())
             .map(|actual| actual == expected_nonce)
             .unwrap_or(false)
+    }
+
+    fn take_pending_event(&mut self) -> Result<Option<EventData>> {
+        let position = self
+            .pending_messages
+            .iter()
+            .position(|message| Self::value_is_event(&message.payload));
+
+        if let Some(index) = position {
+            if let Some(message) = self.pending_messages.remove(index) {
+                let response: IpcResponse = serde_json::from_value(message.payload)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                return response.parse_event();
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn value_is_event(value: &Value) -> bool {
+        value
+            .get("evt")
+            .and_then(|evt| evt.as_str())
+            .is_some()
     }
 }
 
