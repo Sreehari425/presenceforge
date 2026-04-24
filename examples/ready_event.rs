@@ -18,7 +18,7 @@ fn main() -> Result {
     let client_id = args
         .client_id
         .or_else(|| std::env::var("DISCORD_CLIENT_ID").ok())
-        .unwrap_or_else(|| {>
+        .unwrap_or_else(|| {
             eprintln!("Error: DISCORD_CLIENT_ID is required!");
             eprintln!("Provide it via:");
             eprintln!("  - Command line: cargo run --example ready_event -- --client-id YOUR_ID");

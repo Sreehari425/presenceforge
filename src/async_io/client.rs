@@ -12,7 +12,9 @@ use super::traits::ipc_utils::read_u32_le;
 use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{DiscordIpcError, Result};
+use crate::error::{
+    DiscordIpcError, HandshakeFailureKind, InvalidActivityKind, InvalidResponseKind, Result,
+};
 use crate::ipc::{
     constants, Command, EventData, HandshakePayload, IpcMessage, IpcResponse, Opcode, ReadyEvent,
 };
@@ -87,19 +89,19 @@ where
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::HandshakeFailed(format!(
-                    "Invalid error format: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::InvalidErrorPayload,
+                    format!("Invalid error format: {}", err),
+                ));
             }
         }
 
         // Verify opcode is correct for handshake response
         if !opcode.is_handshake_response() {
-            return Err(DiscordIpcError::HandshakeFailed(format!(
-                "Expected handshake response opcode, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::handshake_failed(
+                HandshakeFailureKind::UnexpectedOpcode,
+                format!("Expected handshake response opcode, got {:?}", opcode),
+            ));
         }
 
         self.connected = true;
@@ -135,7 +137,10 @@ where
     pub async fn set_activity(&mut self, activity: &Activity) -> Result<()> {
         // Validate the activity first
         if let Err(reason) = activity.validate() {
-            return Err(DiscordIpcError::InvalidActivity(reason));
+            return Err(DiscordIpcError::invalid_activity(
+                InvalidActivityKind::ValidationFailed,
+                reason,
+            ));
         }
 
         // Generate a cryptographically secure unique nonce for this request
@@ -158,10 +163,10 @@ where
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Expected frame response, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::invalid_response(
+                InvalidResponseKind::UnexpectedOpcode,
+                format!("Expected frame response, got {:?}", opcode),
+            ));
         }
 
         // Check for error in the response
@@ -172,20 +177,20 @@ where
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Invalid error format in response: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::InvalidErrorPayload,
+                    format!("Invalid error format in response: {}", err),
+                ));
             }
         }
 
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::NonceMismatch,
+                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce),
+                ));
             }
         }
 
@@ -222,10 +227,10 @@ where
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Expected frame response, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::invalid_response(
+                InvalidResponseKind::UnexpectedOpcode,
+                format!("Expected frame response, got {:?}", opcode),
+            ));
         }
 
         // Check for error in the response
@@ -236,20 +241,20 @@ where
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Invalid error format in response: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::InvalidErrorPayload,
+                    format!("Invalid error format in response: {}", err),
+                ));
             }
         }
 
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::NonceMismatch,
+                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce),
+                ));
             }
         }
 
@@ -351,11 +356,14 @@ where
 
         // Validate payload size to prevent excessive memory allocation
         if length > crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Payload size {} exceeds maximum allowed size of {} bytes",
-                length,
-                crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE
-            )));
+            return Err(DiscordIpcError::invalid_response(
+                InvalidResponseKind::PayloadTooLarge,
+                format!(
+                    "Payload size {} exceeds maximum allowed size of {} bytes",
+                    length,
+                    crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE
+                ),
+            ));
         }
 
         let opcode = Opcode::try_from(opcode_raw)?;

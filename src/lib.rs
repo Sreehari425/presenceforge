@@ -184,7 +184,10 @@ pub use activity::ActivitySecrets;
 pub use activity::{
     Activity, ActivityAssets, ActivityBuilder, ActivityButton, ActivityParty, ActivityTimestamps,
 };
-pub use error::{DiscordIpcError, ProtocolContext, Result};
+pub use error::{
+    DiscordIpcError, HandshakeFailureKind, InvalidActivityKind, InvalidResponseKind,
+    ProtocolContext, ProtocolViolationKind, Result,
+};
 pub use ipc::protocol::IpcConfig;
 pub use ipc::{
     Command, DiscoveredPipe, EventData, IpcConnection, Opcode, PartialUser, PipeConfig,

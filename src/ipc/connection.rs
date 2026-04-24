@@ -11,7 +11,7 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::io::{BufReader, BufWriter};
 
-use crate::error::{DiscordIpcError, ProtocolContext, Result};
+use crate::error::{DiscordIpcError, ProtocolContext, ProtocolViolationKind, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
@@ -469,6 +469,7 @@ impl IpcConnection {
         if length > constants::MAX_PAYLOAD_SIZE {
             let context = ProtocolContext::with_payload(opcode_raw, length as usize);
             return Err(DiscordIpcError::protocol_violation(
+                ProtocolViolationKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
                     length,

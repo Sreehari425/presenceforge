@@ -87,15 +87,19 @@ No Discord IPC sockets were found.
 
 ---
 
-### `HandshakeFailed(String)`
+### `HandshakeFailed { kind, details }`
 
 Discord responded with an error or an unexpected opcode during the handshake.
 
 ```rust
+use presenceforge::HandshakeFailureKind;
+
 match client.connect() {
     Ok(_) => println!("Handshake successful"),
-    Err(DiscordIpcError::HandshakeFailed(msg)) => {
-        eprintln!("Handshake failed: {}", msg);
+    Err(DiscordIpcError::HandshakeFailed { kind, details }) => {
+        if matches!(kind, HandshakeFailureKind::UnexpectedOpcode) {
+            eprintln!("Handshake opcode mismatch: {}", details);
+        }
     }
     Err(e) => eprintln!("Other error: {}", e),
 }
@@ -103,7 +107,7 @@ match client.connect() {
 
 ---
 
-### `ProtocolViolation { message, context }` and `InvalidOpcode(u32)`
+### `ProtocolViolation { kind, details, context }` and `InvalidOpcode(u32)`
 
 Indicates malformed data or unexpected protocol values. The `context` includes opcode and payload size when available.
 
@@ -121,7 +125,7 @@ if let Err(DiscordIpcError::SerializationFailed(e)) = client.set_activity(&activ
 
 ---
 
-### `InvalidResponse(String)`
+### `InvalidResponse { kind, details }`
 
 Response shape was valid JSON but not what the library expected (e.g., nonce mismatch).
 
@@ -139,7 +143,7 @@ The underlying connection closed while reading/writing.
 
 ---
 
-### `InvalidActivity(String)` and `SystemTimeError(String)`
+### `InvalidActivity { kind, details }` and `SystemTimeError(String)`
 
 Activity validation failed, or system time issues occurred while computing timestamps.
 

@@ -59,6 +59,37 @@ pub enum ErrorCategory {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum HandshakeFailureKind {
+    InvalidErrorPayload,
+    UnexpectedOpcode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum InvalidResponseKind {
+    UnexpectedOpcode,
+    InvalidErrorPayload,
+    NonceMismatch,
+    PayloadTooLarge,
+    MissingEventData,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ProtocolViolationKind {
+    InvalidOpcodeValue,
+    PayloadTooLarge,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum InvalidActivityKind {
+    ValidationFailed,
+}
+
 impl Display for ErrorCategory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -155,12 +186,18 @@ pub enum DiscordIpcError {
     DeserializationFailed(#[source] serde_json::Error),
 
     /// Received an invalid or unexpected response from Discord
-    #[error("Invalid response from Discord: {0}")]
-    InvalidResponse(String),
+    #[error("Invalid response from Discord ({kind:?}){details}")]
+    InvalidResponse {
+        kind: InvalidResponseKind,
+        details: ErrorDetail,
+    },
 
     /// Handshake with Discord failed
-    #[error("Handshake failed: {0}")]
-    HandshakeFailed(String),
+    #[error("Handshake failed ({kind:?}){details}")]
+    HandshakeFailed {
+        kind: HandshakeFailureKind,
+        details: ErrorDetail,
+    },
 
     /// Socket connection was closed unexpectedly
     #[error("Socket connection was closed unexpectedly")]
@@ -171,9 +208,10 @@ pub enum DiscordIpcError {
     InvalidOpcode(u32),
 
     /// Protocol violation occurred during IPC communication
-    #[error("Protocol violation: {message}")]
+    #[error("Protocol violation ({kind:?}){details}")]
     ProtocolViolation {
-        message: String,
+        kind: ProtocolViolationKind,
+        details: ErrorDetail,
         context: ProtocolContext,
     },
 
@@ -185,8 +223,11 @@ pub enum DiscordIpcError {
         message: String,
     },
 
-    #[error("Invalid activity: {0}")]
-    InvalidActivity(String),
+    #[error("Invalid activity ({kind:?}){details}")]
+    InvalidActivity {
+        kind: InvalidActivityKind,
+        details: ErrorDetail,
+    },
 
     /// System time error (e.g., time before UNIX epoch)
     #[error("System time error: {0}")]
@@ -206,14 +247,14 @@ impl DiscordIpcError {
                 ErrorCategory::Serialization
             }
 
-            Self::InvalidResponse(_)
-            | Self::HandshakeFailed(_)
+            Self::InvalidResponse { .. }
+            | Self::HandshakeFailed { .. }
             | Self::InvalidOpcode(_)
             | Self::ProtocolViolation { .. } => ErrorCategory::Protocol,
 
             Self::DiscordError { .. } => ErrorCategory::Application,
 
-            Self::InvalidActivity(_) | Self::SystemTimeError(_) => ErrorCategory::Other,
+            Self::InvalidActivity { .. } | Self::SystemTimeError(_) => ErrorCategory::Other,
         }
     }
 
@@ -226,9 +267,30 @@ impl DiscordIpcError {
             self,
             Self::ConnectionTimeout { .. }
                 | Self::SocketClosed
-                | Self::InvalidResponse(_)
+                | Self::InvalidResponse { .. }
                 | Self::SocketDiscoveryFailed { .. }
         )
+    }
+
+    pub fn invalid_response(kind: InvalidResponseKind, details: impl Into<ErrorDetail>) -> Self {
+        Self::InvalidResponse {
+            kind,
+            details: details.into(),
+        }
+    }
+
+    pub fn handshake_failed(kind: HandshakeFailureKind, details: impl Into<ErrorDetail>) -> Self {
+        Self::HandshakeFailed {
+            kind,
+            details: details.into(),
+        }
+    }
+
+    pub fn invalid_activity(kind: InvalidActivityKind, details: impl Into<ErrorDetail>) -> Self {
+        Self::InvalidActivity {
+            kind,
+            details: details.into(),
+        }
     }
 
     pub fn discord_error(code: i32, message: impl Into<String>) -> Self {
@@ -255,10 +317,52 @@ impl DiscordIpcError {
     }
 
     /// Create a ProtocolViolation error with message and context
-    pub fn protocol_violation(message: impl Into<String>, context: ProtocolContext) -> Self {
+    pub fn protocol_violation(
+        kind: ProtocolViolationKind,
+        details: impl Into<ErrorDetail>,
+        context: ProtocolContext,
+    ) -> Self {
         Self::ProtocolViolation {
-            message: message.into(),
+            kind,
+            details: details.into(),
             context,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ErrorDetail(Option<String>);
+
+impl ErrorDetail {
+    pub fn new(details: impl Into<Option<String>>) -> Self {
+        Self(details.into())
+    }
+}
+
+impl From<String> for ErrorDetail {
+    fn from(value: String) -> Self {
+        Self(Some(value))
+    }
+}
+
+impl From<&str> for ErrorDetail {
+    fn from(value: &str) -> Self {
+        Self(Some(value.to_string()))
+    }
+}
+
+impl From<Option<String>> for ErrorDetail {
+    fn from(value: Option<String>) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for ErrorDetail {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(detail) = &self.0 {
+            write!(f, ": {detail}")
+        } else {
+            Ok(())
         }
     }
 }
@@ -402,7 +506,10 @@ mod tests {
         assert!(conn_err.is_connection_error());
         assert!(conn_err.is_recoverable());
 
-        let proto_err = DiscordIpcError::InvalidResponse("oops".into());
+        let proto_err = DiscordIpcError::invalid_response(
+            InvalidResponseKind::UnexpectedOpcode,
+            Some("oops".to_string()),
+        );
         assert_eq!(proto_err.category(), ErrorCategory::Protocol);
         assert!(proto_err.is_recoverable());
 

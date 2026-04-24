@@ -1,4 +1,6 @@
-use crate::error::{DiscordIpcError, ProtocolContext};
+use crate::error::{
+    DiscordIpcError, InvalidResponseKind, ProtocolContext, ProtocolViolationKind,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -69,6 +71,7 @@ impl TryFrom<u32> for Opcode {
                     payload_size: None,
                 };
                 Err(DiscordIpcError::protocol_violation(
+                    ProtocolViolationKind::InvalidOpcodeValue,
                     format!("Invalid opcode value: {}", value),
                     context,
                 ))
@@ -126,7 +129,8 @@ impl IpcResponse {
         match event_name {
             "READY" => {
                 let data = self.data.clone().ok_or_else(|| {
-                    DiscordIpcError::InvalidResponse(
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
                         "READY event is missing the data payload".to_string(),
                     )
                 })?;
