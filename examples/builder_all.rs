@@ -69,6 +69,8 @@ fn main() -> Result {
         // Note: If you set both start and end, Discord shows remaining time
         // Uncomment to try:
         // .end_timestamp(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() + 300)
+        // Or use the convenience method:
+        .end_timestamp_from_now(Duration::from_secs(300))?
         // ═══════════════════════════════════════════════════════════
         // IMAGES (Large and Small)
         // ═══════════════════════════════════════════════════════════
@@ -89,7 +91,9 @@ fn main() -> Result {
         // Party: Shows "X of Y" (e.g., "2 of 4" for a party)
         // Useful for multiplayer games showing current players
         // Parameters: party_id, current_size, max_size
-        .party("party-12345", 2, 4)
+        // .party("party-12345", 2, 4)
+        // Or use the simple party method which generates a unique ID:
+        .party_simple(2, 4)
         // NOTE : BUTTONS and SECRETS are mutually exclusive. We add buttons
         // only when the `secrets` feature is NOT enabled so the example
         // remains valid in both configurations.
@@ -139,12 +143,12 @@ fn main() -> Result {
     println!("   • State: 'Playing a custom game'");
     println!("   • Large image with tooltip");
     println!("   • Small image (Rust logo) in corner");
-    println!("   • Party info: '2 of 4'");
+    println!("   • Party info: '2 of 4' (with auto-generated ID)");
     #[cfg(not(feature = "secrets"))]
     println!("   • Two clickable buttons");
     #[cfg(feature = "secrets")]
     println!("   • Join/spectate/match secrets enabled (ask-to-join)");
-    println!("   • Elapsed time counter");
+    println!("   • Time counter (elapsed AND remaining)");
 
     // Keep activity visible for 30 seconds
     println!("\nKeeping activity visible for 30 seconds...");

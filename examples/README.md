@@ -77,6 +77,12 @@ cargo run --example update_activity_tokio --features tokio-runtime -- --client-i
 
 # Flatpak Discord - Connect to Flatpak Discord using custom path configuration
 cargo run --example flatpak_discord -- --client-id YOUR_CLIENT_ID
+
+# Event Listener - Demonstrates IPC Event System (subscribe, unsubscribe, poll_event)
+cargo run --example event_listener -- --client-id YOUR_CLIENT_ID
+
+# Ready Event - Demonstrates connect_with_ready() and user data parsing
+cargo run --example ready_event -- --client-id YOUR_CLIENT_ID
 ```
 
 ## Examples Overview
@@ -94,7 +100,6 @@ Simple example showing:
 
 **Complete ActivityBuilder documentation example** showing:
 
-- Note all methods at the time of writing dosent work
 - **Every single builder method** with detailed explanations
 - **Visual layout guide** showing where each field appears in Discord
 - **Practical tips** for each option (images, timestamps, party, buttons, secrets)
@@ -225,6 +230,24 @@ Flatpak Discord example showing:
 - Step-by-step guide with detailed output
 
 **Note:** This example works with both Flatpak and standard Discord. It automatically detects which version is available.
+
+### `event_listener.rs`
+
+Demonstrates the Discord IPC Event System:
+
+- Subscribing to events (`ACTIVITY_JOIN`, `READY`, etc.)
+- Using `next_event()` to wait for events synchronously
+- Using `poll_event()` to check for events without blocking
+- Unsubscribing from events
+- Handling event data variants (`EventData`)
+
+### `ready_event.rs`
+
+Shows how to retrieve initial connection data:
+
+- Using `connect_with_ready()` to perform handshake and get READY payload
+- Accessing authenticated user information (username, ID, avatar)
+- Graceful connection closing
 
 ## Prerequisites
 

@@ -4,6 +4,124 @@
 #![allow(clippy::collapsible_if)]
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
+
+/// Typed validation failures for `Activity`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ActivityValidationError {
+    StateTooLong {
+        max: usize,
+        actual: usize,
+    },
+    DetailsTooLong {
+        max: usize,
+        actual: usize,
+    },
+    TooManyButtons {
+        max: usize,
+        actual: usize,
+    },
+    ButtonLabelTooLong {
+        max: usize,
+        actual: usize,
+    },
+    ButtonUrlTooLong {
+        max: usize,
+        actual: usize,
+    },
+    ButtonUrlMissingScheme,
+    #[cfg(feature = "secrets")]
+    ButtonsAndSecretsConflict,
+    LargeImageKeyTooLong {
+        max: usize,
+        actual: usize,
+    },
+    SmallImageKeyTooLong {
+        max: usize,
+        actual: usize,
+    },
+    LargeTextTooLong {
+        max: usize,
+        actual: usize,
+    },
+    SmallTextTooLong {
+        max: usize,
+        actual: usize,
+    },
+    PartySizeExceedsMax {
+        current: u32,
+        max: u32,
+    },
+}
+
+impl fmt::Display for ActivityValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::StateTooLong { max, actual } => {
+                write!(f, "State must be {max} characters or less (got {actual})")
+            }
+            Self::DetailsTooLong { max, actual } => {
+                write!(f, "Details must be {max} characters or less (got {actual})")
+            }
+            Self::TooManyButtons { max, actual } => {
+                write!(
+                    f,
+                    "Discord allows a maximum of {max} buttons (got {actual})"
+                )
+            }
+            Self::ButtonLabelTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Button label must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::ButtonUrlTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Button URL must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::ButtonUrlMissingScheme => {
+                write!(f, "Button URL must start with http:// or https://")
+            }
+            #[cfg(feature = "secrets")]
+            Self::ButtonsAndSecretsConflict => {
+                write!(f, "Buttons and secrets cannot coexist in the same Activity")
+            }
+            Self::LargeImageKeyTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Large image key must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::SmallImageKeyTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Small image key must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::LargeTextTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Large text must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::SmallTextTooLong { max, actual } => {
+                write!(
+                    f,
+                    "Small text must be {max} characters or less (got {actual})"
+                )
+            }
+            Self::PartySizeExceedsMax { current, max } => write!(
+                f,
+                "Current party size cannot be greater than max party size ({current}/{max})"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ActivityValidationError {}
 
 /// Rich Presence Activity
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -39,18 +157,24 @@ impl Activity {
     ///
     /// # Returns
     ///
-    /// Ok(()) if valid, or Err(String) with the reason if invalid
-    pub fn validate(&self) -> Result<(), String> {
+    /// Ok(()) if valid, or Err(ActivityValidationError) with the reason if invalid
+    pub fn validate(&self) -> Result<(), ActivityValidationError> {
         // Check text field lengths
         if let Some(state) = &self.state {
             if state.len() > 128 {
-                return Err("State must be 128 characters or less".to_string());
+                return Err(ActivityValidationError::StateTooLong {
+                    max: 128,
+                    actual: state.len(),
+                });
             }
         }
 
         if let Some(details) = &self.details {
             if details.len() > 128 {
-                return Err("Details must be 128 characters or less".to_string());
+                return Err(ActivityValidationError::DetailsTooLong {
+                    max: 128,
+                    actual: details.len(),
+                });
             }
         }
 
@@ -58,21 +182,30 @@ impl Activity {
         if let Some(buttons) = &self.buttons {
             // Discord allows a maximum of 2 buttons
             if buttons.len() > 2 {
-                return Err("Discord allows a maximum of 2 buttons".to_string());
+                return Err(ActivityValidationError::TooManyButtons {
+                    max: 2,
+                    actual: buttons.len(),
+                });
             }
 
             for button in buttons {
                 if button.label.len() > 32 {
-                    return Err("Button label must be 32 characters or less".to_string());
+                    return Err(ActivityValidationError::ButtonLabelTooLong {
+                        max: 32,
+                        actual: button.label.len(),
+                    });
                 }
 
                 if button.url.len() > 512 {
-                    return Err("Button URL must be 512 characters or less".to_string());
+                    return Err(ActivityValidationError::ButtonUrlTooLong {
+                        max: 512,
+                        actual: button.url.len(),
+                    });
                 }
 
                 // Validate URL format (simple check)
                 if !button.url.starts_with("http://") && !button.url.starts_with("https://") {
-                    return Err("Button URL must start with http:// or https://".to_string());
+                    return Err(ActivityValidationError::ButtonUrlMissingScheme);
                 }
             }
         }
@@ -91,7 +224,7 @@ impl Activity {
                     .map(|s| s.join.is_some() || s.spectate.is_some() || s.match_secret.is_some())
                     .unwrap_or(false)
             {
-                return Err("Buttons and secrets cannot coexist in the same Activity".to_string());
+                return Err(ActivityValidationError::ButtonsAndSecretsConflict);
             }
         }
 
@@ -99,25 +232,37 @@ impl Activity {
         if let Some(assets) = &self.assets {
             if let Some(large_image) = &assets.large_image {
                 if large_image.len() > 256 {
-                    return Err("Large image key must be 256 characters or less".to_string());
+                    return Err(ActivityValidationError::LargeImageKeyTooLong {
+                        max: 256,
+                        actual: large_image.len(),
+                    });
                 }
             }
 
             if let Some(small_image) = &assets.small_image {
                 if small_image.len() > 256 {
-                    return Err("Small image key must be 256 characters or less".to_string());
+                    return Err(ActivityValidationError::SmallImageKeyTooLong {
+                        max: 256,
+                        actual: small_image.len(),
+                    });
                 }
             }
 
             if let Some(large_text) = &assets.large_text {
                 if large_text.len() > 128 {
-                    return Err("Large text must be 128 characters or less".to_string());
+                    return Err(ActivityValidationError::LargeTextTooLong {
+                        max: 128,
+                        actual: large_text.len(),
+                    });
                 }
             }
 
             if let Some(small_text) = &assets.small_text {
                 if small_text.len() > 128 {
-                    return Err("Small text must be 128 characters or less".to_string());
+                    return Err(ActivityValidationError::SmallTextTooLong {
+                        max: 128,
+                        actual: small_text.len(),
+                    });
                 }
             }
         }
@@ -125,7 +270,10 @@ impl Activity {
         // Validate party size
         if let Some(size) = self.party.as_ref().and_then(|n| n.size) {
             if size[0] > size[1] {
-                return Err("Current party size cannot be greater than max party size".to_string());
+                return Err(ActivityValidationError::PartySizeExceedsMax {
+                    current: size[0],
+                    max: size[1],
+                });
             }
         }
 
@@ -241,22 +389,28 @@ mod tests {
             state: Some("a".repeat(129)),
             ..Default::default()
         };
-        let error = activity.validate().unwrap_err();
-        assert!(error.contains("128"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::StateTooLong { .. }
+        ));
     }
 
     #[test]
     fn button_label_too_long_fails() {
         let activity = activity_with_button(&"x".repeat(33), "https://example.com");
-        let error = activity.validate().unwrap_err();
-        assert!(error.contains("Button label"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::ButtonLabelTooLong { .. }
+        ));
     }
 
     #[test]
     fn button_url_without_scheme_fails() {
         let activity = activity_with_button("Join", "example.com");
-        let error = activity.validate().unwrap_err();
-        assert!(error.contains("http://"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::ButtonUrlMissingScheme
+        ));
     }
 
     #[test]
@@ -269,8 +423,10 @@ mod tests {
             ..Default::default()
         };
 
-        let error = activity.validate().unwrap_err();
-        assert!(error.contains("Large image key"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::LargeImageKeyTooLong { .. }
+        ));
     }
 
     #[test]
@@ -283,8 +439,10 @@ mod tests {
             ..Default::default()
         };
 
-        let error = activity.validate().unwrap_err();
-        assert!(error.contains("Current party size"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::PartySizeExceedsMax { .. }
+        ));
     }
 
     #[test]
@@ -304,7 +462,9 @@ mod tests {
             ..Default::default()
         };
 
-        let err = activity.validate().unwrap_err();
-        assert!(err.contains("Buttons and secrets cannot coexist"));
+        assert!(matches!(
+            activity.validate().unwrap_err(),
+            ActivityValidationError::ButtonsAndSecretsConflict
+        ));
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
-use presenceforge::error::ErrorCategory;
+use presenceforge::error::{ErrorCategory, InvalidResponseKind};
 use presenceforge::{DiscordIpcError, Opcode, ProtocolContext};
 
 #[test]
@@ -10,7 +10,8 @@ fn error_category_matches_constructor() {
     assert!(error.is_connection_error());
     assert_eq!(error.category(), ErrorCategory::Connection);
 
-    let protocol_error = DiscordIpcError::InvalidResponse("bad".into());
+    let protocol_error =
+        DiscordIpcError::invalid_response(InvalidResponseKind::UnexpectedOpcode, "bad");
     assert_eq!(protocol_error.category(), ErrorCategory::Protocol);
     assert!(protocol_error.is_recoverable());
 
@@ -20,9 +21,28 @@ fn error_category_matches_constructor() {
 }
 
 #[test]
+fn invalid_activity_wraps_validation_error() {
+    use presenceforge::ActivityValidationError;
+    let val_error = ActivityValidationError::StateTooLong {
+        max: 128,
+        actual: 129,
+    };
+    let error = DiscordIpcError::from(val_error.clone());
+
+    match error {
+        DiscordIpcError::InvalidActivity(e) => assert_eq!(e, val_error),
+        _ => panic!("Expected InvalidActivity variant"),
+    }
+}
+
+#[test]
 fn protocol_violation_context_is_preserved() {
     let context = ProtocolContext::with_opcodes(Opcode::Handshake.into(), Opcode::Frame.into());
-    let error = DiscordIpcError::protocol_violation("unexpected opcode", context.clone());
+    let error = DiscordIpcError::protocol_violation(
+        presenceforge::error::ProtocolViolationKind::Other,
+        "unexpected opcode",
+        context.clone(),
+    );
 
     match error {
         DiscordIpcError::ProtocolViolation {

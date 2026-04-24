@@ -10,9 +10,10 @@ use std::time::{Duration, Instant};
 
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{DiscordIpcError, Result};
+use crate::error::{DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, Result};
 use crate::ipc::{
-    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+    constants, Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse,
+    Opcode, PipeConfig, ReadyEvent,
 };
 use crate::nonce::generate_nonce;
 
@@ -23,6 +24,7 @@ pub struct DiscordIpcClient {
     pipe_config: Option<PipeConfig>,
     timeout_ms: Option<u64>,
     pending_messages: VecDeque<PendingMessage>,
+    connected: bool,
 }
 
 impl DiscordIpcClient {
@@ -70,6 +72,7 @@ impl DiscordIpcClient {
             pipe_config: config,
             timeout_ms: None,
             pending_messages: VecDeque::new(),
+            connected: false,
         })
     }
 
@@ -129,6 +132,7 @@ impl DiscordIpcClient {
             pipe_config: config,
             timeout_ms: Some(timeout_ms),
             pending_messages: VecDeque::new(),
+            connected: false,
         })
     }
 
@@ -143,6 +147,7 @@ impl DiscordIpcClient {
     /// Returns a `DiscordIpcError::HandshakeFailed` if the handshake fails
     pub fn connect(&mut self) -> Result<Value> {
         self.pending_messages.clear();
+        self.connected = false;
 
         let handshake = HandshakePayload {
             v: constants::IPC_VERSION,
@@ -165,22 +170,40 @@ impl DiscordIpcClient {
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::HandshakeFailed(format!(
-                    "Invalid error format: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::InvalidErrorPayload,
+                    format!("Invalid error format: {}", err),
+                ));
             }
         }
 
         // Verify opcode is correct for handshake response
         if !opcode.is_handshake_response() {
-            return Err(DiscordIpcError::HandshakeFailed(format!(
-                "Expected handshake response opcode, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::handshake_failed(
+                HandshakeFailureKind::UnexpectedOpcode,
+                format!("Expected handshake response opcode, got {:?}", opcode),
+            ));
         }
 
+        self.connected = true;
         Ok(response)
+    }
+
+    /// Perform handshake and return the typed READY payload when available.
+    pub fn connect_with_ready(&mut self) -> Result<Option<ReadyEvent>> {
+        let response = self.connect()?;
+        Self::ready_event_from_payload(&response)
+    }
+
+    /// Parse a raw IPC payload into a READY event if this payload is a READY dispatch.
+    pub fn ready_event_from_payload(payload: &Value) -> Result<Option<ReadyEvent>> {
+        let response: IpcResponse = serde_json::from_value(payload.clone())
+            .map_err(DiscordIpcError::DeserializationFailed)?;
+
+        match response.parse_event()? {
+            Some(EventData::Ready(ready)) => Ok(Some(ready)),
+            _ => Ok(None),
+        }
     }
 
     /// Set Discord Rich Presence activity
@@ -194,9 +217,7 @@ impl DiscordIpcClient {
     /// Returns a `DiscordIpcError` if serialization fails or if Discord returns an error
     pub fn set_activity(&mut self, activity: &Activity) -> Result {
         // Validate the activity first
-        if let Err(reason) = activity.validate() {
-            return Err(DiscordIpcError::InvalidActivity(reason));
-        }
+        activity.validate()?;
 
         // Generate a cryptographically secure unique nonce for this request
         let nonce = generate_nonce("set-activity");
@@ -208,6 +229,7 @@ impl DiscordIpcClient {
                 "activity": activity
             }),
             nonce: nonce.clone(),
+            evt: None,
         };
 
         let payload = serde_json::to_value(message)?;
@@ -221,10 +243,10 @@ impl DiscordIpcClient {
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Expected frame response, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::invalid_response(
+                InvalidResponseKind::UnexpectedOpcode,
+                format!("Expected frame response, got {:?}", opcode),
+            ));
         }
 
         // Check for error in the response
@@ -235,20 +257,20 @@ impl DiscordIpcClient {
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Invalid error format in response: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::InvalidErrorPayload,
+                    format!("Invalid error format in response: {}", err),
+                ));
             }
         }
 
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::NonceMismatch,
+                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce),
+                ));
             }
         }
 
@@ -275,6 +297,7 @@ impl DiscordIpcClient {
                 "activity": Value::Null
             }),
             nonce: nonce.clone(),
+            evt: None,
         };
 
         let payload = serde_json::to_value(message)?;
@@ -285,10 +308,10 @@ impl DiscordIpcClient {
 
         // Check if we got the correct response type
         if !opcode.is_frame_response() {
-            return Err(DiscordIpcError::InvalidResponse(format!(
-                "Expected frame response, got {:?}",
-                opcode
-            )));
+            return Err(DiscordIpcError::invalid_response(
+                InvalidResponseKind::UnexpectedOpcode,
+                format!("Expected frame response, got {:?}", opcode),
+            ));
         }
 
         // Check for error in the response
@@ -299,24 +322,114 @@ impl DiscordIpcClient {
             ) {
                 return Err(DiscordIpcError::discord_error(code as i32, message));
             } else {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Invalid error format in response: {}",
-                    err
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::InvalidErrorPayload,
+                    format!("Invalid error format in response: {}", err),
+                ));
             }
         }
 
         // Verify nonce matches to ensure we got the right response
         if let Some(resp_nonce) = response.get("nonce").and_then(|n| n.as_str()) {
             if resp_nonce != nonce {
-                return Err(DiscordIpcError::InvalidResponse(format!(
-                    "Nonce mismatch: expected {}, got {}",
-                    nonce, resp_nonce
-                )));
+                return Err(DiscordIpcError::invalid_response(
+                    InvalidResponseKind::NonceMismatch,
+                    format!("Nonce mismatch: expected {}, got {}", nonce, resp_nonce),
+                ));
             }
         }
 
         Ok(response)
+    }
+
+    /// Subscribe to a Discord IPC event
+    pub fn subscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result {
+        let event = event.into();
+        let nonce = generate_nonce("subscribe");
+
+        let message = IpcMessage {
+            cmd: Command::Subscribe,
+            args,
+            nonce: nonce.clone(),
+            evt: Some(event),
+        };
+
+        let payload = serde_json::to_value(message)?;
+        self.connection.send(Opcode::Frame, &payload)?;
+
+        let (_, response) = self.recv_for_nonce(&nonce)?;
+
+        if let Some(err) = response.get("error") {
+            let code = err.get("code").and_then(|c| c.as_i64()).unwrap_or(0) as i32;
+            let message = err
+                .get("message")
+                .and_then(|m| m.as_str())
+                .unwrap_or("Unknown error");
+            return Err(DiscordIpcError::discord_error(code, message));
+        }
+
+        Ok(())
+    }
+
+    /// Unsubscribe from a Discord IPC event
+    pub fn unsubscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result {
+        let event = event.into();
+        let nonce = generate_nonce("unsubscribe");
+
+        let message = IpcMessage {
+            cmd: Command::Unsubscribe,
+            args,
+            nonce: nonce.clone(),
+            evt: Some(event),
+        };
+
+        let payload = serde_json::to_value(message)?;
+        self.connection.send(Opcode::Frame, &payload)?;
+
+        let (_, response) = self.recv_for_nonce(&nonce)?;
+
+        if let Some(err) = response.get("error") {
+            let code = err.get("code").and_then(|c| c.as_i64()).unwrap_or(0) as i32;
+            let message = err
+                .get("message")
+                .and_then(|m| m.as_str())
+                .unwrap_or("Unknown error");
+            return Err(DiscordIpcError::discord_error(code, message));
+        }
+
+        Ok(())
+    }
+
+    /// Blocks until the next event is received
+    pub fn next_event(&mut self) -> Result<EventData> {
+        if let Some(event) = self.take_pending_event()? {
+            return Ok(event);
+        }
+
+        loop {
+            let (opcode, payload) = self.connection.recv()?;
+
+            if !opcode.is_frame_response() {
+                self.pending_messages
+                    .push_back(PendingMessage::new(opcode, payload));
+                continue;
+            }
+
+            let response: IpcResponse = serde_json::from_value(payload.clone())
+                .map_err(DiscordIpcError::DeserializationFailed)?;
+
+            if let Some(event) = response.parse_event()? {
+                return Ok(event);
+            }
+
+            self.pending_messages
+                .push_back(PendingMessage::new(opcode, payload));
+        }
+    }
+
+    /// Checks for a queued event without blocking
+    pub fn poll_event(&mut self) -> Result<Option<EventData>> {
+        self.take_pending_event()
     }
 
     /// Send a raw IPC message
@@ -327,6 +440,11 @@ impl DiscordIpcClient {
     /// Receive a raw IPC message
     pub fn recv_message(&mut self) -> Result<(Opcode, Value)> {
         self.next_message()
+    }
+
+    /// Returns `true` once a handshake has been successfully completed.
+    pub fn is_connected(&self) -> bool {
+        self.connected
     }
 
     /// Remove pending responses older than the provided `max_age` and return how many were dropped.
@@ -348,6 +466,7 @@ impl DiscordIpcClient {
     pub fn close(&mut self) {
         self.connection.close();
         self.pending_messages.clear();
+        self.connected = false;
     }
 
     /// Reconnect to Discord IPC
@@ -396,6 +515,7 @@ impl DiscordIpcClient {
             IpcConnection::new_with_config(self.pipe_config.clone())?
         };
         self.pending_messages.clear();
+        self.connected = false;
 
         // Perform handshake
         self.connect()
@@ -450,6 +570,27 @@ impl DiscordIpcClient {
             .and_then(|n| n.as_str())
             .map(|actual| actual == expected_nonce)
             .unwrap_or(false)
+    }
+
+    fn take_pending_event(&mut self) -> Result<Option<EventData>> {
+        let position = self
+            .pending_messages
+            .iter()
+            .position(|message| Self::value_is_event(&message.payload));
+
+        if let Some(index) = position {
+            if let Some(message) = self.pending_messages.remove(index) {
+                let response: IpcResponse = serde_json::from_value(message.payload)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                return response.parse_event();
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn value_is_event(value: &Value) -> bool {
+        value.get("evt").and_then(|evt| evt.as_str()).is_some()
     }
 }
 

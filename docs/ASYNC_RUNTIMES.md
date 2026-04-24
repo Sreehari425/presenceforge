@@ -1,6 +1,6 @@
 # Async Runtimes Guide
 
-> **Note:** PresenceForge v0.1.0 is an early development release.  
+> **Note:** PresenceForge v0.2.0 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## Table of Contents
@@ -63,13 +63,13 @@ Add to your `Cargo.toml` with **one** of these feature flags:
 ```toml
 [dependencies]
 # For Tokio
-presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
 
 # For async-std
-presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
+presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
 
 # For smol
-presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
+presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
 ```
 
 **This exact code works with all three runtimes:**
@@ -83,6 +83,7 @@ async fn setup_presence() -> Result {
 
     // Connect to Discord
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -140,7 +141,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
 
@@ -156,6 +157,7 @@ async fn main() -> Result {
 
     // Connect to Discord
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -320,7 +322,7 @@ async-std provides an async API similar to the standard library.
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
+presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
 async-std = { version = "1", features = ["attributes"] }
 ```
 
@@ -336,6 +338,7 @@ async fn main() -> Result {
     // Create and connect client
     let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
     client.connect().await?;
+    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
@@ -419,7 +422,7 @@ smol is a small and fast async runtime.
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
+presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
 smol = "2"
 ```
 
@@ -435,6 +438,7 @@ fn main() -> Result {
         // Create and connect client
         let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
         client.connect().await?;
+        debug_assert!(client.is_connected(), "Discord handshake failed");
 
         println!("Connected to Discord!");
 

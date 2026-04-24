@@ -2,7 +2,7 @@
 
 API reference for PresenceForge (work-in-progress; APIs may change).
 
-> **Note:** PresenceForge v0.1.0 is an early development release.  
+> **Note:** PresenceForge v0.2.0 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## Table of Contents
@@ -12,6 +12,7 @@ API reference for PresenceForge (work-in-progress; APIs may change).
 - [Activity](#activity)
 - [PipeConfig](#pipeconfig)
 - [IpcConnection](#ipcconnection)
+- [Event Subscription](#event-subscription)
 - [Error Types](#error-types)
 - [Async Clients](#async-clients)
 
@@ -94,6 +95,24 @@ let _handshake = client.connect()?; // JSON handshake payload
 
 ---
 
+#### `is_connected(&self) -> bool`
+
+Returns `true` after a successful handshake and `false` otherwise.
+
+```rust
+if !client.is_connected() {
+    // Guard against logic bugs where `connect()` was skipped
+    anyhow::bail!("Discord client is not connected");
+}
+```
+
+**Notes:**
+
+- Automatically resets to `false` when the underlying connection closes or before the next handshake attempt.
+- Useful for sanity checks in larger applications where the connect step might be conditional.
+
+---
+
 // (No sync reconnect method)
 // If the connection is lost, recreate the client and call connect() again.
 
@@ -137,6 +156,54 @@ let _resp = client.clear_activity()?;
 **Returns:** `Result<serde_json::Value, DiscordIpcError>`
 
 **Note:** This removes the Rich Presence from your profile entirely.
+
+---
+
+## Event Subscription
+
+PresenceForge supports subscribing to Discord IPC events like `READY`, `ACTIVITY_JOIN`, etc.
+
+### `subscribe(&mut self, event: impl Into<String>, args: serde_json::Value) -> Result<()>`
+
+Subscribes to a specific Discord IPC event.
+
+```rust
+use serde_json::json;
+
+client.subscribe("ACTIVITY_JOIN", json!({}))?;
+```
+
+---
+
+### `unsubscribe(&mut self, event: impl Into<String>, args: serde_json::Value) -> Result<()>`
+
+Unsubscribes from a previously subscribed event.
+
+```rust
+client.unsubscribe("ACTIVITY_JOIN", json!({}))?;
+```
+
+---
+
+### `next_event(&mut self) -> Result<EventData>`
+
+Blocks until the next event is received from Discord.
+
+```rust
+use presenceforge::EventData;
+
+match client.next_event()? {
+    EventData::Ready(ready) => println!("Discord is ready!"),
+    EventData::ActivityJoin(join) => println!("User joined via secret: {}", join.secret),
+    _ => {}
+}
+```
+
+---
+
+### `poll_event(&mut self) -> Result<Option<EventData>>`
+
+Checks for a queued event without blocking. Returns `Ok(None)` if no event is available.
 
 ---
 
@@ -520,34 +587,41 @@ Main error type for Discord IPC operations.
 
 ```rust
 pub enum DiscordIpcError {
-    ConnectionFailed(String),
-    ProtocolError(String),
-    SerializationError(String),
-    InvalidClientId,
-    NotConnected,
-    IoError(std::io::Error),
-    // ... other variants
+    ConnectionFailed(io::Error),
+    SocketDiscoveryFailed { source: io::Error, attempted_paths: Vec<String> },
+    ConnectionTimeout { timeout_ms: u64, last_error: Option<String> },
+    NoValidSocket,
+    SerializationFailed(serde_json::Error),
+    DeserializationFailed(serde_json::Error),
+    InvalidResponse { kind: InvalidResponseKind, details: ErrorDetail },
+    HandshakeFailed { kind: HandshakeFailureKind, details: ErrorDetail },
+    SocketClosed,
+    InvalidOpcode(u32),
+    ProtocolViolation { kind: ProtocolViolationKind, details: ErrorDetail, context: ProtocolContext },
+    DiscordError { code: i32, message: String },
+    InvalidActivity(ActivityValidationError),
+    SystemTimeError(SystemTimeError),
 }
 ```
 
 ### Common Errors
 
-#### `ConnectionFailed(String)`
+#### `ConnectionFailed(std::io::Error)`
 
-Failed to connect to Discord.
+Failed to connect to Discord IPC socket or pipe.
 
 **Common causes:**
 
 - Discord is not running
-- No Discord pipes available
-- Permission issues with IPC socket/pipe
+- No available IPC pipes/sockets
+- Permission denied accessing pipe/socket
 
 **Example:**
 
 ```rust
 match DiscordIpcClient::new("client_id") {
-    Err(DiscordIpcError::ConnectionFailed(msg)) => {
-        eprintln!("Connection failed: {}. Is Discord running?", msg);
+    Err(DiscordIpcError::ConnectionFailed(e)) => {
+        eprintln!("Connection failed: {}. Is Discord running?", e);
     }
     Ok(client) => { /* ... */ }
     Err(e) => eprintln!("Other error: {}", e),
@@ -556,35 +630,44 @@ match DiscordIpcClient::new("client_id") {
 
 ---
 
-#### `ProtocolError(String)`
+#### `HandshakeFailed { kind, details }`
 
-Discord IPC protocol error.
-
-**Common causes:**
-
-- Invalid response from Discord
-- Protocol version mismatch
-- Corrupted data
-
----
-
-#### `SerializationError(String)`
-
-Failed to serialize/deserialize JSON data.
+Handshake with Discord failed.
 
 **Common causes:**
 
-- Invalid activity structure
-- Missing required fields
-- Type mismatches
+- Invalid error payload from Discord
+- Unexpected opcode during handshake
 
 ---
 
-#### `InvalidClientId`
+#### `ProtocolViolation { kind, details, context }`
 
-The provided client ID is invalid.
+A violation of the Discord IPC protocol occurred.
 
-**Solution:** Verify your Application ID from Discord Developer Portal.
+**Common causes:**
+
+- Received an invalid opcode value
+- Payload size exceeds maximum limit
+
+---
+
+#### `SerializationFailed(serde_json::Error)` and `DeserializationFailed(serde_json::Error)`
+
+Failed to encode or decode JSON data.
+
+**Common causes:**
+
+- Invalid activity structure (e.g., button URL missing protocol)
+- Malformed response from Discord
+
+---
+
+#### `NoValidSocket`
+
+No valid Discord IPC sockets were found on the system.
+
+**Solution:** Ensure Discord is running and not restricted by a sandbox or firewall.
 
 ---
 
@@ -654,6 +737,8 @@ if error.is_recoverable() {
 ## Async Clients
 
 Async versions of the IPC client for different runtimes.
+
+All async variants expose the same surface as `AsyncDiscordIpcClient`, including `is_connected()` for sanity checks between awaits.
 
 ### Tokio
 

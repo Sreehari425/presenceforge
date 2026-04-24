@@ -40,9 +40,9 @@ impl ActivityBuilder {
     /// Returns an error if the system time is before the UNIX epoch (Jan 1, 1970).
     /// This should never happen on properly configured systems.
     pub fn start_timestamp_now(mut self) -> Result<Self> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e| {
-            DiscordIpcError::SystemTimeError(format!("System time is before UNIX epoch: {}", e))
-        })?;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(DiscordIpcError::SystemTimeError)?;
 
         self.get_timestamps().start = Some(now.as_secs());
         Ok(self)
@@ -58,6 +58,21 @@ impl ActivityBuilder {
     pub fn end_timestamp(mut self, timestamp: i64) -> Self {
         self.get_timestamps().end = Some(timestamp);
         self
+    }
+
+    /// Set the end timestamp relative to current time
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the system time is before the UNIX epoch.
+    pub fn end_timestamp_from_now(mut self, duration: std::time::Duration) -> Result<Self> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(DiscordIpcError::SystemTimeError)?;
+
+        let end = now + duration;
+        self.get_timestamps().end = Some(end.as_secs() as i64);
+        Ok(self)
     }
 
     /// Set the large image asset
@@ -88,6 +103,15 @@ impl ActivityBuilder {
     pub fn party<S: Into<String>>(mut self, id: S, current_size: u32, max_size: u32) -> Self {
         self.activity.party = Some(ActivityParty {
             id: Some(id.into()),
+            size: Some([current_size, max_size]),
+        });
+        self
+    }
+
+    /// Set party information with an automatically generated ID
+    pub fn party_simple(mut self, current_size: u32, max_size: u32) -> Self {
+        self.activity.party = Some(ActivityParty {
+            id: Some(uuid::Uuid::new_v4().to_string()),
             size: Some([current_size, max_size]),
         });
         self
@@ -191,6 +215,14 @@ mod tests {
     }
 
     #[test]
+    fn builder_sets_party_simple() {
+        let activity = ActivityBuilder::new().party_simple(3, 10).build();
+        let party = activity.party.unwrap();
+        assert!(party.id.is_some());
+        assert_eq!(party.size, Some([3, 10]));
+    }
+
+    #[test]
     fn start_timestamp_now_sets_current_time() {
         let before = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -220,6 +252,23 @@ mod tests {
         let timestamps = activity.timestamps.unwrap();
         assert_eq!(timestamps.start, Some(100));
         assert_eq!(timestamps.end, Some(200));
+    }
+
+    #[test]
+    fn end_timestamp_from_now_works() {
+        let activity = ActivityBuilder::new()
+            .end_timestamp_from_now(std::time::Duration::from_secs(60))
+            .unwrap()
+            .build();
+
+        let end = activity.timestamps.unwrap().end.unwrap();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        assert!(end >= now + 58);
+        assert!(end <= now + 62);
     }
 
     #[cfg(feature = "secrets")]

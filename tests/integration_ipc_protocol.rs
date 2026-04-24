@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
-use presenceforge::{Command, DiscordIpcError, IpcConfig, Opcode};
+use presenceforge::{Command, DiscordIpcClient, DiscordIpcError, IpcConfig, Opcode};
 use serde_json::json;
 use std::convert::TryFrom;
 
@@ -52,4 +52,27 @@ fn command_serializes_to_expected_strings() {
 
     let serialized = serde_json::to_string(&message).expect("serialize embed message");
     assert!(serialized.contains("\"SUBSCRIBE\""));
+}
+
+#[test]
+fn ready_event_is_parsed_from_payload() {
+    let payload = json!({
+        "cmd": "DISPATCH",
+        "evt": "READY",
+        "data": {
+            "user": {
+                "id": "1234",
+                "username": "tester"
+            }
+        }
+    });
+
+    let ready = DiscordIpcClient::ready_event_from_payload(&payload)
+        .expect("payload should deserialize")
+        .expect("ready event should be present");
+
+    assert_eq!(
+        ready.user.and_then(|u| u.username),
+        Some("tester".to_string())
+    );
 }

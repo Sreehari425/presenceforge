@@ -13,11 +13,7 @@ use smol::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use smol::net::unix::UnixStream;
 
 #[cfg(windows)]
-use std::fs::File;
-#[cfg(windows)]
-use std::io::{Read, Write};
-#[cfg(windows)]
-use std::sync::{Arc, Mutex};
+use smol::fs::File;
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::debug_println;
@@ -30,7 +26,7 @@ pub(crate) enum SmolConnection {
     Unix(UnixStream),
 
     #[cfg(windows)]
-    Windows(Arc<Mutex<File>>),
+    Windows(File),
 }
 
 impl SmolConnection {
@@ -104,44 +100,16 @@ impl SmolConnection {
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
     async fn connect_unix_auto() -> Result<Self> {
-        // Try environment variables in order of preference
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"];
-        let mut directories = Vec::new();
-
-        for env_key in &env_keys {
-            if let Ok(dir) = std::env::var(env_key) {
-                directories.push(dir.clone());
-
-                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if env_key == &"XDG_RUNTIME_DIR" {
-                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                }
-            }
-        }
-
-        // Fallback to /run/user/{uid} if no env vars found
-        if directories.is_empty() {
-            let uid = unsafe { libc::getuid() };
-            directories.push(format!("/run/user/{}", uid));
-            // Also try Flatpak path as fallback
-            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
-        }
-
-        // Try each directory with each socket number
         let mut last_error = None;
 
-        for dir in &directories {
-            for i in 0..constants::MAX_IPC_SOCKETS {
-                let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
-
-                match UnixStream::connect(&socket_path).await {
-                    Ok(stream) => {
-                        return Ok(Self::Unix(stream));
-                    }
-                    Err(err) => {
-                        last_error = Some(err);
-                        continue;
-                    }
+        for socket_path in crate::ipc::discovery::get_socket_paths() {
+            match UnixStream::connect(&socket_path).await {
+                Ok(stream) => {
+                    return Ok(Self::Unix(stream));
+                }
+                Err(err) => {
+                    last_error = Some(err);
+                    continue;
                 }
             }
         }
@@ -183,7 +151,7 @@ impl SmolConnection {
                 .await
                 .map_err(DiscordIpcError::ConnectionFailed)?;
 
-                Ok(Self::Windows(Arc::new(Mutex::new(file))))
+                Ok(Self::Windows(File::from(file)))
             }
         }
     }
@@ -197,9 +165,7 @@ impl SmolConnection {
 
         let mut last_error = None;
 
-        for i in 0..constants::MAX_IPC_SOCKETS {
-            let pipe_path = format!(r"\\.\pipe\discord-ipc-{}", i);
-
+        for pipe_path in crate::ipc::discovery::get_pipe_paths() {
             debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
 
             // Clone pipe_path for the closure
@@ -219,7 +185,7 @@ impl SmolConnection {
             match result {
                 Ok(file) => {
                     debug_println!("Successfully opened named pipe: {}", pipe_path);
-                    return Ok(Self::Windows(Arc::new(Mutex::new(file))));
+                    return Ok(Self::Windows(File::from(file)));
                 }
                 Err(err) => {
                     debug_println!("Failed to connect to named pipe {}: {}", pipe_path, err);
@@ -254,37 +220,15 @@ impl AsyncRead for SmolConnection {
         Box::pin(async move {
             match self {
                 #[cfg(unix)]
-                Self::Unix(stream) => stream.read(buf).await,
+                Self::Unix(stream) => {
+                    use smol::io::AsyncReadExt;
+                    stream.read(buf).await
+                }
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    // Clone the Arc to pass into the blocking task
-                    let pipe_clone = Arc::clone(pipe);
-                    let buf_len = buf.len();
-
-                    // Use smol's unblock to handle synchronous I/O in async context
-                    let result = smol::unblock(move || {
-                        let mut local_buf = vec![0u8; buf_len];
-                        let mut file = match pipe_clone.lock().map_err(|e| {
-                            io::Error::new(io::ErrorKind::Other, format!("Mutex poisoned: {}", e))
-                        }) {
-                            Ok(f) => f,
-                            Err(e) => return Err(e),
-                        };
-                        match file.read(&mut local_buf) {
-                            Ok(n) => Ok((n, local_buf)),
-                            Err(e) => Err(e),
-                        }
-                    })
-                    .await;
-
-                    match result {
-                        Ok((n, data)) => {
-                            buf[..n].copy_from_slice(&data[..n]);
-                            Ok(n)
-                        }
-                        Err(e) => Err(e),
-                    }
+                    use smol::io::AsyncReadExt;
+                    pipe.read(buf).await
                 }
             }
         })
@@ -299,28 +243,15 @@ impl AsyncWrite for SmolConnection {
         Box::pin(async move {
             match self {
                 #[cfg(unix)]
-                Self::Unix(stream) => stream.write(buf).await,
+                Self::Unix(stream) => {
+                    use smol::io::AsyncWriteExt;
+                    stream.write(buf).await
+                }
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    // Clone the Arc to pass into the blocking task
-                    let pipe_clone = Arc::clone(pipe);
-                    let data = buf.to_vec();
-
-                    // Use smol's unblock to handle synchronous I/O in async context
-                    smol::unblock(move || {
-                        let mut file = match pipe_clone.lock() {
-                            Ok(f) => f,
-                            Err(e) => {
-                                return Err(io::Error::new(
-                                    io::ErrorKind::Other,
-                                    format!("Mutex poisoned: {}", e),
-                                ));
-                            }
-                        };
-                        file.write(&data)
-                    })
-                    .await
+                    use smol::io::AsyncWriteExt;
+                    pipe.write(buf).await
                 }
             }
         })
@@ -330,26 +261,15 @@ impl AsyncWrite for SmolConnection {
         Box::pin(async move {
             match self {
                 #[cfg(unix)]
-                Self::Unix(stream) => stream.flush().await,
+                Self::Unix(stream) => {
+                    use smol::io::AsyncWriteExt;
+                    stream.flush().await
+                }
 
                 #[cfg(windows)]
                 Self::Windows(pipe) => {
-                    // Clone the Arc to pass into the blocking task
-                    let pipe_clone = Arc::clone(pipe);
-
-                    smol::unblock(move || {
-                        let mut file = match pipe_clone.lock() {
-                            Ok(f) => f,
-                            Err(e) => {
-                                return Err(io::Error::new(
-                                    io::ErrorKind::Other,
-                                    format!("Mutex poisoned: {}", e),
-                                ));
-                            }
-                        };
-                        file.flush()
-                    })
-                    .await
+                    use smol::io::AsyncWriteExt;
+                    pipe.flush().await
                 }
             }
         })
@@ -404,6 +324,21 @@ pub mod client {
             self.inner.connect().await
         }
 
+        /// Perform handshake and return the typed READY payload when available.
+        pub async fn connect_with_ready(&mut self) -> Result<Option<crate::ipc::ReadyEvent>> {
+            self.inner.connect_with_ready().await
+        }
+
+        /// Parse a raw IPC payload into a READY event if this payload is a READY dispatch.
+        pub fn ready_event_from_payload(payload: &Value) -> Result<Option<crate::ipc::ReadyEvent>> {
+            AsyncDiscordIpcClient::<SmolConnection>::ready_event_from_payload(payload)
+        }
+
+        /// Returns `true` once a handshake has been successfully completed.
+        pub fn is_connected(&self) -> bool {
+            self.inner.is_connected()
+        }
+
         /// Sets Discord Rich Presence activity
         pub async fn set_activity(&mut self, activity: &crate::activity::Activity) -> Result<()> {
             self.inner.set_activity(activity).await
@@ -412,6 +347,21 @@ pub mod client {
         /// Clears Discord Rich Presence activity
         pub async fn clear_activity(&mut self) -> Result<Value> {
             self.inner.clear_activity().await
+        }
+
+        /// Subscribe to a Discord IPC event.
+        pub async fn subscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result<()> {
+            self.inner.subscribe(event, args).await
+        }
+
+        /// Unsubscribe from a Discord IPC event.
+        pub async fn unsubscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result<()> {
+            self.inner.unsubscribe(event, args).await
+        }
+
+        /// Wait for the next IPC event.
+        pub async fn next_event(&mut self) -> Result<crate::ipc::EventData> {
+            self.inner.next_event().await
         }
 
         /// Reconnect to Discord IPC

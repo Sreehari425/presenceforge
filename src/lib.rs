@@ -55,7 +55,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
+//! presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
 //! tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 //! ```
 //!
@@ -90,7 +90,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
+//! presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
 //! async-std = { version = "1", features = ["attributes"] }
 //! ```
 //!
@@ -125,7 +125,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
+//! presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
 //! smol = "2"
 //! ```
 //!
@@ -186,10 +186,16 @@ pub mod retry;
 pub use activity::ActivitySecrets;
 pub use activity::{
     Activity, ActivityAssets, ActivityBuilder, ActivityButton, ActivityParty, ActivityTimestamps,
+    ActivityValidationError,
 };
-pub use error::{DiscordIpcError, ProtocolContext, Result};
+pub use error::{
+    DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, ProtocolContext,
+    ProtocolViolationKind, Result,
+};
 pub use ipc::protocol::IpcConfig;
-pub use ipc::{Command, DiscoveredPipe, IpcConnection, Opcode, PipeConfig};
+pub use ipc::{
+    Command, DiscoveredPipe, EventData, IpcConnection, Opcode, PartialUser, PipeConfig, ReadyEvent,
+};
 pub use macros::is_debug_enabled;
 
 // Re-export the synchronous API for backwards compatibility

@@ -2,7 +2,9 @@
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
 pub mod connection;
+pub mod discovery;
 pub mod protocol;
 
 pub use connection::*;
+pub use discovery::*;
 pub use protocol::*;

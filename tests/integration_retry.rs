@@ -2,7 +2,7 @@
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
 use presenceforge::retry::with_retry;
-use presenceforge::{retry::RetryConfig, DiscordIpcError};
+use presenceforge::{retry::RetryConfig, ActivityValidationError, DiscordIpcError};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -32,7 +32,9 @@ fn retry_stops_on_non_recoverable_error() {
     let attempts = Arc::new(AtomicUsize::new(0));
     let result: presenceforge::Result<&str> = with_retry(&quick_retry_config(5), || {
         attempts.fetch_add(1, Ordering::SeqCst);
-        Err(DiscordIpcError::InvalidActivity("bad".into()))
+        Err(DiscordIpcError::InvalidActivity(
+            ActivityValidationError::ButtonUrlMissingScheme,
+        ))
     });
 
     assert!(result.is_err());

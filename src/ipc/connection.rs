@@ -14,7 +14,7 @@ use std::fs::OpenOptions;
 #[cfg(windows)]
 use std::io::{BufReader, BufWriter};
 
-use crate::error::{DiscordIpcError, ProtocolContext, Result};
+use crate::error::{DiscordIpcError, ProtocolContext, ProtocolViolationKind, Result};
 use crate::ipc::protocol::{constants, Opcode};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
@@ -87,53 +87,12 @@ impl IpcConnection {
         }
     }
 
-    // Returns the current users UID on unix based systems
-    #[cfg(unix)]
-    /// Returns the current user's UID on Unix-based systems.
-    ///
-    /// Safety: Calling `libc::getuid()` is always safe per POSIX.
-    fn current_uid() -> u32 {
-        unsafe { libc::getuid() }
-    }
-    /// Discovers potential base directories where IPC sockets may exist
-    /// Check environment variables
-    /// - `XDG_RUNTIME_DIR`
-    /// - `TMPDIR`
-    /// - `TMP`
-    /// - `TEMP`
-    /// - `tmp`
-    /// - `XDG_RUNTIME_DIR/app/com.discordapp.Discord` (Flatpak specific)
-    /// - `/run/user/{UID}` (if `XDG_RUNTIME_DIR` is not set)
-    /// - `/run/user/{UID}/app/com.discordapp.Discord` (Flatpak fallback)
-    #[cfg(unix)]
-    fn candidate_ipc_dir() -> Vec<String> {
-        let env_keys = ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP", "tmp"];
-        let mut directories = Vec::new();
-        for key in &env_keys {
-            if let Ok(dir) = std::env::var(key) {
-                directories.push(dir.clone());
-
-                // Also check Flatpak Discord path if XDG_RUNTIME_DIR is set
-                if key == &"XDG_RUNTIME_DIR" {
-                    directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                }
-            }
-        }
-        if directories.is_empty() {
-            let uid = Self::current_uid();
-            directories.push(format!("/run/user/{}", uid));
-            // Also try Flatpak path as fallback
-            directories.push(format!("/run/user/{}/app/com.discordapp.Discord", uid));
-        }
-
-        directories
-    }
     #[cfg(unix)]
     fn discover_pipes_unix() -> Vec<DiscoveredPipe> {
         let mut pipes = Vec::new();
 
         // Try each directory with each socket number
-        for dir in Self::candidate_ipc_dir() {
+        for dir in crate::ipc::discovery::candidate_ipc_directories() {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
 
@@ -155,16 +114,17 @@ impl IpcConnection {
     fn discover_pipes_windows() -> Vec<DiscoveredPipe> {
         let mut pipes = Vec::new();
 
-        for i in 0..constants::MAX_IPC_SOCKETS {
-            let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", i);
-
+        for path in crate::ipc::discovery::get_pipe_paths() {
             // Try to open the named pipe to check if it exists
-            if let Ok(file) = OpenOptions::new().read(true).write(true).open(&pipe_path) {
+            if let Ok(file) = OpenOptions::new().read(true).write(true).open(&path) {
+                let pipe_number = path
+                    .chars()
+                    .last()
+                    .and_then(|c| c.to_digit(10))
+                    .unwrap_or(0) as u8;
+
                 drop(file); // Close the test connection
-                pipes.push(DiscoveredPipe {
-                    pipe_number: i,
-                    path: pipe_path,
-                });
+                pipes.push(DiscoveredPipe { pipe_number, path });
             }
         }
 
@@ -309,7 +269,7 @@ impl IpcConnection {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
-        for dir in Self::candidate_ipc_dir() {
+        for dir in crate::ipc::discovery::candidate_ipc_directories() {
             for i in 0..constants::MAX_IPC_SOCKETS {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
                 attempted_paths.push(socket_path.clone());
@@ -376,12 +336,11 @@ impl IpcConnection {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
-        for i in 0..constants::MAX_IPC_SOCKETS {
-            let pipe_path = format!(r"\\?\pipe\discord-ipc-{}", i);
-            attempted_paths.push(pipe_path.clone());
+        for path in crate::ipc::discovery::get_pipe_paths() {
+            attempted_paths.push(path.clone());
 
             // Try to open the named pipe
-            match OpenOptions::new().read(true).write(true).open(&pipe_path) {
+            match OpenOptions::new().read(true).write(true).open(&path) {
                 Ok(file) => {
                     // Clone the file handle for reader and writer
                     match file.try_clone() {
@@ -472,6 +431,7 @@ impl IpcConnection {
         if length > constants::MAX_PAYLOAD_SIZE {
             let context = ProtocolContext::with_payload(opcode_raw, length as usize);
             return Err(DiscordIpcError::protocol_violation(
+                ProtocolViolationKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
                     length,

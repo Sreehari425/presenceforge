@@ -1,9 +1,61 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
-use crate::error::{DiscordIpcError, ProtocolContext};
+use crate::error::{DiscordIpcError, InvalidResponseKind, ProtocolContext, ProtocolViolationKind};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+/// Partial user object from Discord READY event payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PartialUser {
+    pub id: Option<String>,
+    pub username: Option<String>,
+    pub discriminator: Option<String>,
+    pub avatar: Option<String>,
+    pub bot: Option<bool>,
+}
+
+/// READY event payload returned by Discord IPC after handshake.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReadyEvent {
+    pub user: Option<PartialUser>,
+}
+
+/// Payload for ACTIVITY_JOIN event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityJoinEvent {
+    pub secret: String,
+}
+
+/// Payload for ACTIVITY_SPECTATE event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivitySpectateEvent {
+    pub secret: String,
+}
+
+/// Payload for ACTIVITY_JOIN_REQUEST event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityJoinRequestEvent {
+    pub user: PartialUser,
+}
+
+/// Payload for ERROR event from Discord
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorEvent {
+    pub code: i32,
+    pub message: String,
+}
+
+/// Parsed Discord IPC events.
+#[derive(Debug, Clone)]
+pub enum EventData {
+    Ready(ReadyEvent),
+    ActivityJoin(ActivityJoinEvent),
+    ActivitySpectate(ActivitySpectateEvent),
+    ActivityJoinRequest(ActivityJoinRequestEvent),
+    Error(ErrorEvent),
+    Unknown { name: String, data: Option<Value> },
+}
 
 /// Discord IPC Opcodes
 #[repr(u32)]
@@ -46,6 +98,7 @@ impl TryFrom<u32> for Opcode {
                     payload_size: None,
                 };
                 Err(DiscordIpcError::protocol_violation(
+                    ProtocolViolationKind::InvalidOpcodeValue,
                     format!("Invalid opcode value: {}", value),
                     context,
                 ))
@@ -75,6 +128,8 @@ pub struct IpcMessage {
     pub cmd: Command,
     pub args: Value,
     pub nonce: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evt: Option<String>,
 }
 
 /// Handshake payload
@@ -91,6 +146,77 @@ pub struct IpcResponse {
     pub data: Option<Value>,
     pub evt: Option<String>,
     pub nonce: Option<String>,
+}
+
+impl IpcResponse {
+    /// Parse this response into a typed event payload when `evt` is present.
+    pub fn parse_event(&self) -> Result<Option<EventData>, DiscordIpcError> {
+        let Some(event_name) = self.evt.as_deref() else {
+            return Ok(None);
+        };
+
+        match event_name {
+            "READY" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
+                        "READY event is missing the data payload".to_string(),
+                    )
+                })?;
+                let ready = serde_json::from_value::<ReadyEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::Ready(ready)))
+            }
+            "ACTIVITY_JOIN" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
+                        "ACTIVITY_JOIN event is missing data".to_string(),
+                    )
+                })?;
+                let event = serde_json::from_value::<ActivityJoinEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::ActivityJoin(event)))
+            }
+            "ACTIVITY_SPECTATE" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
+                        "ACTIVITY_SPECTATE event is missing data".to_string(),
+                    )
+                })?;
+                let event = serde_json::from_value::<ActivitySpectateEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::ActivitySpectate(event)))
+            }
+            "ACTIVITY_JOIN_REQUEST" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
+                        "ACTIVITY_JOIN_REQUEST event is missing data".to_string(),
+                    )
+                })?;
+                let event = serde_json::from_value::<ActivityJoinRequestEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::ActivityJoinRequest(event)))
+            }
+            "ERROR" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::invalid_response(
+                        InvalidResponseKind::MissingEventData,
+                        "ERROR event is missing data".to_string(),
+                    )
+                })?;
+                let event = serde_json::from_value::<ErrorEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::Error(event)))
+            }
+            other => Ok(Some(EventData::Unknown {
+                name: other.to_string(),
+                data: self.data.clone(),
+            })),
+        }
+    }
 }
 
 /// Constants and configuration for Discord IPC protocol
@@ -292,6 +418,7 @@ mod tests {
             cmd: Command::SetActivity,
             args: serde_json::json!({"foo": "bar"}),
             nonce: "1234".to_string(),
+            evt: None,
         };
 
         let json = serde_json::to_string(&message).expect("serialize message");
@@ -303,5 +430,40 @@ mod tests {
             deserialized.args.get("foo").and_then(Value::as_str),
             Some("bar")
         );
+    }
+
+    #[test]
+    fn parse_activity_join_event() {
+        let response = IpcResponse {
+            cmd: Some("DISPATCH".to_string()),
+            data: Some(serde_json::json!({"secret": "join_me"})),
+            evt: Some("ACTIVITY_JOIN".to_string()),
+            nonce: None,
+        };
+
+        let event = response.parse_event().unwrap().unwrap();
+        if let EventData::ActivityJoin(e) = event {
+            assert_eq!(e.secret, "join_me");
+        } else {
+            panic!("Expected ActivityJoin event");
+        }
+    }
+
+    #[test]
+    fn parse_error_event() {
+        let response = IpcResponse {
+            cmd: Some("DISPATCH".to_string()),
+            data: Some(serde_json::json!({"code": 4000, "message": "Bad request"})),
+            evt: Some("ERROR".to_string()),
+            nonce: None,
+        };
+
+        let event = response.parse_event().unwrap().unwrap();
+        if let EventData::Error(e) = event {
+            assert_eq!(e.code, 4000);
+            assert_eq!(e.message, "Bad request");
+        } else {
+            panic!("Expected Error event");
+        }
     }
 }

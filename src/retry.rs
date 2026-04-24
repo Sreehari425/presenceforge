@@ -456,7 +456,9 @@ fn test_retry_stops_on_non_recoverable_error() {
     let result: std::result::Result<(), DiscordIpcError> = with_retry(&config, || {
         attempt_count += 1;
         // InvalidActivity is not recoverable
-        Err(DiscordIpcError::InvalidActivity("test".to_string()))
+        Err(DiscordIpcError::InvalidActivity(
+            crate::activity::ActivityValidationError::ButtonUrlMissingScheme,
+        ))
     });
 
     assert!(result.is_err());
