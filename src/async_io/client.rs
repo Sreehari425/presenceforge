@@ -12,9 +12,7 @@ use super::traits::ipc_utils::read_u32_le;
 use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{
-    DiscordIpcError, HandshakeFailureKind, InvalidActivityKind, InvalidResponseKind, Result,
-};
+use crate::error::{DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, Result};
 use crate::ipc::{
     constants, Command, EventData, HandshakePayload, IpcMessage, IpcResponse, Opcode, ReadyEvent,
 };
@@ -136,12 +134,7 @@ where
     /// Returns a `DiscordIpcError` if serialization fails or if Discord returns an error
     pub async fn set_activity(&mut self, activity: &Activity) -> Result<()> {
         // Validate the activity first
-        if let Err(reason) = activity.validate() {
-            return Err(DiscordIpcError::invalid_activity(
-                InvalidActivityKind::ValidationFailed,
-                reason.to_string(),
-            ));
-        }
+        activity.validate()?;
 
         // Generate a cryptographically secure unique nonce for this request
         let nonce = generate_nonce("set-activity");

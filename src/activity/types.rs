@@ -118,6 +118,8 @@ impl fmt::Display for ActivityValidationError {
     }
 }
 
+impl std::error::Error for ActivityValidationError {}
+
 /// Rich Presence Activity
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Activity {

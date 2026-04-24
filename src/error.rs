@@ -85,12 +85,6 @@ pub enum ProtocolViolationKind {
     Other,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum InvalidActivityKind {
-    ValidationFailed,
-}
-
 impl Display for ErrorCategory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -224,11 +218,8 @@ pub enum DiscordIpcError {
         message: String,
     },
 
-    #[error("Invalid activity ({kind:?}){details}")]
-    InvalidActivity {
-        kind: InvalidActivityKind,
-        details: ErrorDetail,
-    },
+    #[error("Invalid activity: {0}")]
+    InvalidActivity(#[from] crate::activity::ActivityValidationError),
 
     /// System time error (e.g., time before UNIX epoch)
     #[error("System time error: {0}")]
@@ -255,7 +246,7 @@ impl DiscordIpcError {
 
             Self::DiscordError { .. } => ErrorCategory::Application,
 
-            Self::InvalidActivity { .. } | Self::SystemTimeError(_) => ErrorCategory::Other,
+            Self::InvalidActivity(_) | Self::SystemTimeError(_) => ErrorCategory::Other,
         }
     }
 
@@ -282,13 +273,6 @@ impl DiscordIpcError {
 
     pub fn handshake_failed(kind: HandshakeFailureKind, details: impl Into<ErrorDetail>) -> Self {
         Self::HandshakeFailed {
-            kind,
-            details: details.into(),
-        }
-    }
-
-    pub fn invalid_activity(kind: InvalidActivityKind, details: impl Into<ErrorDetail>) -> Self {
-        Self::InvalidActivity {
             kind,
             details: details.into(),
         }

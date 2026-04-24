@@ -18,6 +18,21 @@ fn error_category_matches_constructor() {
 }
 
 #[test]
+fn invalid_activity_wraps_validation_error() {
+    use presenceforge::ActivityValidationError;
+    let val_error = ActivityValidationError::StateTooLong {
+        max: 128,
+        actual: 129,
+    };
+    let error = DiscordIpcError::from(val_error.clone());
+
+    match error {
+        DiscordIpcError::InvalidActivity(e) => assert_eq!(e, val_error),
+        _ => panic!("Expected InvalidActivity variant"),
+    }
+}
+
+#[test]
 fn protocol_violation_context_is_preserved() {
     let context = ProtocolContext::with_opcodes(Opcode::Handshake.into(), Opcode::Frame.into());
     let error = DiscordIpcError::protocol_violation(

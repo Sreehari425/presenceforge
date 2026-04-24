@@ -7,9 +7,7 @@ use std::time::{Duration, Instant};
 
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{
-    DiscordIpcError, HandshakeFailureKind, InvalidActivityKind, InvalidResponseKind, Result,
-};
+use crate::error::{DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, Result};
 use crate::ipc::{
     constants, Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse,
     Opcode, PipeConfig, ReadyEvent,
@@ -216,12 +214,7 @@ impl DiscordIpcClient {
     /// Returns a `DiscordIpcError` if serialization fails or if Discord returns an error
     pub fn set_activity(&mut self, activity: &Activity) -> Result {
         // Validate the activity first
-        if let Err(reason) = activity.validate() {
-            return Err(DiscordIpcError::invalid_activity(
-                InvalidActivityKind::ValidationFailed,
-                reason.to_string(),
-            ));
-        }
+        activity.validate()?;
 
         // Generate a cryptographically secure unique nonce for this request
         let nonce = generate_nonce("set-activity");

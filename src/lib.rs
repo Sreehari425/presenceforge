@@ -186,8 +186,8 @@ pub use activity::{
     ActivityValidationError,
 };
 pub use error::{
-    DiscordIpcError, HandshakeFailureKind, InvalidActivityKind, InvalidResponseKind,
-    ProtocolContext, ProtocolViolationKind, Result,
+    DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, ProtocolContext,
+    ProtocolViolationKind, Result,
 };
 pub use ipc::protocol::IpcConfig;
 pub use ipc::{
