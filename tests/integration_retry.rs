@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// Copyright (c) 2025-2026 Sreehari Anil and project contributors
+
 use presenceforge::retry::with_retry;
 use presenceforge::{retry::RetryConfig, ActivityValidationError, DiscordIpcError};
 use std::sync::atomic::{AtomicUsize, Ordering};
