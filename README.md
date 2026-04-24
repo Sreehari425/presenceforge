@@ -51,9 +51,9 @@ For async support, add one of the runtime features:
 [dependencies]
 presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
 # OR
-presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
+presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
 # OR
-presenceforge = { version = "0.1.0", features = ["smol-runtime"] }
+presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
 ```
 
 ### Basic Usage (Synchronous)
