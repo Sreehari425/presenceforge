@@ -9,7 +9,8 @@ use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, Result};
 use crate::ipc::{
-    constants, Command, HandshakePayload, IpcConnection, IpcMessage, Opcode, PipeConfig,
+    constants, Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse,
+    Opcode, PipeConfig, ReadyEvent,
 };
 use crate::nonce::generate_nonce;
 
@@ -183,6 +184,23 @@ impl DiscordIpcClient {
 
         self.connected = true;
         Ok(response)
+    }
+
+    /// Perform handshake and return the typed READY payload when available.
+    pub fn connect_with_ready(&mut self) -> Result<Option<ReadyEvent>> {
+        let response = self.connect()?;
+        Self::ready_event_from_payload(&response)
+    }
+
+    /// Parse a raw IPC payload into a READY event if this payload is a READY dispatch.
+    pub fn ready_event_from_payload(payload: &Value) -> Result<Option<ReadyEvent>> {
+        let response: IpcResponse = serde_json::from_value(payload.clone())
+            .map_err(DiscordIpcError::DeserializationFailed)?;
+
+        match response.parse_event()? {
+            Some(EventData::Ready(ready)) => Ok(Some(ready)),
+            Some(EventData::Unknown { .. }) | None => Ok(None),
+        }
     }
 
     /// Set Discord Rich Presence activity

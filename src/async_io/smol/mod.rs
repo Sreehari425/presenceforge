@@ -401,6 +401,18 @@ pub mod client {
             self.inner.connect().await
         }
 
+        /// Perform handshake and return the typed READY payload when available.
+        pub async fn connect_with_ready(&mut self) -> Result<Option<crate::ipc::ReadyEvent>> {
+            self.inner.connect_with_ready().await
+        }
+
+        /// Parse a raw IPC payload into a READY event if this payload is a READY dispatch.
+        pub fn ready_event_from_payload(
+            payload: &Value,
+        ) -> Result<Option<crate::ipc::ReadyEvent>> {
+            AsyncDiscordIpcClient::<SmolConnection>::ready_event_from_payload(payload)
+        }
+
         /// Returns `true` once a handshake has been successfully completed.
         pub fn is_connected(&self) -> bool {
             self.inner.is_connected()

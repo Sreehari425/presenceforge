@@ -2,6 +2,32 @@ use crate::error::{DiscordIpcError, ProtocolContext};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// Partial user object from Discord READY event payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PartialUser {
+    pub id: Option<String>,
+    pub username: Option<String>,
+    pub discriminator: Option<String>,
+    pub avatar: Option<String>,
+    pub bot: Option<bool>,
+}
+
+/// READY event payload returned by Discord IPC after handshake.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReadyEvent {
+    pub user: Option<PartialUser>,
+}
+
+/// Parsed Discord IPC events.
+#[derive(Debug, Clone)]
+pub enum EventData {
+    Ready(ReadyEvent),
+    Unknown {
+        name: String,
+        data: Option<Value>,
+    },
+}
+
 /// Discord IPC Opcodes
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -88,6 +114,32 @@ pub struct IpcResponse {
     pub data: Option<Value>,
     pub evt: Option<String>,
     pub nonce: Option<String>,
+}
+
+impl IpcResponse {
+    /// Parse this response into a typed event payload when `evt` is present.
+    pub fn parse_event(&self) -> Result<Option<EventData>, DiscordIpcError> {
+        let Some(event_name) = self.evt.as_deref() else {
+            return Ok(None);
+        };
+
+        match event_name {
+            "READY" => {
+                let data = self.data.clone().ok_or_else(|| {
+                    DiscordIpcError::InvalidResponse(
+                        "READY event is missing the data payload".to_string(),
+                    )
+                })?;
+                let ready = serde_json::from_value::<ReadyEvent>(data)
+                    .map_err(DiscordIpcError::DeserializationFailed)?;
+                Ok(Some(EventData::Ready(ready)))
+            }
+            other => Ok(Some(EventData::Unknown {
+                name: other.to_string(),
+                data: self.data.clone(),
+            })),
+        }
+    }
 }
 
 /// Constants and configuration for Discord IPC protocol
