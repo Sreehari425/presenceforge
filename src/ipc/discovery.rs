@@ -20,7 +20,7 @@ pub fn candidate_ipc_directories() -> Vec<String> {
             if key == &"XDG_RUNTIME_DIR" {
                 // Flatpak
                 directories.push(format!("{}/app/com.discordapp.Discord", dir));
-                
+
                 // Snap (can be snap.discord, snap.discord-canary, etc.)
                 if let Ok(entries) = std::fs::read_dir(&dir) {
                     for entry in entries.flatten() {
@@ -51,7 +51,7 @@ pub fn candidate_ipc_directories() -> Vec<String> {
     if !directories.contains(&flatpak_fallback) {
         directories.push(flatpak_fallback);
     }
-    
+
     // Snap fallback scan
     let base_run_user = format!("/run/user/{}", uid);
     if let Ok(entries) = std::fs::read_dir(&base_run_user) {

@@ -352,11 +352,7 @@ pub mod client {
         }
 
         /// Unsubscribe from a Discord IPC event.
-        pub async fn unsubscribe<S: Into<String>>(
-            &mut self,
-            event: S,
-            args: Value,
-        ) -> Result<()> {
+        pub async fn unsubscribe<S: Into<String>>(&mut self, event: S, args: Value) -> Result<()> {
             self.inner.unsubscribe(event, args).await
         }
 

@@ -70,7 +70,7 @@ fn main() -> Result {
                 break;
             }
         }
-        
+
         // Small sleep to avoid hogging CPU in this example loop
         std::thread::sleep(Duration::from_millis(100));
     }

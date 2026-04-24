@@ -121,10 +121,7 @@ impl IpcConnection {
                     .unwrap_or(0) as u8;
 
                 drop(file); // Close the test connection
-                pipes.push(DiscoveredPipe {
-                    pipe_number,
-                    path,
-                });
+                pipes.push(DiscoveredPipe { pipe_number, path });
             }
         }
 

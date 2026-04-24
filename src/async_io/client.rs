@@ -503,10 +503,7 @@ where
     }
 
     fn value_is_event(value: &Value) -> bool {
-        value
-            .get("evt")
-            .and_then(|evt| evt.as_str())
-            .is_some()
+        value.get("evt").and_then(|evt| evt.as_str()).is_some()
     }
 }
 
