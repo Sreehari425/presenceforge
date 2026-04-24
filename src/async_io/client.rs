@@ -139,7 +139,7 @@ where
         if let Err(reason) = activity.validate() {
             return Err(DiscordIpcError::invalid_activity(
                 InvalidActivityKind::ValidationFailed,
-                reason,
+                reason.to_string(),
             ));
         }
 

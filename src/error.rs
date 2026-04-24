@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 use std::io;
+use std::time::SystemTimeError as StdSystemTimeError;
 use thiserror::Error;
 
 /// Context information for protocol violations
@@ -231,7 +232,7 @@ pub enum DiscordIpcError {
 
     /// System time error (e.g., time before UNIX epoch)
     #[error("System time error: {0}")]
-    SystemTimeError(String),
+    SystemTimeError(#[source] StdSystemTimeError),
 }
 
 impl DiscordIpcError {

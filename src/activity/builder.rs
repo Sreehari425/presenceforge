@@ -37,9 +37,9 @@ impl ActivityBuilder {
     /// Returns an error if the system time is before the UNIX epoch (Jan 1, 1970).
     /// This should never happen on properly configured systems.
     pub fn start_timestamp_now(mut self) -> Result<Self> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e| {
-            DiscordIpcError::SystemTimeError(format!("System time is before UNIX epoch: {}", e))
-        })?;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(DiscordIpcError::SystemTimeError)?;
 
         self.get_timestamps().start = Some(now.as_secs());
         Ok(self)
