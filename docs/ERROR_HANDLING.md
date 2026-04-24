@@ -252,10 +252,12 @@ fn maintain_presence(mut client: DiscordIpcClient) -> Result<(), Box<dyn std::er
                 println!(" Activity updated");
             }
             Err(e) if e.is_connection_error() => {
-                eprintln!(" Connection lost. Recreating client and reconnecting...");
-                // Recreate the client (sync API has no reconnect method)
-                client = DiscordIpcClient::new("your_client_id")?;
-                let _ = client.connect()?;
+                eprintln!(" Connection lost. Reconnecting...");
+                // Use the built-in reconnect() method
+                if let Err(reconnect_err) = client.reconnect() {
+                    eprintln!(" Failed to reconnect: {}", reconnect_err);
+                    return Err(reconnect_err.into());
+                }
                 client.set_activity(&activity)?;
             }
             Err(e) => {

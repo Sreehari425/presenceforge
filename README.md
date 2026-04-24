@@ -6,7 +6,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 ![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
-> **Note**: This is currently in development (v0.1.0). Things might break.
+> **Note**: This is currently in development (v0.2.0). Things might break.
 > This is a learning/hobby project.
 > Features and APIs may change in future versions.
 
@@ -34,6 +34,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 - [x] Async support with runtime-agnostic design
 - [x] Support for tokio, async-std, and smol
 - [x] Flexible pipe/socket selection
+- [x] IPC Event System (subscribe, unsubscribe, event polling)
 
 ## Quick Start
 
@@ -41,14 +42,14 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.1.0"
+presenceforge = "0.2.0"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.1.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
 # OR
 presenceforge = { version = "0.1.0", features = ["async-std-runtime"] }
 # OR
@@ -224,6 +225,10 @@ cargo run --example basic
 - `client.is_connected()` - Check if the handshake succeeded
 - `client.set_activity(activity)` - Set Rich Presence activity
 - `client.clear_activity()` - Clear current activity
+- `client.subscribe(event, args)` - Subscribe to IPC events (e.g., "READY", "ERROR")
+- `client.unsubscribe(event, args)` - Unsubscribe from events
+- `client.next_event()` - Block until the next event is received
+- `client.poll_event()` - Check for events without blocking
 
 ### Activity Builder
 
@@ -241,7 +246,9 @@ ActivityBuilder::new()
     .small_image("image_key")        // Small image asset
     .small_text("Hover text")        // Small image hover text
     .button("Label", "https://url")  // Clickable button (max 2)
-    .party("id",1, 4)               // Party size (current, max)
+    .party("id", 1, 4)               // Party size with custom ID
+    .party_simple(1, 4)              // Party size with auto-generated ID
+    .end_timestamp_from_now(dur)     // End time relative to now
     .build()
 ```
 

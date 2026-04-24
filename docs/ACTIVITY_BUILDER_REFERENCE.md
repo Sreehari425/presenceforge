@@ -115,6 +115,17 @@ S = Small Image (overlays large image in bottom-right corner)
 - **Use for:** Match end times, timer events, scheduled activities
 - **Note:** If both start and end are set, Discord shows remaining time
 
+#### End Timestamp From Now
+
+```rust
+use std::time::Duration;
+
+.end_timestamp_from_now(Duration::from_secs(600))? // 10 minutes from now
+```
+
+- **Returns:** `Result<Self>`
+- **Use for:** Easily setting a countdown without manual timestamp math
+
 **Getting Unix timestamp:**
 
 ```rust
@@ -150,6 +161,15 @@ let end_time = now + 300;
   - "2 of 4" (2 players in a 4-player game)
   - "5 of 10" (5 people in a 10-person voice channel)
 
+#### Simple Party (`party_simple()`)
+
+```rust
+.party_simple(2, 4) // current_size, max_size
+```
+
+- **Effect:** Automatically generates a unique UUID for the party ID.
+- **Use for:** Quick multiplayer status where you don't need to track specific party IDs.
+
 ---
 
 ### 7. **Buttons** (`button()`)
@@ -174,7 +194,7 @@ let end_time = now + 300;
 ### 8. **Secrets** (For "Ask to Join" and Spectate features)
 
 > **⚠️ Feature Flag Required:** These methods require the `secrets` feature flag to be enabled.
-> Add to your `Cargo.toml`: `presenceforge = { version = "0.1.0", features = ["secrets"] }`
+> Add to your `Cargo.toml`: `presenceforge = { version = "0.2.0", features = ["secrets"] }`
 
 #### Note: untested feature
 
@@ -254,9 +274,10 @@ let activity = ActivityBuilder::new()
 
     // Time
     .start_timestamp_now()?
+    .end_timestamp_from_now(std::time::Duration::from_secs(3600))?
 
     // Party
-    .party("party-12345", 3, 4)
+    .party_simple(3, 4)
 
     // Buttons
     .button("🎮 Join Game", "https://game.example.com/join")
