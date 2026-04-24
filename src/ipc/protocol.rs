@@ -1,6 +1,4 @@
-use crate::error::{
-    DiscordIpcError, InvalidResponseKind, ProtocolContext, ProtocolViolationKind,
-};
+use crate::error::{DiscordIpcError, InvalidResponseKind, ProtocolContext, ProtocolViolationKind};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -24,10 +22,7 @@ pub struct ReadyEvent {
 #[derive(Debug, Clone)]
 pub enum EventData {
     Ready(ReadyEvent),
-    Unknown {
-        name: String,
-        data: Option<Value>,
-    },
+    Unknown { name: String, data: Option<Value> },
 }
 
 /// Discord IPC Opcodes

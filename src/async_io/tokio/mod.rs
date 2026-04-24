@@ -286,9 +286,7 @@ pub mod client {
         }
 
         /// Parse a raw IPC payload into a READY event if this payload is a READY dispatch.
-        pub fn ready_event_from_payload(
-            payload: &Value,
-        ) -> Result<Option<crate::ipc::ReadyEvent>> {
+        pub fn ready_event_from_payload(payload: &Value) -> Result<Option<crate::ipc::ReadyEvent>> {
             AsyncDiscordIpcClient::<TokioConnection>::ready_event_from_payload(payload)
         }
 

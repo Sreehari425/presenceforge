@@ -191,8 +191,7 @@ pub use error::{
 };
 pub use ipc::protocol::IpcConfig;
 pub use ipc::{
-    Command, DiscoveredPipe, EventData, IpcConnection, Opcode, PartialUser, PipeConfig,
-    ReadyEvent,
+    Command, DiscoveredPipe, EventData, IpcConnection, Opcode, PartialUser, PipeConfig, ReadyEvent,
 };
 pub use macros::is_debug_enabled;
 

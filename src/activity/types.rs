@@ -7,19 +7,49 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ActivityValidationError {
-    StateTooLong { max: usize, actual: usize },
-    DetailsTooLong { max: usize, actual: usize },
-    TooManyButtons { max: usize, actual: usize },
-    ButtonLabelTooLong { max: usize, actual: usize },
-    ButtonUrlTooLong { max: usize, actual: usize },
+    StateTooLong {
+        max: usize,
+        actual: usize,
+    },
+    DetailsTooLong {
+        max: usize,
+        actual: usize,
+    },
+    TooManyButtons {
+        max: usize,
+        actual: usize,
+    },
+    ButtonLabelTooLong {
+        max: usize,
+        actual: usize,
+    },
+    ButtonUrlTooLong {
+        max: usize,
+        actual: usize,
+    },
     ButtonUrlMissingScheme,
     #[cfg(feature = "secrets")]
     ButtonsAndSecretsConflict,
-    LargeImageKeyTooLong { max: usize, actual: usize },
-    SmallImageKeyTooLong { max: usize, actual: usize },
-    LargeTextTooLong { max: usize, actual: usize },
-    SmallTextTooLong { max: usize, actual: usize },
-    PartySizeExceedsMax { current: u32, max: u32 },
+    LargeImageKeyTooLong {
+        max: usize,
+        actual: usize,
+    },
+    SmallImageKeyTooLong {
+        max: usize,
+        actual: usize,
+    },
+    LargeTextTooLong {
+        max: usize,
+        actual: usize,
+    },
+    SmallTextTooLong {
+        max: usize,
+        actual: usize,
+    },
+    PartySizeExceedsMax {
+        current: u32,
+        max: u32,
+    },
 }
 
 impl fmt::Display for ActivityValidationError {
@@ -32,13 +62,22 @@ impl fmt::Display for ActivityValidationError {
                 write!(f, "Details must be {max} characters or less (got {actual})")
             }
             Self::TooManyButtons { max, actual } => {
-                write!(f, "Discord allows a maximum of {max} buttons (got {actual})")
+                write!(
+                    f,
+                    "Discord allows a maximum of {max} buttons (got {actual})"
+                )
             }
             Self::ButtonLabelTooLong { max, actual } => {
-                write!(f, "Button label must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Button label must be {max} characters or less (got {actual})"
+                )
             }
             Self::ButtonUrlTooLong { max, actual } => {
-                write!(f, "Button URL must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Button URL must be {max} characters or less (got {actual})"
+                )
             }
             Self::ButtonUrlMissingScheme => {
                 write!(f, "Button URL must start with http:// or https://")
@@ -48,16 +87,28 @@ impl fmt::Display for ActivityValidationError {
                 write!(f, "Buttons and secrets cannot coexist in the same Activity")
             }
             Self::LargeImageKeyTooLong { max, actual } => {
-                write!(f, "Large image key must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Large image key must be {max} characters or less (got {actual})"
+                )
             }
             Self::SmallImageKeyTooLong { max, actual } => {
-                write!(f, "Small image key must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Small image key must be {max} characters or less (got {actual})"
+                )
             }
             Self::LargeTextTooLong { max, actual } => {
-                write!(f, "Large text must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Large text must be {max} characters or less (got {actual})"
+                )
             }
             Self::SmallTextTooLong { max, actual } => {
-                write!(f, "Small text must be {max} characters or less (got {actual})")
+                write!(
+                    f,
+                    "Small text must be {max} characters or less (got {actual})"
+                )
             }
             Self::PartySizeExceedsMax { current, max } => write!(
                 f,

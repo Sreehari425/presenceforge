@@ -68,5 +68,8 @@ fn ready_event_is_parsed_from_payload() {
         .expect("payload should deserialize")
         .expect("ready event should be present");
 
-    assert_eq!(ready.user.and_then(|u| u.username), Some("tester".to_string()));
+    assert_eq!(
+        ready.user.and_then(|u| u.username),
+        Some("tester".to_string())
+    );
 }
