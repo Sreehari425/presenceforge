@@ -84,7 +84,6 @@ async fn setup_presence() -> Result {
     // Connect to Discord
     client.connect().await?;
     debug_assert!(client.is_connected(), "Discord handshake failed");
-    debug_assert!(client.is_connected(), "Discord handshake failed");
 
     println!("Connected to Discord!");
 
