@@ -40,6 +40,7 @@ fn main() -> Result {
         .details("Waiting for someone to join...")
         .party_simple(1, 5)
         .join_secret("very_secret_join_token")
+        .instance(true)
         .build();
 
     client.set_activity(&activity)?;
