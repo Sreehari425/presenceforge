@@ -49,6 +49,13 @@ fn main() -> Result {
     // Note: Discord requires us to subscribe to receive these events
     client.subscribe("ACTIVITY_JOIN", serde_json::json!({}))?;
     println!("✓ Subscribed to ACTIVITY_JOIN event.");
+    println!("✓ You can also check for events without blocking using client.poll_event().");
+
+    // Check once without blocking
+    match client.poll_event()? {
+        Some(_) => println!("! Found an early event!"),
+        None => println!("✓ No immediate events (as expected)."),
+    }
 
     println!("\n--- Waiting for events (Ctrl+C to stop) ---");
     println!("If someone clicks 'Join' on your profile in Discord, you'll see an event here.");
@@ -76,7 +83,15 @@ fn main() -> Result {
 
         // Small sleep to avoid hogging CPU in this example loop
         std::thread::sleep(Duration::from_millis(100));
+
+        // In a real app, you might break based on some condition:
+        // break;
     }
+
+    // This code would be reached if the loop above breaks
+    println!("\nUnsubscribing from events...");
+    client.unsubscribe("ACTIVITY_JOIN", serde_json::json!({}))?;
+    println!("✓ Unsubscribed.");
 
     Ok(())
 }
