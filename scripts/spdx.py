@@ -16,12 +16,10 @@ def stamp_files(root_dir):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.readlines()
 
-                # Check if already stamped so we don't look like an amateur
                 if content and "SPDX-License-Identifier" in content[0]:
                     print(f"[-] Skipping: {file} (Already protected)")
                     continue
 
-                # Inject the legal virus at the top
                 print(f"[+] Stamping: {file}")
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(SPDX_TAG)
