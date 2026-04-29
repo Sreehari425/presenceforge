@@ -15,7 +15,7 @@ use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter};
 
 use crate::error::{DiscordIpcError, ProtocolContext, ProtocolViolationKind, Result};
-use crate::ipc::protocol::{constants, Opcode};
+use crate::ipc::protocol::{constants, IpcConfig, Opcode};
 
 /// Configuration for selecting which Discord IPC pipe to connect to
 #[derive(Debug, Clone, Default)]
@@ -47,6 +47,7 @@ pub struct IpcConnection {
     stream: UnixStream,
     read_buf: BytesMut,
     write_buf: BytesMut,
+    ipc_config: IpcConfig,
 }
 
 #[cfg(windows)]
@@ -55,6 +56,7 @@ pub struct IpcConnection {
     writer: BufWriter<std::fs::File>,
     read_buf: BytesMut,
     write_buf: BytesMut,
+    ipc_config: IpcConfig,
 }
 
 impl IpcConnection {
@@ -137,26 +139,39 @@ impl IpcConnection {
     ///
     /// * `config` - Optional pipe configuration. If `None`, auto-discovery is used.
     pub fn new_with_config(config: Option<PipeConfig>) -> Result<Self> {
+        Self::new_with_configs(config, IpcConfig::default())
+    }
+
+    /// Create a new IPC connection with protocol configuration and auto-discovery.
+    pub fn new_with_ipc_config(ipc_config: IpcConfig) -> Result<Self> {
+        Self::new_with_configs(None, ipc_config)
+    }
+
+    /// Create a new IPC connection with pipe and protocol configuration.
+    pub fn new_with_configs(config: Option<PipeConfig>, ipc_config: IpcConfig) -> Result<Self> {
         let config = config.unwrap_or_default();
 
         #[cfg(unix)]
         {
-            let stream = Self::connect_to_discord_unix_with_config(&config)?;
+            let stream = Self::connect_to_discord_unix_with_config(&config, &ipc_config)?;
             Ok(Self {
                 stream,
                 read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
                 write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                ipc_config,
             })
         }
 
         #[cfg(windows)]
         {
-            let (reader, writer) = Self::connect_to_discord_windows_with_config(&config)?;
+            let (reader, writer) =
+                Self::connect_to_discord_windows_with_config(&config, &ipc_config)?;
             Ok(Self {
                 reader,
                 writer,
                 read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
                 write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                ipc_config,
             })
         }
     }
@@ -181,6 +196,20 @@ impl IpcConnection {
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
+        Self::new_with_configs_and_timeout(config, timeout_ms, IpcConfig::default())
+    }
+
+    /// Create a new IPC connection with protocol configuration and timeout.
+    pub fn new_with_ipc_config_and_timeout(timeout_ms: u64, ipc_config: IpcConfig) -> Result<Self> {
+        Self::new_with_configs_and_timeout(None, timeout_ms, ipc_config)
+    }
+
+    /// Create a new IPC connection with pipe configuration, timeout, and protocol configuration.
+    pub fn new_with_configs_and_timeout(
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
         use std::time::{Duration, Instant};
 
         let start = Instant::now();
@@ -191,18 +220,18 @@ impl IpcConnection {
 
         // Keep trying to connect until we succeed or timeout
         while start.elapsed() < timeout {
-            match Self::try_connect_with_config(&config) {
+            match Self::try_connect_with_config(&config, &ipc_config) {
                 Ok(connection) => return Ok(connection),
                 Err(DiscordIpcError::NoValidSocket) => {
                     last_error_message = Some("No valid Discord socket found".to_string());
                     // Wait a bit before trying again
-                    std::thread::sleep(Duration::from_millis(constants::DEFAULT_RETRY_INTERVAL_MS));
+                    std::thread::sleep(Duration::from_millis(ipc_config.retry_interval_ms));
                     continue;
                 }
                 Err(DiscordIpcError::SocketDiscoveryFailed { ref source, .. }) => {
                     last_error_message = Some(format!("Socket discovery failed: {}", source));
                     // Wait a bit before trying again
-                    std::thread::sleep(Duration::from_millis(constants::DEFAULT_RETRY_INTERVAL_MS));
+                    std::thread::sleep(Duration::from_millis(ipc_config.retry_interval_ms));
                     continue;
                 }
                 Err(e) => {
@@ -219,36 +248,42 @@ impl IpcConnection {
     }
 
     /// Try to connect to Discord with configuration
-    fn try_connect_with_config(config: &PipeConfig) -> Result<Self> {
+    fn try_connect_with_config(config: &PipeConfig, ipc_config: &IpcConfig) -> Result<Self> {
         #[cfg(unix)]
         {
-            let stream = Self::connect_to_discord_unix_with_config(config)?;
+            let stream = Self::connect_to_discord_unix_with_config(config, ipc_config)?;
             Ok(Self {
                 stream,
                 read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
                 write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                ipc_config: ipc_config.clone(),
             })
         }
 
         #[cfg(windows)]
         {
-            let (reader, writer) = Self::connect_to_discord_windows_with_config(config)?;
+            let (reader, writer) =
+                Self::connect_to_discord_windows_with_config(config, ipc_config)?;
             Ok(Self {
                 reader,
                 writer,
                 read_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
                 write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
+                ipc_config: ipc_config.clone(),
             })
         }
     }
 
     #[cfg(unix)]
     /// Connect to Discord IPC socket on Unix systems with configuration
-    fn connect_to_discord_unix_with_config(config: &PipeConfig) -> Result<UnixStream> {
+    fn connect_to_discord_unix_with_config(
+        config: &PipeConfig,
+        ipc_config: &IpcConfig,
+    ) -> Result<UnixStream> {
         match config {
             PipeConfig::Auto => {
                 // Auto-discovery: try all possible pipes
-                Self::connect_to_discord_unix_auto()
+                Self::connect_to_discord_unix_auto(ipc_config)
             }
             PipeConfig::CustomPath(path) => {
                 // Connect to custom path
@@ -264,13 +299,13 @@ impl IpcConnection {
 
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
-    fn connect_to_discord_unix_auto() -> Result<UnixStream> {
+    fn connect_to_discord_unix_auto(ipc_config: &IpcConfig) -> Result<UnixStream> {
         // Try each directory with each socket number
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
         for dir in crate::ipc::discovery::candidate_ipc_directories() {
-            for i in 0..constants::MAX_IPC_SOCKETS {
+            for i in 0..ipc_config.max_sockets {
                 let socket_path = format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i);
                 attempted_paths.push(socket_path.clone());
 
@@ -308,11 +343,12 @@ impl IpcConnection {
     /// Connect to Discord IPC named pipe on Windows with configuration
     fn connect_to_discord_windows_with_config(
         config: &PipeConfig,
+        ipc_config: &IpcConfig,
     ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         match config {
             PipeConfig::Auto => {
                 // Auto-discovery: try all possible pipes
-                Self::connect_to_discord_windows_auto()
+                Self::connect_to_discord_windows_auto(ipc_config)
             }
             PipeConfig::CustomPath(path) => {
                 // Connect to custom path
@@ -332,11 +368,12 @@ impl IpcConnection {
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows using auto-discovery
     fn connect_to_discord_windows_auto(
+        ipc_config: &IpcConfig,
     ) -> Result<(BufReader<std::fs::File>, BufWriter<std::fs::File>)> {
         let mut last_error = None;
         let mut attempted_paths = Vec::new();
 
-        for path in crate::ipc::discovery::get_pipe_paths() {
+        for path in crate::ipc::discovery::get_pipe_paths_with_limit(ipc_config.max_sockets) {
             attempted_paths.push(path.clone());
 
             // Try to open the named pipe
@@ -428,14 +465,13 @@ impl IpcConnection {
         let length = header_reader.read_u32::<LittleEndian>()?;
 
         // Validate payload size to prevent excessive memory allocation
-        if length > constants::MAX_PAYLOAD_SIZE {
+        if length > self.ipc_config.max_payload_size {
             let context = ProtocolContext::with_payload(opcode_raw, length as usize);
             return Err(DiscordIpcError::protocol_violation(
                 ProtocolViolationKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
-                    length,
-                    constants::MAX_PAYLOAD_SIZE
+                    length, self.ipc_config.max_payload_size
                 ),
                 context,
             ));

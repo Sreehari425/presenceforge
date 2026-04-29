@@ -24,8 +24,8 @@ PresenceForge is a Rust library for integrating Discord Rich Presence into your 
 ### What platforms are supported?
 
 - Linux (standard and Flatpak Discord)
-- macOS (need testing)
-- Windows (needs more testing)
+- macOS
+- Windows
 
 ---
 
@@ -52,11 +52,11 @@ git ls-remote git@github.com:Sreehari425/presenceforge.git
 
 If SSH works but you still have issues, please report them on GitHub Issues.
 
-For now, use version `0.2.0` instead:
+For now, use version `0.2.1` instead:
 
 ```toml
 [dependencies]
-presenceforge = "0.2.0"
+presenceforge = "0.2.1"
 ```
 
 ---
@@ -74,7 +74,7 @@ The feature is called `tokio-runtime`, not `tokio`:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.1", features = ["tokio-runtime"] }
 ```
 
 Valid features: `tokio-runtime`, `async-std-runtime`, `smol-runtime`
@@ -94,7 +94,7 @@ Make sure you're using compatible versions:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.1", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["full"] }  # Use version 1.x
 ```
 
@@ -107,7 +107,7 @@ tokio = { version = "1", features = ["full"] }  # Use version 1.x
 **Problem:**
 
 ```rust
-Error: ConnectionFailed("No Discord pipes found")
+Error: NoValidSocket
 ```
 
 **Solutions:**
@@ -312,7 +312,7 @@ ls -l$ XDG_RUNTIME_DIR/discord-ipc-*
 2. **Use convenience method:**
 
    ```rust
-   .start_timestamp_now()  // Automatically uses correct format
+   .start_timestamp_now()?  // Automatically uses correct format
    ```
 
 3. **Check your system time is correct:**

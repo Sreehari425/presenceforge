@@ -76,3 +76,23 @@ fn ready_event_is_parsed_from_payload() {
         Some("tester".to_string())
     );
 }
+
+#[test]
+fn ready_event_treats_empty_username_as_none() {
+    let payload = json!({
+        "cmd": "DISPATCH",
+        "evt": "READY",
+        "data": {
+            "user": {
+                "id": "1234",
+                "username": ""
+            }
+        }
+    });
+
+    let ready = DiscordIpcClient::ready_event_from_payload(&payload)
+        .expect("payload should deserialize")
+        .expect("ready event should be present");
+
+    assert_eq!(ready.user.and_then(|u| u.username), None);
+}

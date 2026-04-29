@@ -15,9 +15,10 @@ use super::traits::ipc_utils::read_u32_le;
 use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, Result};
+use crate::error::{DiscordIpcError, InvalidResponseKind, Result};
+use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::ipc::{
-    constants, Command, EventData, HandshakePayload, IpcMessage, IpcResponse, Opcode, ReadyEvent,
+    Command, EventData, HandshakePayload, IpcMessage, IpcResponse, Opcode, ReadyEvent,
 };
 use crate::nonce::generate_nonce;
 
@@ -32,6 +33,7 @@ where
     write_buf: BytesMut,
     pending_messages: VecDeque<PendingMessage>,
     connected: bool,
+    ipc_config: IpcConfig,
 }
 
 impl<T> AsyncDiscordIpcClient<T>
@@ -46,6 +48,15 @@ where
     /// This constructor doesn't establish a connection yet.
     /// Call `connect()` to establish a connection.
     pub fn new(client_id: impl Into<String>, connection: T) -> Self {
+        Self::new_with_ipc_config(client_id, connection, IpcConfig::default())
+    }
+
+    /// Creates a new async Discord IPC client with protocol configuration.
+    pub fn new_with_ipc_config(
+        client_id: impl Into<String>,
+        connection: T,
+        ipc_config: IpcConfig,
+    ) -> Self {
         Self {
             connection,
             client_id: client_id.into(),
@@ -53,6 +64,7 @@ where
             write_buf: BytesMut::with_capacity(Self::INITIAL_BUFFER_CAPACITY),
             pending_messages: VecDeque::new(),
             connected: false,
+            ipc_config,
         }
     }
 
@@ -70,7 +82,7 @@ where
         self.connected = false;
 
         let handshake = HandshakePayload {
-            v: constants::IPC_VERSION,
+            v: self.ipc_config.ipc_version,
             client_id: self.client_id.clone(),
         };
 
@@ -81,29 +93,7 @@ where
 
         let (opcode, response) = self.recv_from_connection().await?;
         debug_println!("Handshake response: {}", response);
-
-        // Check for error in the response
-        if let Some(err) = response.get("error") {
-            if let (Some(code), Some(message)) = (
-                err.get("code").and_then(|c| c.as_i64()),
-                err.get("message").and_then(|m| m.as_str()),
-            ) {
-                return Err(DiscordIpcError::discord_error(code as i32, message));
-            } else {
-                return Err(DiscordIpcError::handshake_failed(
-                    HandshakeFailureKind::InvalidErrorPayload,
-                    format!("Invalid error format: {}", err),
-                ));
-            }
-        }
-
-        // Verify opcode is correct for handshake response
-        if !opcode.is_handshake_response() {
-            return Err(DiscordIpcError::handshake_failed(
-                HandshakeFailureKind::UnexpectedOpcode,
-                format!("Expected handshake response opcode, got {:?}", opcode),
-            ));
-        }
+        validate_handshake_response(opcode, &response)?;
 
         self.connected = true;
         Ok(response)
@@ -438,13 +428,12 @@ where
         let length = read_u32_le(&mut self.connection).await?;
 
         // Validate payload size to prevent excessive memory allocation
-        if length > crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE {
+        if length > self.ipc_config.max_payload_size {
             return Err(DiscordIpcError::invalid_response(
                 InvalidResponseKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
-                    length,
-                    crate::ipc::protocol::constants::MAX_PAYLOAD_SIZE
+                    length, self.ipc_config.max_payload_size
                 ),
             ));
         }

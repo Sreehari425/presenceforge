@@ -68,6 +68,9 @@ pub enum ErrorCategory {
 pub enum HandshakeFailureKind {
     InvalidErrorPayload,
     UnexpectedOpcode,
+    UnexpectedCommand,
+    UnexpectedEvent,
+    MissingReadyData,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,7 +152,7 @@ impl Display for ErrorCategory {
 /// }
 /// ```
 ///
-/// See the `examples/error_handling.rs` file for more comprehensive examples.
+/// See the `examples/connection_retry.rs` file for more comprehensive examples.
 #[derive(Error, Debug)]
 pub enum DiscordIpcError {
     /// Failed to connect to Discord IPC socket or pipe

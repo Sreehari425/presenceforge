@@ -2,7 +2,7 @@
 
 Welcome to PresenceForge! This guide will help you get started with integrating Discord Rich Presence into your Rust application.
 
-> **Note:** PresenceForge v0.2.0 is an early development release.  
+> **Note:** PresenceForge v0.2.1 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## What is Discord Rich Presence?
@@ -36,7 +36,7 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.2.0"
+presenceforge = "0.2.1"
 ```
 
 ### With Async Support
@@ -46,13 +46,13 @@ If you need async support, add one of the runtime features:
 ```toml
 [dependencies]
 # For Tokio users
-presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.1", features = ["tokio-runtime"] }
 
 # For async-std users
-presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
+presenceforge = { version = "0.2.1", features = ["async-std-runtime"] }
 
 # For smol users
-presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
+presenceforge = { version = "0.2.1", features = ["smol-runtime"] }
 ```
 
 ## Your First Rich Presence
@@ -70,7 +70,7 @@ cd my-discord-presence
 
 ```toml
 [dependencies]
-presenceforge = "0.2.0"
+presenceforge = "0.2.1"
 ```
 
 ### Step 3: Write your first presence
@@ -139,7 +139,7 @@ assert!(client.is_connected(), "Handshake did not complete");
 let activity = ActivityBuilder::new()
     .state("Hello, Discord!")          // Smaller text line
     .details("Using PresenceForge")    // Larger text line
-    .start_timestamp_now()              // Shows "elapsed" time
+    .start_timestamp_now()?             // Shows "elapsed" time
     .build();
 
 // 4. Send the activity to Discord

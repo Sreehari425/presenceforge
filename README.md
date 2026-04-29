@@ -3,10 +3,10 @@
 A Rust library for Discord Rich Presence that actually works without the headaches. No more fighting with the Discord SDK or dealing with complex C bindings.
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Sreehari425/presenceforge#license)
-[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.78+-blue.svg)](https://www.rust-lang.org)
 ![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
-> **Note**: This is currently in development (v0.2.0). Things might break.
+> **Note**: This is currently in development (v0.2.1). Things might break.
 > This is a learning/hobby project.
 > Features and APIs may change in future versions.
 
@@ -42,18 +42,18 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.2.0"
+presenceforge = "0.2.1"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.2.0", features = ["tokio-runtime"] }
+presenceforge = { version = "0.2.1", features = ["tokio-runtime"] }
 # OR
-presenceforge = { version = "0.2.0", features = ["async-std-runtime"] }
+presenceforge = { version = "0.2.1", features = ["async-std-runtime"] }
 # OR
-presenceforge = { version = "0.2.0", features = ["smol-runtime"] }
+presenceforge = { version = "0.2.1", features = ["smol-runtime"] }
 ```
 
 ### Basic Usage (Synchronous)
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .details("In the menu")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("game_logo")
         .large_text("My Awesome Game")
         .build();
@@ -99,7 +99,7 @@ async fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .details("In the menu")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("game_logo")
         .large_text("My Awesome Game")
         .build();
@@ -128,7 +128,7 @@ async fn main() -> Result {
     let activity = ActivityBuilder::new()
         .state("Playing a game")
         .details("In the menu")
-        .start_timestamp_now()
+        .start_timestamp_now()?
         .large_image("game_logo")
         .large_text("My Awesome Game")
         .build();
@@ -151,12 +151,12 @@ fn main() -> Result {
     smol::block_on(async {
         let mut client = AsyncDiscordIpcClient::new("your_client_id").await?;
         client.connect().await?;
-    debug_assert!(client.is_connected(), "Discord handshake failed");
+        debug_assert!(client.is_connected(), "Discord handshake failed");
 
         let activity = ActivityBuilder::new()
             .state("Playing a game")
             .details("In the menu")
-            .start_timestamp_now()
+            .start_timestamp_now()?
             .large_image("game_logo")
             .large_text("My Awesome Game")
             .build();
@@ -238,7 +238,7 @@ The `ActivityBuilder` provides a fluent interface for creating activities:
 ActivityBuilder::new()
     .state("Custom state")           // What the player is doing
     .details("Custom details")       // Additional context
-    .start_timestamp_now()           // Start time (current)
+    .start_timestamp_now()?          // Start time (current)
     .start_timestamp(timestamp)      // Start time (custom)
     .end_timestamp(timestamp)        // End time
     .large_image("image_key")        // Large image asset
@@ -248,7 +248,7 @@ ActivityBuilder::new()
     .button("Label", "https://url")  // Clickable button (max 2)
     .party("id", 1, 4)               // Party size with custom ID
     .party_simple(1, 4)              // Party size with auto-generated ID
-    .end_timestamp_from_now(dur)     // End time relative to now
+    .end_timestamp_from_now(dur)?    // End time relative to now
     .build()
 ```
 
@@ -286,11 +286,26 @@ cargo run --example async_smol --features smol-runtime -- --client-id YOUR_CLIEN
 # Complete builder reference - Shows ALL ActivityBuilder options
 cargo run --example builder_all -- --client-id YOUR_CLIENT_ID
 
+# Flatpak-specific pipe selection
+cargo run --example basic_flatpak -- --client-id YOUR_CLIENT_ID
+
 # Connection retry and error handling
 cargo run --example connection_retry -- --client-id YOUR_CLIENT_ID
 
+# Async retry/reconnect with Tokio
+cargo run --example async_tokio_reconnect --features tokio-runtime -- --client-id YOUR_CLIENT_ID
+
+# Update activity without resetting the timer
+cargo run --example update_activity_tokio --features tokio-runtime -- --client-id YOUR_CLIENT_ID
+
 # Pipe selection and discovery
 cargo run --example pipe_selection -- --client-id YOUR_CLIENT_ID
+
+# IPC event subscription and polling
+cargo run --example event_listener -- --client-id YOUR_CLIENT_ID
+
+# Fetch typed READY payload data
+cargo run --example ready_event -- --client-id YOUR_CLIENT_ID
 ```
 
 Or use the .env file method (recommended for development):
@@ -317,8 +332,11 @@ use presenceforge::DiscordIpcError;
 use presenceforge::sync::DiscordIpcClient;
 match client.connect() {
     Ok(_) => println!("Connected successfully!"),
-    Err(DiscordIpcError::ConnectionFailed) => {
+    Err(DiscordIpcError::ConnectionFailed(_)) => {
         eprintln!("Failed to connect - is Discord running?");
+    }
+    Err(DiscordIpcError::NoValidSocket) => {
+        eprintln!("No Discord IPC socket found - is Discord running?");
     }
     Err(e) => eprintln!("Error: {}", e),
 }
