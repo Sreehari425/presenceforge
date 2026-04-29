@@ -164,7 +164,8 @@ impl IpcConnection {
 
         #[cfg(windows)]
         {
-            let (reader, writer) = Self::connect_to_discord_windows_with_config(&config, &ipc_config)?;
+            let (reader, writer) =
+                Self::connect_to_discord_windows_with_config(&config, &ipc_config)?;
             Ok(Self {
                 reader,
                 writer,
@@ -261,7 +262,8 @@ impl IpcConnection {
 
         #[cfg(windows)]
         {
-            let (reader, writer) = Self::connect_to_discord_windows_with_config(config, ipc_config)?;
+            let (reader, writer) =
+                Self::connect_to_discord_windows_with_config(config, ipc_config)?;
             Ok(Self {
                 reader,
                 writer,
@@ -274,7 +276,10 @@ impl IpcConnection {
 
     #[cfg(unix)]
     /// Connect to Discord IPC socket on Unix systems with configuration
-    fn connect_to_discord_unix_with_config(config: &PipeConfig, ipc_config: &IpcConfig) -> Result<UnixStream> {
+    fn connect_to_discord_unix_with_config(
+        config: &PipeConfig,
+        ipc_config: &IpcConfig,
+    ) -> Result<UnixStream> {
         match config {
             PipeConfig::Auto => {
                 // Auto-discovery: try all possible pipes
@@ -466,8 +471,7 @@ impl IpcConnection {
                 ProtocolViolationKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
-                    length,
-                    self.ipc_config.max_payload_size
+                    length, self.ipc_config.max_payload_size
                 ),
                 context,
             ));

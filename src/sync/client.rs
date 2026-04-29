@@ -11,11 +11,11 @@ use std::time::{Duration, Instant};
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, InvalidResponseKind, Result};
+use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::ipc::{
     Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse, Opcode,
     PipeConfig, ReadyEvent,
 };
-use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::nonce::generate_nonce;
 
 /// Discord IPC Client
@@ -36,7 +36,10 @@ impl DiscordIpcClient {
     }
 
     /// Create a new Discord IPC client using auto-discovery and a custom protocol configuration.
-    pub fn new_with_ipc_config<S: Into<String>>(client_id: S, ipc_config: IpcConfig) -> Result<Self> {
+    pub fn new_with_ipc_config<S: Into<String>>(
+        client_id: S,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
         Self::new_with_config_and_ipc_config(client_id, None, ipc_config)
     }
 

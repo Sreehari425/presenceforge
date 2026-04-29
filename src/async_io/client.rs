@@ -16,10 +16,10 @@ use super::traits::{read_exact, write_all, AsyncRead, AsyncWrite};
 use crate::activity::Activity;
 use crate::debug_println;
 use crate::error::{DiscordIpcError, InvalidResponseKind, Result};
+use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::ipc::{
     Command, EventData, HandshakePayload, IpcMessage, IpcResponse, Opcode, ReadyEvent,
 };
-use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::nonce::generate_nonce;
 
 /// Async implementation of Discord IPC client
@@ -433,8 +433,7 @@ where
                 InvalidResponseKind::PayloadTooLarge,
                 format!(
                     "Payload size {} exceeds maximum allowed size of {} bytes",
-                    length,
-                    self.ipc_config.max_payload_size
+                    length, self.ipc_config.max_payload_size
                 ),
             ));
         }

@@ -88,7 +88,9 @@ impl SmolConnection {
         let mut last_error_message = None;
 
         while start.elapsed() < timeout {
-            match Self::new_with_config_and_ipc_config(Some(config.clone()), ipc_config.clone()).await {
+            match Self::new_with_config_and_ipc_config(Some(config.clone()), ipc_config.clone())
+                .await
+            {
                 Ok(connection) => return Ok(connection),
                 Err(DiscordIpcError::NoValidSocket) => {
                     last_error_message = Some("No valid Discord socket found".to_string());
@@ -102,7 +104,10 @@ impl SmolConnection {
             smol::Timer::after(Duration::from_millis(ipc_config.retry_interval_ms)).await;
         }
 
-        Err(DiscordIpcError::connection_timeout(timeout_ms, last_error_message))
+        Err(DiscordIpcError::connection_timeout(
+            timeout_ms,
+            last_error_message,
+        ))
     }
 
     #[cfg(unix)]
@@ -122,7 +127,9 @@ impl SmolConnection {
     async fn connect_unix_auto(ipc_config: &IpcConfig) -> Result<Self> {
         let mut last_error = None;
 
-        for socket_path in crate::ipc::discovery::get_socket_paths_with_limit(ipc_config.max_sockets) {
+        for socket_path in
+            crate::ipc::discovery::get_socket_paths_with_limit(ipc_config.max_sockets)
+        {
             match UnixStream::connect(&socket_path).await {
                 Ok(stream) => {
                     return Ok(Self::Unix(stream));
@@ -152,7 +159,10 @@ impl SmolConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows with configuration
-    async fn connect_windows_with_config(config: &PipeConfig, ipc_config: &IpcConfig) -> Result<Self> {
+    async fn connect_windows_with_config(
+        config: &PipeConfig,
+        ipc_config: &IpcConfig,
+    ) -> Result<Self> {
         match config {
             PipeConfig::Auto => Self::connect_windows_auto(ipc_config).await,
             PipeConfig::CustomPath(path) => {

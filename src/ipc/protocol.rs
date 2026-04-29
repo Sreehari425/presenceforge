@@ -571,7 +571,10 @@ mod tests {
         });
 
         let ready = validate_handshake_response(Opcode::Frame, &payload).unwrap();
-        assert_eq!(ready.user.and_then(|u| u.username), Some("tester".to_string()));
+        assert_eq!(
+            ready.user.and_then(|u| u.username),
+            Some("tester".to_string())
+        );
     }
 
     #[test]
