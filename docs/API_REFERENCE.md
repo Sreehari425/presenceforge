@@ -2,7 +2,7 @@
 
 API reference for PresenceForge (work-in-progress; APIs may change).
 
-> **Note:** PresenceForge v0.2.0 is an early development release.  
+> **Note:** PresenceForge v0.2.1 is an early development release.  
 > It’s functional, but features may change or be incomplete.
 
 ## Table of Contents
@@ -11,6 +11,7 @@ API reference for PresenceForge (work-in-progress; APIs may change).
 - [ActivityBuilder](#activitybuilder)
 - [Activity](#activity)
 - [PipeConfig](#pipeconfig)
+- [IpcConfig](#ipcconfig)
 - [IpcConnection](#ipcconnection)
 - [Event Subscription](#event-subscription)
 - [Error Types](#error-types)
@@ -73,6 +74,21 @@ let client = DiscordIpcClient::new_with_config(
 
 ---
 
+#### `DiscordIpcClient::new_with_ipc_config(client_id: impl Into<String>, ipc_config: IpcConfig) -> Result<Self>`
+
+Creates a new Discord IPC client with custom protocol configuration while still using automatic pipe discovery.
+
+```rust
+use presenceforge::{IpcConfig, sync::DiscordIpcClient};
+
+let client = DiscordIpcClient::new_with_ipc_config(
+    "client_id",
+    IpcConfig::fast_connect(),
+)?;
+```
+
+---
+
 ### Connection Methods
 
 #### `connect(&mut self) -> Result<serde_json::Value>`
@@ -95,6 +111,22 @@ let _handshake = client.connect()?; // JSON handshake payload
 
 ---
 
+#### `connect_with_ready(&mut self) -> Result<Option<ReadyEvent>>`
+
+Performs the handshake and returns the typed READY payload when Discord includes one.
+
+```rust
+let mut client = DiscordIpcClient::new("client_id")?;
+let ready = client.connect_with_ready()?;
+if let Some(ready) = ready {
+    if let Some(user) = ready.user {
+        println!("Connected as {:?}", user.username);
+    }
+}
+```
+
+---
+
 #### `is_connected(&self) -> bool`
 
 Returns `true` after a successful handshake and `false` otherwise.
@@ -113,8 +145,13 @@ if !client.is_connected() {
 
 ---
 
-// (No sync reconnect method)
-// If the connection is lost, recreate the client and call connect() again.
+#### `reconnect(&mut self) -> Result<serde_json::Value>`
+
+Re-establishes the transport using the stored configuration and performs the handshake again.
+
+```rust
+client.reconnect()?;
+```
 
 ---
 
@@ -204,6 +241,33 @@ match client.next_event()? {
 ### `poll_event(&mut self) -> Result<Option<EventData>>`
 
 Checks for a queued event without blocking. Returns `Ok(None)` if no event is available.
+
+---
+
+## IpcConfig
+
+Protocol-level configuration for connection scanning, retry pacing, payload limits, and handshake version.
+
+```rust
+use presenceforge::IpcConfig;
+
+let config = IpcConfig::fast_connect()
+    .with_max_sockets(3)
+    .with_retry_interval(50)
+    .with_max_payload_size(1024 * 1024);
+```
+
+Common uses:
+
+- `IpcConfig::default()` for standard behavior
+- `IpcConfig::fast_connect()` for quicker local connection attempts
+- `IpcConfig::extended()` for broader scan/retry behavior
+
+Use it with:
+
+- `DiscordIpcClient::new_with_ipc_config(...)`
+- `DiscordIpcClient::new_with_timeout_and_ipc_config(...)`
+- Runtime-specific async clients via their `*_with_ipc_config(...)` constructors
 
 ---
 

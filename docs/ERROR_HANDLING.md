@@ -361,24 +361,27 @@ let mut client = with_retry(&config, || {
 The new reconnectable wrapper provides automatic retry and manual reconnect capabilities:
 
 ```rust
-use presenceforge::async_io::tokio::{TokioDiscordIpcClient, PipeConfig};
-use presenceforge::retry::RetryConfig;
+use presenceforge::ActivityBuilder;
+use presenceforge::async_io::tokio::TokioDiscordIpcClient;
+use presenceforge::retry::{with_retry_async_tokio, RetryConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create client with reconnect support
-    let mut client = TokioDiscordIpcClient::new(
-        "your_client_id",
-        PipeConfig::Auto,
-        Some(5000)
-    );
-
-    // Connect with retry
     let retry_config = RetryConfig::with_max_attempts(5);
-    client.connect_with_retry(&retry_config).await?;
+    let mut client = with_retry_async_tokio(&retry_config, || {
+        Box::pin(TokioDiscordIpcClient::new_with_timeout(
+            "your_client_id",
+            5000,
+        ))
+    })
+    .await?;
+
+    client.connect().await?;
+
+    let activity = ActivityBuilder::new().state("Retrying").build();
 
     // Later: manual reconnect if connection is lost
-    if let Err(e) = client.set_activity(activity).await {
+    if let Err(e) = client.set_activity(&activity).await {
         if e.is_recoverable() {
             client.reconnect().await?;
         }

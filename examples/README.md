@@ -42,7 +42,7 @@ cargo run --example basic -- --client-id YOUR_CLIENT_ID
 # Complete Builder Reference - Shows ALL ActivityBuilder options with explanations
 cargo run --example builder_all -- --client-id YOUR_CLIENT_ID
 
-# Basic Flatpak - Simple example for Flatpak Discord with custom path
+# Basic Flatpak - Prefer Flatpak Discord when present, otherwise fall back to standard Discord
 cargo run --example basic_flatpak -- --client-id YOUR_CLIENT_ID
 
 # Game demo - Dynamic game status that changes over time
@@ -74,9 +74,6 @@ cargo run --example async_tokio_reconnect --features tokio-runtime -- --client-i
 
 # Update activity with Tokio - Update state/details without resetting the timer
 cargo run --example update_activity_tokio --features tokio-runtime -- --client-id YOUR_CLIENT_ID
-
-# Flatpak Discord - Connect to Flatpak Discord using custom path configuration
-cargo run --example flatpak_discord -- --client-id YOUR_CLIENT_ID
 
 # Event Listener - Demonstrates IPC Event System (subscribe, unsubscribe, poll_event)
 cargo run --example event_listener -- --client-id YOUR_CLIENT_ID
@@ -119,10 +116,11 @@ Simple Flatpak Discord example showing:
 
 - Discovering Flatpak Discord pipe
 - Connecting using `PipeConfig::CustomPath`
+- Falling back to standard Discord if a Flatpak pipe is not available or usable
 - Same simple structure as `basic.rs` but with custom path configuration
 - Perfect starting point for Flatpak Discord integration
 
-**Note:** If Flatpak Discord is not found, the example will show an error. For automatic fallback, use `basic.rs` with auto-discovery.
+**Note:** This example prefers Flatpak Discord first, then falls back to standard Discord automatically.
 
 ### `game_demo.rs`
 
@@ -201,7 +199,7 @@ Error handling and recovery example (synchronous) showing:
 
 Async error handling with Tokio showing:
 
-- Using `TokioDiscordIpcClient` with reconnect support
+- Using `AsyncDiscordIpcClient` with reconnect support
 - Manual reconnection in async context
 - Automatic retry with `with_retry_async()`
 - Resilient connection loop with exponential backoff
@@ -218,18 +216,6 @@ Activity state updates without timer reset (Tokio async) showing:
 - Shows how to maintain session continuity across state changes
 
 **Key Feature:** The elapsed time on Discord continues uninterrupted when you update the activity while maintaining the original timestamp!
-
-### `flatpak_discord.rs`
-
-Flatpak Discord example showing:
-
-- Discovering Flatpak Discord installations
-- Identifying Flatpak vs standard Discord pipes
-- Connecting using custom path configuration (`PipeConfig::CustomPath`)
-- Setting activity on Flatpak Discord
-- Step-by-step guide with detailed output
-
-**Note:** This example works with both Flatpak and standard Discord. It automatically detects which version is available.
 
 ### `event_listener.rs`
 
