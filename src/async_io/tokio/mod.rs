@@ -3,8 +3,6 @@
 
 //! Tokio-specific implementations for async Discord IPC
 
-#[cfg(windows)]
-use crate::debug_println;
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
@@ -17,7 +15,8 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 
 use crate::async_io::traits::{AsyncRead, AsyncWrite};
 use crate::error::{DiscordIpcError, Result};
-use crate::ipc::{constants, PipeConfig};
+use crate::ipc::protocol::IpcConfig;
+use crate::ipc::{PipeConfig};
 
 /// A Discord IPC connection using Tokio
 pub(crate) enum TokioConnection {
@@ -30,43 +29,74 @@ pub(crate) enum TokioConnection {
 
 impl TokioConnection {
     /// Create a new Tokio connection with pipe configuration
+    #[allow(dead_code)]
     pub async fn new_with_config(config: Option<PipeConfig>) -> Result<Self> {
+        Self::new_with_config_and_ipc_config(config, IpcConfig::default()).await
+    }
+
+    /// Create a new Tokio connection with pipe and protocol configuration.
+    pub async fn new_with_config_and_ipc_config(
+        config: Option<PipeConfig>,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
         let config = config.unwrap_or_default();
 
         #[cfg(unix)]
         {
-            Self::connect_unix_with_config(&config).await
+            Self::connect_unix_with_config(&config, &ipc_config).await
         }
 
         #[cfg(windows)]
         {
-            Self::connect_windows_with_config(&config).await
+            Self::connect_windows_with_config(&config, &ipc_config).await
         }
     }
 
     /// Create a new connection with pipe configuration and timeout
+    #[allow(dead_code)]
     pub async fn new_with_config_and_timeout(
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
-        use tokio::time::{timeout, Duration};
+        Self::new_with_config_timeout_and_ipc_config(config, timeout_ms, IpcConfig::default()).await
+    }
 
-        let timeout_duration = Duration::from_millis(timeout_ms);
+    /// Create a new connection with pipe configuration, timeout, and protocol configuration.
+    pub async fn new_with_config_timeout_and_ipc_config(
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
+        use tokio::time::{sleep, Duration, Instant};
 
-        match timeout(timeout_duration, Self::new_with_config(config)).await {
-            Ok(result) => result,
-            Err(_) => Err(DiscordIpcError::ConnectionTimeout {
-                timeout_ms,
-                last_error: None,
-            }),
+        let start = Instant::now();
+        let timeout = Duration::from_millis(timeout_ms);
+        let config = config.unwrap_or_default();
+        let mut last_error_message = None;
+
+        while start.elapsed() < timeout {
+            match Self::new_with_config_and_ipc_config(Some(config.clone()), ipc_config.clone()).await {
+                Ok(connection) => return Ok(connection),
+                Err(DiscordIpcError::NoValidSocket) => {
+                    last_error_message = Some("No valid Discord socket found".to_string());
+                }
+                Err(DiscordIpcError::ConnectionFailed(ref source)) => {
+                    last_error_message = Some(source.to_string());
+                }
+                Err(err) => return Err(err),
+            }
+
+            sleep(Duration::from_millis(ipc_config.retry_interval_ms)).await;
         }
+
+        Err(DiscordIpcError::connection_timeout(timeout_ms, last_error_message))
     }
 
     #[cfg(unix)]
     /// Connect to Discord IPC socket on Unix systems with configuration
-    async fn connect_unix_with_config(config: &PipeConfig) -> Result<Self> {
+    async fn connect_unix_with_config(config: &PipeConfig, ipc_config: &IpcConfig) -> Result<Self> {
         match config {
-            PipeConfig::Auto => Self::connect_unix_auto().await,
+            PipeConfig::Auto => Self::connect_unix_auto(ipc_config).await,
             PipeConfig::CustomPath(path) => UnixStream::connect(path)
                 .await
                 .map(Self::Unix)
@@ -76,10 +106,10 @@ impl TokioConnection {
 
     #[cfg(unix)]
     /// Connect to Discord IPC socket using auto-discovery
-    async fn connect_unix_auto() -> Result<Self> {
+    async fn connect_unix_auto(ipc_config: &IpcConfig) -> Result<Self> {
         let mut last_error = None;
 
-        for socket_path in crate::ipc::discovery::get_socket_paths() {
+        for socket_path in crate::ipc::discovery::get_socket_paths_with_limit(ipc_config.max_sockets) {
             match UnixStream::connect(&socket_path).await {
                 Ok(stream) => {
                     return Ok(Self::Unix(stream));
@@ -109,9 +139,9 @@ impl TokioConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe on Windows with configuration
-    async fn connect_windows_with_config(config: &PipeConfig) -> Result<Self> {
+    async fn connect_windows_with_config(config: &PipeConfig, ipc_config: &IpcConfig) -> Result<Self> {
         match config {
-            PipeConfig::Auto => Self::connect_windows_auto().await,
+            PipeConfig::Auto => Self::connect_windows_auto(ipc_config).await,
             PipeConfig::CustomPath(path) => ClientOptions::new()
                 .open(path)
                 .map(Self::Windows)
@@ -121,10 +151,11 @@ impl TokioConnection {
 
     #[cfg(windows)]
     /// Connect to Discord IPC named pipe using auto-discovery
-    async fn connect_windows_auto() -> Result<Self> {
+    async fn connect_windows_auto(ipc_config: &IpcConfig) -> Result<Self> {
+        use crate::debug_println;
         let mut last_error = None;
 
-        for pipe_path in crate::ipc::discovery::get_pipe_paths() {
+        for pipe_path in crate::ipc::discovery::get_pipe_paths_with_limit(ipc_config.max_sockets) {
             // Try to open the named pipe
             debug_println!("Attempting to connect to Windows named pipe: {}", pipe_path);
             match ClientOptions::new().open(pipe_path.clone()) {
@@ -209,6 +240,7 @@ pub mod client {
     use super::TokioConnection;
     use crate::async_io::client::AsyncDiscordIpcClient;
     use crate::error::{DiscordIpcError, Result};
+    use crate::ipc::protocol::IpcConfig;
     use crate::ipc::PipeConfig;
     use serde_json::Value;
     use std::time::Duration;
@@ -216,13 +248,14 @@ pub mod client {
 
     /// A reconnectable Tokio-based Discord IPC client
     ///
-    /// Thiis wrapper stores the connection configuration and client ID,
+    /// This wrapper stores the connection configuration and client ID,
     /// allowing you to reconnect after connection loss.
     pub struct TokioDiscordIpcClient {
         inner: AsyncDiscordIpcClient<TokioConnection>,
         client_id: String,
         pipe_config: Option<PipeConfig>,
         timeout_ms: Option<u64>,
+        ipc_config: IpcConfig,
     }
 
     impl TokioDiscordIpcClient {
@@ -231,20 +264,35 @@ pub mod client {
             client_id: impl Into<String>,
             pipe_config: Option<PipeConfig>,
             timeout_ms: Option<u64>,
+            ipc_config: IpcConfig,
         ) -> Result<Self> {
             let client_id = client_id.into();
 
             let connection = if let Some(timeout) = timeout_ms {
-                TokioConnection::new_with_config_and_timeout(pipe_config.clone(), timeout).await?
+                TokioConnection::new_with_config_timeout_and_ipc_config(
+                    pipe_config.clone(),
+                    timeout,
+                    ipc_config.clone(),
+                )
+                .await?
             } else {
-                TokioConnection::new_with_config(pipe_config.clone()).await?
+                TokioConnection::new_with_config_and_ipc_config(
+                    pipe_config.clone(),
+                    ipc_config.clone(),
+                )
+                .await?
             };
 
             Ok(Self {
-                inner: AsyncDiscordIpcClient::new(client_id.clone(), connection),
+                inner: AsyncDiscordIpcClient::new_with_ipc_config(
+                    client_id.clone(),
+                    connection,
+                    ipc_config.clone(),
+                ),
                 client_id,
                 pipe_config,
                 timeout_ms,
+                ipc_config,
             })
         }
 
@@ -334,14 +382,26 @@ pub mod client {
         pub async fn reconnect(&mut self) -> Result<Value> {
             // Create a new connection with the same configuration
             let connection = if let Some(timeout) = self.timeout_ms {
-                TokioConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)
-                    .await?
+                TokioConnection::new_with_config_timeout_and_ipc_config(
+                    self.pipe_config.clone(),
+                    timeout,
+                    self.ipc_config.clone(),
+                )
+                .await?
             } else {
-                TokioConnection::new_with_config(self.pipe_config.clone()).await?
+                TokioConnection::new_with_config_and_ipc_config(
+                    self.pipe_config.clone(),
+                    self.ipc_config.clone(),
+                )
+                .await?
             };
 
             // Replace the inner client with a new one
-            self.inner = AsyncDiscordIpcClient::new(self.client_id.clone(), connection);
+            self.inner = AsyncDiscordIpcClient::new_with_ipc_config(
+                self.client_id.clone(),
+                connection,
+                self.ipc_config.clone(),
+            );
 
             // Perform handshake
             self.inner.connect().await
@@ -349,7 +409,15 @@ pub mod client {
 
         /// Create a new Tokio-based Discord IPC client (uses auto-discovery)
         pub async fn new(client_id: impl Into<String>) -> Result<Self> {
-            Self::new_internal(client_id, None, None).await
+            Self::new_internal(client_id, None, None, IpcConfig::default()).await
+        }
+
+        /// Create a new Tokio-based Discord IPC client with custom protocol configuration.
+        pub async fn new_with_ipc_config(
+            client_id: impl Into<String>,
+            ipc_config: IpcConfig,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, None, None, ipc_config).await
         }
 
         /// Create a new Tokio-based Discord IPC client with pipe configuration
@@ -357,7 +425,16 @@ pub mod client {
             client_id: impl Into<String>,
             config: Option<PipeConfig>,
         ) -> Result<Self> {
-            Self::new_internal(client_id, config, None).await
+            Self::new_internal(client_id, config, None, IpcConfig::default()).await
+        }
+
+        /// Create a new Tokio-based Discord IPC client with pipe and protocol configuration.
+        pub async fn new_with_config_and_ipc_config(
+            client_id: impl Into<String>,
+            config: Option<PipeConfig>,
+            ipc_config: IpcConfig,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, config, None, ipc_config).await
         }
 
         /// Create a new Tokio-based Discord IPC client with a connection timeout
@@ -365,7 +442,16 @@ pub mod client {
             client_id: impl Into<String>,
             timeout_ms: u64,
         ) -> Result<Self> {
-            Self::new_internal(client_id, None, Some(timeout_ms)).await
+            Self::new_internal(client_id, None, Some(timeout_ms), IpcConfig::default()).await
+        }
+
+        /// Create a new Tokio-based Discord IPC client with timeout and protocol configuration.
+        pub async fn new_with_timeout_and_ipc_config(
+            client_id: impl Into<String>,
+            timeout_ms: u64,
+            ipc_config: IpcConfig,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, None, Some(timeout_ms), ipc_config).await
         }
 
         /// Create a new Tokio-based Discord IPC client with pipe configuration and timeout
@@ -374,7 +460,17 @@ pub mod client {
             config: Option<PipeConfig>,
             timeout_ms: u64,
         ) -> Result<Self> {
-            Self::new_internal(client_id, config, Some(timeout_ms)).await
+            Self::new_internal(client_id, config, Some(timeout_ms), IpcConfig::default()).await
+        }
+
+        /// Create a new Tokio-based Discord IPC client with pipe configuration, timeout, and protocol configuration.
+        pub async fn new_with_config_timeout_and_ipc_config(
+            client_id: impl Into<String>,
+            config: Option<PipeConfig>,
+            timeout_ms: u64,
+            ipc_config: IpcConfig,
+        ) -> Result<Self> {
+            Self::new_internal(client_id, config, Some(timeout_ms), ipc_config).await
         }
 
         /// Performs handshake with Discord with a timeout

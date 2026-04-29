@@ -1,16 +1,31 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // Copyright (c) 2025-2026 Sreehari Anil and project contributors
 
-use crate::error::{DiscordIpcError, InvalidResponseKind, ProtocolContext, ProtocolViolationKind};
+use crate::error::{
+    DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, ProtocolContext,
+    ProtocolViolationKind,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+fn empty_string_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+}
 
 /// Partial user object from Discord READY event payload.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PartialUser {
+    #[serde(default, deserialize_with = "empty_string_as_none")]
     pub id: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
     pub username: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
     pub discriminator: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
     pub avatar: Option<String>,
     pub bot: Option<bool>,
 }
@@ -217,6 +232,81 @@ impl IpcResponse {
             })),
         }
     }
+
+    /// Parse this response as the READY dispatch required to complete the initial handshake.
+    pub fn parse_ready_handshake(self) -> Result<ReadyEvent, DiscordIpcError> {
+        match self.cmd.as_deref() {
+            Some("DISPATCH") => {}
+            Some(other) => {
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::UnexpectedCommand,
+                    format!("Expected DISPATCH command in handshake response, got {other}"),
+                ));
+            }
+            None => {
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::UnexpectedCommand,
+                    "Handshake response is missing cmd".to_string(),
+                ));
+            }
+        }
+
+        match self.evt.as_deref() {
+            Some("READY") => {}
+            Some(other) => {
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::UnexpectedEvent,
+                    format!("Expected READY event in handshake response, got {other}"),
+                ));
+            }
+            None => {
+                return Err(DiscordIpcError::handshake_failed(
+                    HandshakeFailureKind::UnexpectedEvent,
+                    "Handshake response is missing evt".to_string(),
+                ));
+            }
+        }
+
+        let data = self.data.ok_or_else(|| {
+            DiscordIpcError::handshake_failed(
+                HandshakeFailureKind::MissingReadyData,
+                "READY handshake response is missing data".to_string(),
+            )
+        })?;
+
+        serde_json::from_value::<ReadyEvent>(data).map_err(DiscordIpcError::DeserializationFailed)
+    }
+}
+
+/// Validate a handshake response and return the typed READY payload.
+pub fn validate_handshake_response(
+    opcode: Opcode,
+    payload: &Value,
+) -> Result<ReadyEvent, DiscordIpcError> {
+    if let Some(err) = payload.get("error") {
+        if let (Some(code), Some(message)) = (
+            err.get("code").and_then(|c| c.as_i64()),
+            err.get("message").and_then(|m| m.as_str()),
+        ) {
+            return Err(DiscordIpcError::discord_error(code as i32, message));
+        }
+
+        return Err(DiscordIpcError::handshake_failed(
+            HandshakeFailureKind::InvalidErrorPayload,
+            format!("Invalid error format: {}", err),
+        ));
+    }
+
+    if !opcode.is_handshake_response() {
+        return Err(DiscordIpcError::handshake_failed(
+            HandshakeFailureKind::UnexpectedOpcode,
+            format!("Expected handshake response opcode, got {:?}", opcode),
+        ));
+    }
+
+    let response: IpcResponse =
+        serde_json::from_value(payload.clone()).map_err(DiscordIpcError::DeserializationFailed)?;
+    response.parse_ready_handshake()
 }
 
 /// Constants and configuration for Discord IPC protocol
@@ -465,5 +555,40 @@ mod tests {
         } else {
             panic!("Expected Error event");
         }
+    }
+
+    #[test]
+    fn validate_handshake_response_requires_ready_dispatch() {
+        let payload = serde_json::json!({
+            "cmd": "DISPATCH",
+            "evt": "READY",
+            "data": {
+                "user": {
+                    "id": "1234",
+                    "username": "tester"
+                }
+            }
+        });
+
+        let ready = validate_handshake_response(Opcode::Frame, &payload).unwrap();
+        assert_eq!(ready.user.and_then(|u| u.username), Some("tester".to_string()));
+    }
+
+    #[test]
+    fn validate_handshake_response_rejects_non_ready_events() {
+        let payload = serde_json::json!({
+            "cmd": "DISPATCH",
+            "evt": "SOMETHING_ELSE",
+            "data": {}
+        });
+
+        let err = validate_handshake_response(Opcode::Frame, &payload).unwrap_err();
+        assert!(matches!(
+            err,
+            DiscordIpcError::HandshakeFailed {
+                kind: HandshakeFailureKind::UnexpectedEvent,
+                ..
+            }
+        ));
     }
 }

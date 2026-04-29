@@ -129,7 +129,7 @@ where
 /// # Example
 ///
 /// ```no_run
-/// use presenceforge::async_io::tokio::TokioDiscordIpcClient;
+/// use presenceforge::AsyncDiscordIpcClient;
 /// use presenceforge::retry::{with_retry_async_tokio, RetryConfig};
 ///
 /// # #[tokio::main]
@@ -137,7 +137,7 @@ where
 /// let config = RetryConfig::with_max_attempts(5);
 ///
 /// let mut client = with_retry_async_tokio(&config, || {
-///     Box::pin(async { TokioDiscordIpcClient::new("your-client-id").await })
+///     Box::pin(async { AsyncDiscordIpcClient::new("your-client-id").await })
 /// }).await?;
 /// # Ok(())
 /// # }
@@ -316,14 +316,14 @@ where
 ///
 /// With Tokio:
 /// ```no_run
-/// use presenceforge::async_io::tokio::TokioDiscordIpcClient;
+/// use presenceforge::AsyncDiscordIpcClient;
 /// use presenceforge::retry::{with_retry_async, RetryConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), presenceforge::DiscordIpcError> {
 /// let config = RetryConfig::with_max_attempts(5);
 /// let client = with_retry_async(&config, || {
-///     Box::pin(async { TokioDiscordIpcClient::new("your-client-id").await })
+///     Box::pin(async { AsyncDiscordIpcClient::new("your-client-id").await })
 /// }).await?;
 /// # Ok(())
 /// # }

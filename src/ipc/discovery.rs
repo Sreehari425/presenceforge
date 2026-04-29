@@ -80,9 +80,15 @@ pub fn candidate_ipc_directories() -> Vec<String> {
 /// Returns a list of all potential Discord IPC socket/pipe paths to check.
 #[cfg(unix)]
 pub fn get_socket_paths() -> Vec<String> {
+    get_socket_paths_with_limit(constants::MAX_IPC_SOCKETS)
+}
+
+/// Returns a list of all potential Discord IPC socket paths to check with a custom scan limit.
+#[cfg(unix)]
+pub fn get_socket_paths_with_limit(max_sockets: u8) -> Vec<String> {
     let mut paths = Vec::new();
     for dir in candidate_ipc_directories() {
-        for i in 0..constants::MAX_IPC_SOCKETS {
+        for i in 0..max_sockets {
             paths.push(format!("{}/{}{}", dir, constants::IPC_SOCKET_PREFIX, i));
         }
     }
@@ -91,8 +97,14 @@ pub fn get_socket_paths() -> Vec<String> {
 
 #[cfg(windows)]
 pub fn get_pipe_paths() -> Vec<String> {
+    get_pipe_paths_with_limit(constants::MAX_IPC_SOCKETS)
+}
+
+/// Returns a list of all potential Discord IPC pipe paths to check with a custom scan limit.
+#[cfg(windows)]
+pub fn get_pipe_paths_with_limit(max_sockets: u8) -> Vec<String> {
     let mut paths = Vec::new();
-    for i in 0..constants::MAX_IPC_SOCKETS {
+    for i in 0..max_sockets {
         paths.push(format!(r"\\.\pipe\discord-ipc-{}", i));
     }
     paths

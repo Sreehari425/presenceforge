@@ -30,6 +30,7 @@
 //!     let activity = ActivityBuilder::new()
 //!         .state("Playing a game")
 //!         .details("In the menu")
+//!         .start_timestamp_now()?
 //!         .build();
 //!
 //!     client.set_activity(&activity).await?;

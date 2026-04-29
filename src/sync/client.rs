@@ -10,11 +10,12 @@ use std::time::{Duration, Instant};
 
 use crate::activity::Activity;
 use crate::debug_println;
-use crate::error::{DiscordIpcError, HandshakeFailureKind, InvalidResponseKind, Result};
+use crate::error::{DiscordIpcError, InvalidResponseKind, Result};
 use crate::ipc::{
-    constants, Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse,
-    Opcode, PipeConfig, ReadyEvent,
+    Command, EventData, HandshakePayload, IpcConnection, IpcMessage, IpcResponse, Opcode,
+    PipeConfig, ReadyEvent,
 };
+use crate::ipc::protocol::{validate_handshake_response, IpcConfig};
 use crate::nonce::generate_nonce;
 
 /// Discord IPC Client
@@ -25,12 +26,18 @@ pub struct DiscordIpcClient {
     timeout_ms: Option<u64>,
     pending_messages: VecDeque<PendingMessage>,
     connected: bool,
+    ipc_config: IpcConfig,
 }
 
 impl DiscordIpcClient {
     /// Create a new Discord IPC client (uses auto-discovery)
     pub fn new<S: Into<String>>(client_id: S) -> Result<Self> {
         Self::new_with_config(client_id, None)
+    }
+
+    /// Create a new Discord IPC client using auto-discovery and a custom protocol configuration.
+    pub fn new_with_ipc_config<S: Into<String>>(client_id: S, ipc_config: IpcConfig) -> Result<Self> {
+        Self::new_with_config_and_ipc_config(client_id, None, ipc_config)
     }
 
     /// Create a new Discord IPC client with pipe configuration
@@ -63,8 +70,17 @@ impl DiscordIpcClient {
         client_id: S,
         config: Option<PipeConfig>,
     ) -> Result<Self> {
+        Self::new_with_config_and_ipc_config(client_id, config, IpcConfig::default())
+    }
+
+    /// Create a new Discord IPC client with pipe and protocol configuration.
+    pub fn new_with_config_and_ipc_config<S: Into<String>>(
+        client_id: S,
+        config: Option<PipeConfig>,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new_with_config(config.clone())?;
+        let connection = IpcConnection::new_with_configs(config.clone(), ipc_config.clone())?;
 
         Ok(Self {
             client_id,
@@ -73,6 +89,7 @@ impl DiscordIpcClient {
             timeout_ms: None,
             pending_messages: VecDeque::new(),
             connected: false,
+            ipc_config,
         })
     }
 
@@ -92,6 +109,15 @@ impl DiscordIpcClient {
     /// Returns a `DiscordIpcError::ConnectionTimeout` if the connection times out
     pub fn new_with_timeout<S: Into<String>>(client_id: S, timeout_ms: u64) -> Result<Self> {
         Self::new_with_config_and_timeout(client_id, None, timeout_ms)
+    }
+
+    /// Create a new Discord IPC client with a timeout and custom protocol configuration.
+    pub fn new_with_timeout_and_ipc_config<S: Into<String>>(
+        client_id: S,
+        timeout_ms: u64,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
+        Self::new_with_config_timeout_and_ipc_config(client_id, None, timeout_ms, ipc_config)
     }
 
     /// Create a new Discord IPC client with pipe configuration and timeout
@@ -123,8 +149,27 @@ impl DiscordIpcClient {
         config: Option<PipeConfig>,
         timeout_ms: u64,
     ) -> Result<Self> {
+        Self::new_with_config_timeout_and_ipc_config(
+            client_id,
+            config,
+            timeout_ms,
+            IpcConfig::default(),
+        )
+    }
+
+    /// Create a new Discord IPC client with pipe configuration, timeout, and protocol configuration.
+    pub fn new_with_config_timeout_and_ipc_config<S: Into<String>>(
+        client_id: S,
+        config: Option<PipeConfig>,
+        timeout_ms: u64,
+        ipc_config: IpcConfig,
+    ) -> Result<Self> {
         let client_id = client_id.into();
-        let connection = IpcConnection::new_with_config_and_timeout(config.clone(), timeout_ms)?;
+        let connection = IpcConnection::new_with_configs_and_timeout(
+            config.clone(),
+            timeout_ms,
+            ipc_config.clone(),
+        )?;
 
         Ok(Self {
             client_id,
@@ -133,6 +178,7 @@ impl DiscordIpcClient {
             timeout_ms: Some(timeout_ms),
             pending_messages: VecDeque::new(),
             connected: false,
+            ipc_config,
         })
     }
 
@@ -150,7 +196,7 @@ impl DiscordIpcClient {
         self.connected = false;
 
         let handshake = HandshakePayload {
-            v: constants::IPC_VERSION,
+            v: self.ipc_config.ipc_version,
             client_id: self.client_id.clone(),
         };
 
@@ -161,29 +207,7 @@ impl DiscordIpcClient {
 
         let (opcode, response) = self.connection.recv()?;
         debug_println!("Handshake response: {}", response);
-
-        // Check for error in the response
-        if let Some(err) = response.get("error") {
-            if let (Some(code), Some(message)) = (
-                err.get("code").and_then(|c| c.as_i64()),
-                err.get("message").and_then(|m| m.as_str()),
-            ) {
-                return Err(DiscordIpcError::discord_error(code as i32, message));
-            } else {
-                return Err(DiscordIpcError::handshake_failed(
-                    HandshakeFailureKind::InvalidErrorPayload,
-                    format!("Invalid error format: {}", err),
-                ));
-            }
-        }
-
-        // Verify opcode is correct for handshake response
-        if !opcode.is_handshake_response() {
-            return Err(DiscordIpcError::handshake_failed(
-                HandshakeFailureKind::UnexpectedOpcode,
-                format!("Expected handshake response opcode, got {:?}", opcode),
-            ));
-        }
+        validate_handshake_response(opcode, &response)?;
 
         self.connected = true;
         Ok(response)
@@ -510,9 +534,13 @@ impl DiscordIpcClient {
 
         // Create a new connection with the same configuration
         self.connection = if let Some(timeout) = self.timeout_ms {
-            IpcConnection::new_with_config_and_timeout(self.pipe_config.clone(), timeout)?
+            IpcConnection::new_with_configs_and_timeout(
+                self.pipe_config.clone(),
+                timeout,
+                self.ipc_config.clone(),
+            )?
         } else {
-            IpcConnection::new_with_config(self.pipe_config.clone())?
+            IpcConnection::new_with_configs(self.pipe_config.clone(), self.ipc_config.clone())?
         };
         self.pending_messages.clear();
         self.connected = false;
