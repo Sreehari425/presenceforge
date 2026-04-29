@@ -21,7 +21,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 
 **Want to build your own RPC client?**
 
-- [Discord RPC from Scratch](docs/DISCORD_RPC_FROM_SCRATCH.md) - Notes from building this library from scratch, including protocol details and implementation tradeoffs.
+- [Discord RPC from Scratch](docs/DISCORD_RPC_FROM_SCRATCH.md) - this is What I found while building this library. I could be wrong about some things, so feel free to correct me!
 
 ## What Works
 
