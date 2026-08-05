@@ -6,7 +6,7 @@ A Rust library for Discord Rich Presence that actually works without the headach
 [![Rust](https://img.shields.io/badge/rust-1.81+-blue.svg)](https://www.rust-lang.org)
 ![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
-> **Note**: This is currently in development (v0.2.1). Things might break.
+> **Note**: This is currently in development (v0.3.0). Things might break.
 > This is a learning/hobby project.
 > Features and APIs may change in future versions.
 
@@ -42,18 +42,18 @@ Add PresenceForge to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-presenceforge = "0.2.1"
+presenceforge = "0.3.0"
 ```
 
 For async support, add one of the runtime features:
 
 ```toml
 [dependencies]
-presenceforge = { version = "0.2.1", features = ["tokio-runtime"] }
+presenceforge = { version = "0.3.0", features = ["tokio-runtime"] }
 # OR
-presenceforge = { version = "0.2.1", features = ["async-std-runtime"] }
+presenceforge = { version = "0.3.0", features = ["async-std-runtime"] }
 # OR
-presenceforge = { version = "0.2.1", features = ["smol-runtime"] }
+presenceforge = { version = "0.3.0", features = ["smol-runtime"] }
 ```
 
 ### Basic Usage (Synchronous)
