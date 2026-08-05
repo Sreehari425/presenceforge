@@ -3,7 +3,7 @@
 A Rust library for Discord Rich Presence that actually works without the headaches. No more fighting with the Discord SDK or dealing with complex C bindings.
 
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Sreehari425/presenceforge#license)
-[![Rust](https://img.shields.io/badge/rust-1.78+-blue.svg)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.81+-blue.svg)](https://www.rust-lang.org)
 ![Crates.io Version](https://img.shields.io/crates/v/presenceforge)
 
 > **Note**: This is currently in development (v0.2.1). Things might break.
